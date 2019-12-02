@@ -17,6 +17,7 @@ We would like to explore the following modalities of evolution:
  - Spread - bottleneck - spread - bottleneck (soft swipes)
  - RAC curves weighting effect - letting some fakes through vs blocking the true ones.
  - algorithms for the evolution: Genetic vs Particle Swarm optimization
+ - Optimization to induce into error a single discriminator rather than a cluster of them.
  
 
 ## Parameters so far: 
@@ -24,6 +25,12 @@ We would like to explore the following modalities of evolution:
  - Parameters of the layers 
  - Inheritance of weights from previous iterations? Training on the GAN/Disc pair owned by the
   players?
+  
+## Evolution meta-parameters:
+  - probability of mutation
+  - mutation magnitude prob
+    - How do we determine that magnitude? Idea - micro-parameters change magnitude.
+  - 
  
  
 ## Life deploy testing:
