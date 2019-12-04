@@ -24,5 +24,6 @@ scale.
     => Or modification of a layer parameter.
 
 TODO: how do we modify the width of a layer? GANs seem to be bottle-necked.
+TODO: the final/starting layers seem to be very different in GANs and discriminators.
 
 Can we talk about the beneficial vs nefarious mutation distribution?
