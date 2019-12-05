@@ -2,7 +2,9 @@ import numpy as np
 import torch.nn as nn
 
 
-def select_mating_pool(fitness_array, selection_option=""):
+def select_mating_pool(arena_fitness_array, selection_option=""):
+    # compute the fitness penalty imposed by the model complexity
+    # the best so far would be to look at the single forwards pass time
     pass
 
 
