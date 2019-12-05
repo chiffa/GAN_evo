@@ -24,6 +24,15 @@ scale.
     => Or modification of a layer parameter.
 
 TODO: how do we modify the width of a layer? GANs seem to be bottle-necked.
+    => Right now we will be just doing the linear map adapter to resize it all
 TODO: the final/starting layers seem to be very different in GANs and discriminators.
+    => it's mostly shapes.
+
+We also have meta-parameters that we can/should be optimizing:
+    - optimization algorithm
+    - learning rate
+
+And a sub-parameter; which is the base varition vector. although, is it involved in the
+classification?
 
 Can we talk about the beneficial vs nefarious mutation distribution?
