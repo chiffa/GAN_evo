@@ -1,48 +1,59 @@
 import torch.nn as nn
+import numpy as np
 from collections import namedtuple, OrderedDict
 
 # optimized for 2D tasks right now
 # it seems that inside and outside are equivalent.
 
-operational_layers = {nn.Conv2d: {},
-                      nn.ConvTranspose2d: {},
-                      nn.ReflectionPad2d: {},
-                      nn.ReplicationPad2d: {},
-                      nn.ZeroPad2d: {},
-                      nn.ConstantPad2d: {}
+operational_layers = {nn.Conv2d: {'in_channels': 'int',
+                                  'out_channels': 'int',
+                                  'kernel_size': 'int',
+                                  'stride': 'int',
+                                  'padding': 'int'},
 
-
+                      nn.ConvTranspose2d: {
+                          'in_channels': 'int',
+                          'out_channels': 'int',
+                          'kernel_size': 'int',
+                          'stride': 'int',
+                          'padding': 'int'},
+                      # nn.ReflectionPad2d: {},
+                      # nn.ReplicationPad2d: {},
+                      # nn.ZeroPad2d: {},
+                      # nn.ConstantPad2d: {}
 }
 
-Normalization_layers = {nn.BatchNorm2d: {},
-                        nn.GroupNorm: {},
-                        nn.InstanceNorm2d: {},
-                        nn.LayerNorm: {},
-
+Normalization_layers = {nn.BatchNorm2d: {'num_features': 'int'},
+                        # nn.GroupNorm: {},
+                        # nn.InstanceNorm2d: {},
+                        # nn.LayerNorm: {},
 }
 
-Non_linear_layers = {nn.HardTanh: {},
-                     nn.LeakyReLu: {},
-                     nn.Tanh: {},
-                     nn.Sigmoid: {},
-                     nn.Threshold: {},
+Non_linear_layers = {nn.ReLU: {},
+                     nn.LeakyReLU: {},
+                     # nn.Tanh: {},
+                     # nn.Sigmoid: {},
+                     # nn.HardTanh: {},
+                     # nn.Threshold: {},
 }
 
-post_processing_layers = {nn.MaxPool2d: {},
-                          nn.MaxUnpool2d: {},
-                          nn.AvgPool2d: {},
-
-
-}
+# post_processing_layers = {nn.MaxPool2d: {},
+#                           nn.MaxUnpool2d: {},
+#                           nn.AvgPool2d: {},
+# }
+#
 
 class Layer(object):
 
-    def __init__(self, in_shape: int,
+    def __init__(self,
+                 in_shape: int,
                  out_shape: int,
+                 latent_shape: int,
                  processing_layer=nn.Identity):
 
         self.in_shape = in_shape
         self.out_shape = out_shape
+        self.latent_maps = latent_shape
         self.processing_layer = processing_layer
         self.processing_layer_params = [in_shape, out_shape]
         self.nonlinear_layer = None
@@ -64,15 +75,15 @@ class Layer(object):
         if self.post_processing_layer is not None:
             load_dict += self.post_processing_layer(*self.post_processing_layer_params)
 
-
         return OrderedDict(load_dict)
 
     def mutate(self):
         pass
 
+
 class NetworkStructure(object):
 
-    def __init__(self, in_shape: int, out_shape: int):
+    def __init__(self, in_shape: np.array, out_shape: np.array):
         """
         Sets the in_shape and out_shape for the network.
 
@@ -125,7 +136,7 @@ class NetworkStructure(object):
         """
         base = list(self.structure[0].compile().items())
 
-        for layer in  self.structure[1:]:
+        for layer in self.structure[1:]:
             base += list(layer.compile().items())
 
         return OrderedDict(base)
@@ -154,3 +165,17 @@ class NetworkStructure(object):
             corrected_structure.append(next_layer)
         self.structure = corrected_structure
 
+
+if __name__ == "__main__":
+    input_layer = Layer(16, 40, nn.ConvTranspose2d)
+    input_layer.nonlinear_layer = nn.ReLU
+    input_layer.normalization_layer = nn.BatchNorm2d(160)
+
+    output_layer = Layer(40, 64*64, nn.ConvTranspose2d)
+    output_layer.nonlinear_layer = nn.Tanh
+
+    net_abstract_representation = NetworkStructure(np.array([16, ]), np.array([64, 64]))
+    net_abstract_representation.structure = [input_layer, output_layer]
+
+    net_abstract_representation.apply_normalization_policy()
+    print(net_abstract_representation.compile())

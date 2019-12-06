@@ -32,7 +32,10 @@ We also have meta-parameters that we can/should be optimizing:
     - optimization algorithm
     - learning rate
 
-And a sub-parameter; which is the base varition vector. although, is it involved in the
+And a sub-parameter; which is the base variation vector. although, is it involved in the
 classification?
 
 Can we talk about the beneficial vs nefarious mutation distribution?
+
+TODO: the problem is that the convolutional levels perform a modificaiton of the size that is not
+ trivial. It's basically dims_out = (dims_in + padding * 2 - kernel_size + stride) // stride

@@ -133,23 +133,48 @@ class Generator(nn.Module):
         self.ngpu = ngpu
         self.main = nn.Sequential(
             # input is Z, going into a convolution
-            nn.ConvTranspose2d(latent_vector_size, generator_latent_maps * 8, 4, 1, 0, bias=False),
-            nn.BatchNorm2d(generator_latent_maps * 8),
-            nn.ReLU(True),
+            nn.ConvTranspose2d(in_channels=latent_vector_size,
+                               out_channels=generator_latent_maps * 8,
+                               kernel_size=4,
+                               stride=1,
+                               padding=0,
+                               bias=False),
+            nn.BatchNorm2d(num_features=generator_latent_maps * 8),
+            nn.ReLU(inplace=True),
             # state size. (ngf*8) x 4 x 4
-            nn.ConvTranspose2d(generator_latent_maps * 8, generator_latent_maps * 4, 4, 2, 1, bias=False),
+            nn.ConvTranspose2d(in_channels=generator_latent_maps * 8,
+                               out_channels=generator_latent_maps * 4,
+                               kernel_size=4,
+                               stride=2,
+                               padding=1,
+                               bias=False),
             nn.BatchNorm2d(generator_latent_maps * 4),
             nn.ReLU(True),
             # state size. (ngf*4) x 8 x 8
-            nn.ConvTranspose2d(generator_latent_maps * 4, generator_latent_maps * 2, 4, 2, 1, bias=False),
+            nn.ConvTranspose2d(in_channels=generator_latent_maps * 4,
+                               out_channels=generator_latent_maps * 2,
+                               kernel_size=4,
+                               stride=2,
+                               padding=1,
+                               bias=False),
             nn.BatchNorm2d(generator_latent_maps * 2),
             nn.ReLU(True),
             # state size. (ngf*2) x 16 x 16
-            nn.ConvTranspose2d(generator_latent_maps * 2, generator_latent_maps, 4, 2, 1, bias=False),
+            nn.ConvTranspose2d(in_channels=generator_latent_maps * 2,
+                               out_channels=generator_latent_maps,
+                               kernel_size=4,
+                               stride=2,
+                               padding=1,
+                               bias=False),
             nn.BatchNorm2d(generator_latent_maps),
             nn.ReLU(True),
             # state size. (ngf) x 32 x 32
-            nn.ConvTranspose2d(generator_latent_maps, number_of_colors, 4, 2, 1, bias=False),
+            nn.ConvTranspose2d(in_channels=generator_latent_maps,
+                               out_channels=number_of_colors,
+                               kernel_size=4,
+                               stride=2,
+                               padding=1,
+                               bias=False),
             nn.Tanh()
             # state size. (nc) x 64 x 64
         )
@@ -162,11 +187,11 @@ class Generator(nn.Module):
         return output
 
 
-netG = Generator(ngpu).to(device)
-netG.apply(weights_init)
+Generator_instance = Generator(ngpu).to(device)
+Generator_instance.apply(weights_init)
 if opt.netG != '':
-    netG.load_state_dict(torch.load(opt.netG))
-print(netG)
+    Generator_instance.load_state_dict(torch.load(opt.netG))
+print(Generator_instance)
 
 
 class Discriminator(nn.Module):
@@ -175,7 +200,12 @@ class Discriminator(nn.Module):
         self.ngpu = ngpu
         self.main = nn.Sequential(
             # input is (nc) x 64 x 64
-            nn.Conv2d(number_of_colors, discriminator_latent_maps, 4, 2, 1, bias=False),
+            nn.Conv2d(in_channels=number_of_colors,
+                      out_channels=discriminator_latent_maps,
+                      kernel_size=4,
+                      stride=2,  # affects the size of the out map (divides)
+                      padding=1,  # affects the size of the out map
+                      bias=False),
             nn.LeakyReLU(0.2, inplace=True),
             # state size. (ndf) x 32 x 32
             nn.Conv2d(discriminator_latent_maps, discriminator_latent_maps * 2, 4, 2, 1, bias=False),
@@ -203,21 +233,25 @@ class Discriminator(nn.Module):
         return output.view(-1, 1).squeeze(1)
 
 
-netD = Discriminator(ngpu).to(device)
-netD.apply(weights_init)
+Discriminator_instance = Discriminator(ngpu).to(device)
+Discriminator_instance.apply(weights_init)
 if opt.netD != '':
-    netD.load_state_dict(torch.load(opt.netD))
-print(netD)
+    Discriminator_instance.load_state_dict(torch.load(opt.netD))
+print(Discriminator_instance)
 
 criterion = nn.BCELoss()
 
-fixed_noise = torch.randn(opt.batchSize, latent_vector_size, 1, 1, device=device)
+fixed_noise = torch.randn(opt.batchSize,
+                          latent_vector_size,
+                          1,
+                          1,
+                          device=device)
 real_label = 1
 fake_label = 0
 
 # setup optimizer
-optimizerD = optim.Adam(netD.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
-optimizerG = optim.Adam(netG.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
+optimizerD = optim.Adam(Discriminator_instance.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
+optimizerG = optim.Adam(Generator_instance.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
 
 for epoch in range(opt.niter):
     # that will go into arena
@@ -226,21 +260,21 @@ for epoch in range(opt.niter):
         # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
         ###########################
         # train with real
-        netD.zero_grad()
+        Discriminator_instance.zero_grad()
         real_cpu = data[0].to(device)
         batch_size = real_cpu.size(0)
         label = torch.full((batch_size,), real_label, device=device)
 
-        output = netD(real_cpu)
+        output = Discriminator_instance(real_cpu)
         errD_real = criterion(output, label)
         errD_real.backward()
         D_x = output.mean().item()
 
         # train with fake
         noise = torch.randn(batch_size, latent_vector_size, 1, 1, device=device)
-        fake = netG(noise)
+        fake = Generator_instance(noise)
         label.fill_(fake_label)
-        output = netD(fake.detach())
+        output = Discriminator_instance(fake.detach())
         errD_fake = criterion(output, label)
         errD_fake.backward()
         D_G_z1 = output.mean().item()
@@ -250,9 +284,9 @@ for epoch in range(opt.niter):
         ############################
         # (2) Update G network: maximize log(D(G(z)))
         ###########################
-        netG.zero_grad()
+        Generator_instance.zero_grad()
         label.fill_(real_label)  # fake labels are real for generator cost
-        output = netD(fake)
+        output = Discriminator_instance(fake)
         errG = criterion(output, label)
         errG.backward()
         D_G_z2 = output.mean().item()
@@ -265,11 +299,11 @@ for epoch in range(opt.niter):
             vutils.save_image(real_cpu,
                     '%s/real_samples.png' % opt.outf,
                     normalize=True)
-            fake = netG(fixed_noise)
+            fake = Generator_instance(fixed_noise)
             vutils.save_image(fake.detach(),
                     '%s/fake_samples_epoch_%03d.png' % (opt.outf, epoch),
                     normalize=True)
 
     # do checkpointing
-    torch.save(netG.state_dict(), '%s/netG_epoch_%d.pth' % (opt.outf, epoch))
-    torch.save(netD.state_dict(), '%s/netD_epoch_%d.pth' % (opt.outf, epoch))
+    torch.save(Generator_instance.state_dict(), '%s/netG_epoch_%d.pth' % (opt.outf, epoch))
+    torch.save(Discriminator_instance.state_dict(), '%s/netD_epoch_%d.pth' % (opt.outf, epoch))
