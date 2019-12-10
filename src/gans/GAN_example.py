@@ -22,8 +22,8 @@ parser.add_argument('--imageSize', type=int, default=64, help='the height / widt
 parser.add_argument('--nz', type=int, default=100, help='size of the latent z vector')
 parser.add_argument('--ngf', type=int, default=64)  # generator latent feature map
 parser.add_argument('--ndf', type=int, default=64)  # discriminator latent feature map
-parser.add_argument('--niter', type=int, default=25, help='number of epochs to train for')
-parser.add_argument('--lr', type=float, default=0.0002, help='learning rate, default=0.0002')
+parser.add_argument('--training_epochs', type=int, default=25, help='number of epochs to train for')
+parser.add_argument('--learning_rate', type=float, default=0.0002, help='learning rate, default=0.0002')
 parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for adam. default=0.5')
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
 parser.add_argument('--ngpu', type=int, default=1, help='number of GPUs to use')
@@ -128,6 +128,7 @@ def weights_init(m):
 
 
 class Generator(nn.Module):
+
     def __init__(self, ngpu):
         super(Generator, self).__init__()
         self.ngpu = ngpu
@@ -195,9 +196,11 @@ print(Generator_instance)
 
 
 class Discriminator(nn.Module):
+
     def __init__(self, ngpu):
         super(Discriminator, self).__init__()
         self.ngpu = ngpu
+
         self.main = nn.Sequential(
             # input is (nc) x 64 x 64
             nn.Conv2d(in_channels=number_of_colors,
