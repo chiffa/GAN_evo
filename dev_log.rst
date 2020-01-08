@@ -39,3 +39,23 @@ Can we talk about the beneficial vs nefarious mutation distribution?
 
 TODO: the problem is that the convolutional levels perform a modificaiton of the size that is not
  trivial. It's basically dims_out = (dims_in + padding * 2 - kernel_size + stride) // stride
+
+
+After some testing:
+===================
+- GANs seem to overfit by "hacking" the reward of its discriminator.
+- Which means that we are getting a competition from different architecture that would not overfit.
+- Once we did one-to-one training, we perform all GANs vs all discriminators round, training them
+ once and then selecting Discriminators on the second round.
+
+For the efficiency, the single pairs need to be trained separately, and then their models saved
+and then send into the arena on their own.
+
+Application logiistics:
+=======================
+- Logistics to store the gans and discriminators (mongodb)
+    - for that we can use the state dict of pytorch and move it in and out of mongodb, pulling in
+     and out of the python instances with a model.state_dict() and model.load_state_dict()
+     model.eval()
+- Logistics to pipe some of the inputs into some of the outputs
+- The training pair should be done in the module, binding temporary parameters overall
