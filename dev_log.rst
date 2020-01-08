@@ -51,11 +51,13 @@ After some testing:
 For the efficiency, the single pairs need to be trained separately, and then their models saved
 and then send into the arena on their own.
 
-Application logiistics:
+Application logistics:
 =======================
 - Logistics to store the gans and discriminators (mongodb)
     - for that we can use the state dict of pytorch and move it in and out of mongodb, pulling in
      and out of the python instances with a model.state_dict() and model.load_state_dict()
      model.eval()
 - Logistics to pipe some of the inputs into some of the outputs
-- The training pair should be done in the module, binding temporary parameters overall
+- The training pair should be done in the module, binding temporary parameters overall.
+- In the current configuration, we can start parallel training of the pairs that are mapped with
+signature of training parameters + timestamp, then stored in a mongodb

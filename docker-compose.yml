@@ -1,0 +1,13 @@
+mongo-container:
+  image: mongo:3.4.2
+  environment:
+      # provide your credentials here
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=rootPassXXX
+  ports:
+    - "27017:27017"
+  volumes:
+      # if you wish to setup additional user accounts specific per DB or with different roles you can use following entry point
+    - "$PWD/mongo-entrypoint/:/docker-entrypoint-initdb.d/"
+  # no --auth is needed here as presence of username and password add this option automatically
+  command: mongod
