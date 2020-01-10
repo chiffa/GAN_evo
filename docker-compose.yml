@@ -3,7 +3,7 @@ mongo-container:
   environment:
       # provide your credentials here
       - MONGO_INITDB_ROOT_USERNAME=root
-      - MONGO_INITDB_ROOT_PASSWORD=rootPassXXX
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGOROOTPASS}
   ports:
     - "27017:27017"
   volumes:
