@@ -11,60 +11,13 @@ import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
 from src.gans.nn_structure import NetworkStructure
+from src.mongo_interface import push_to_db, get_from_db
 from os.path import abspath
+from random import sample
+import string
+import numpy as np
 
-
-
-
-#
-# image_folder = "./images"
-# number_of_colors = 1
-# image_size = 64
-#
-# memoized_discriminator = ""  # just the path towards the memoization location
-# memoized_generator = ""  # just the path towars the memoized location
-#
-# memoization_location = "./memoized"
-# print(abspath(memoization_location))
-#
-#
-# # Makes a directory where things are dumped.
-# try:
-#     os.makedirs(memoization_location)
-# except OSError:
-#     pass
-#
-#
-# workers = 2
-# batch_size = 64
-# ngpu = 1
-#
-# latent_vector_size = 64
-# generator_latent_maps = 64
-# discriminator_latent_maps = 64
-#
-# learning_rate = 0.0002
-# beta1 = 0.5
-# training_epochs = 25
-#
-#
-# # device = torch.device("cpu")
-# device = torch.device("cuda:1")
-#
-#
-# dataset = dset.MNIST(root=image_folder, download=True,
-#                            transform=transforms.Compose([
-#                                transforms.Resize(image_size),
-#                                transforms.ToTensor(),
-#                                transforms.Normalize((0.5,), (0.5,)),
-#                            ]))
-#
-#
-# dataloader = torch.utils.data.DataLoader(dataset,
-#                                          batch_size=batch_size,
-#                                          shuffle=True,
-#                                          num_workers=int(workers))
-
+char_set = string.ascii_uppercase + string.digits
 
 # custom weights initialization called on netG and netD
 def weights_init(m):
@@ -195,19 +148,24 @@ class Discriminator(nn.Module):
         return output.view(-1, 1).squeeze(1)
 
 
-class Gan_Trainer(object):
+class GanTrainer(object):
 
     def __init__(self, dataset,
                     ngpu=1, workers=2, batch_size=64,
                     latent_vector_size=64, generator_latent_maps=64, discriminator_latent_maps=64,
                     learning_rate=0.0002, beta1=0.5, training_epochs=25,
                     device="cuda:1", memoization_location="./memoized",
-                    number_of_colors=1, image_dimensions=64):
+                    number_of_colors=1, image_dimensions=64, image_type='mnist'):
+
+        self.random_tag = ''.join(sample(char_set * 6, 6))
+
+        self.elo = 1500
+        self.matches = 0
 
         self.number_of_colors = number_of_colors
         self.memoization_location = memoization_location
         self.image_dimensions = image_dimensions
-
+        self.image_type = image_type
 
         print(abspath(memoization_location))
 
@@ -248,6 +206,7 @@ class Gan_Trainer(object):
         self.Discriminator_instance.apply(weights_init)
 
         self.criterion = nn.BCELoss()
+
         self.fixed_noise = torch.randn(batch_size,
                                   latent_vector_size,
                                   1,
@@ -260,7 +219,7 @@ class Gan_Trainer(object):
         self.optimizerD = optim.Adam(self.Discriminator_instance.parameters(),
                                      lr=learning_rate, betas=(beta1, 0.999))
         self.optimizerG = optim.Adam(self.Generator_instance.parameters(),
-                                                  lr=learning_rate, betas=(beta1, 0.999))
+                                     lr=learning_rate, betas=(beta1, 0.999))
 
 
     def retrieve_from_memoization(self, memoized_discriminator="", memoized_generator=""):
@@ -271,41 +230,47 @@ class Gan_Trainer(object):
         if memoized_discriminator != '':
             self.Discriminator_instance.load_state_dict(torch.load(memoized_discriminator))
 
-    def do_pair_training(self):
+    def hyperparameters_key(self):
+        key = {'image_chars': (self.image_type,
+                               self.image_dimensions,
+                               type(mnist_dataset).__name__),
+               'training_params': (self.workers,
+                                   self.batch_size),
+               'latent_maps_params': (self.latent_vector_size,
+                                      self.generator_latent_maps,
+                                      self.discriminator_latent_maps),
+               'training_parameters': (self.learning_rate, self.beta1,
+                                       self.training_epochs,
+                                       self.real_label, self.fake_label,
+                                       type(self.criterion).__name__,
+                                       type(self.optimizerG).__name__,
+                                       type(self.optimizerD).__name__)}
+        return key
 
-        # # initialize the generator
-        # Generator_instance = Generator(ngpu).to(device)
-        # Generator_instance.apply(weights_init)
-        # if memoized_generator != '':
-        #     Generator_instance.load_state_dict(torch.load(memoized_generator))
-        # print(Generator_instance)
-        #
-        # # initialize the discriminator
-        # Discriminator_instance = Discriminator(ngpu).to(device)
-        # Discriminator_instance.apply(weights_init)
-        # if memoized_discriminator != '':
-        #     Discriminator_instance.load_state_dict(torch.load(memoized_discriminator))
-        # print(Discriminator_instance)
-        #
-        # # set the minmax game criterion
-        # criterion = nn.BCELoss()
-        #
-        # fixed_noise = torch.randn(batch_size,
-        #                           latent_vector_size,
-        #                           1,
-        #                           1,
-        #                           device=device)
-        # real_label = 1
-        # fake_label = 0
-        #
-        # # set the optimizers
-        # optimizerD = optim.Adam(Discriminator_instance.parameters(), lr=learning_rate,
-        #                         betas=(beta1, 0.999))
-        # optimizerG = optim.Adam(Generator_instance.parameters(), lr=learning_rate,
-        #                         betas=(beta1, 0.999))
+    def save(self):
+        payload = {'Generator_state': self.Generator_instance.state_dict(),
+                   'Discriminator_state': self.Discriminator_instance.state_dict()}
+        payload = payload.update(self.hyperparameters_key())
+
+        push_to_db(payload, 'gan-disc')
+
+    def restore(self):
+        query_result = get_from_db(self.hyperparameters_key(), 'gan-disc')
+
+        if query_result is not None:
+            self.Generator_instance.load_state_dict(query_result['Generator_state'])
+            self.Discriminator_instance.load_state_dict(query_result['Discriminator_state'])
+
+    def update_match_results(self):
+        pass
+
+
+    def do_pair_training(self, _epochs=None):
+
+        if _epochs is not None:
+            self.training_epochs = _epochs
 
         for epoch in range(self.training_epochs):
-            # that will go into arena
             for i, data in enumerate(self.dataloader, 0):
                 ############################
                 # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
@@ -371,10 +336,74 @@ class Gan_Trainer(object):
                 self.memoization_location, epoch))
 
 
+    def match(self, oponnent):
+
+        if self.hyperparameters_key()['image_chars'] != \
+            oponnent.hyperparameters_key()['image_chars']:
+            raise(Exception('incompatible images are being compared: %s (self) vs %s' %
+                            (self.hyperparameters_key()['image_chars'],
+                             oponnent.hyperparameters_key()['image_chars'])))
+
+        for i, data in enumerate(self.dataloader, 0):
+            real_cpu = data[0].to(self.device)
+            _batch_size = real_cpu.size(0)
+            label = torch.full((_batch_size,), self.real_label, device=self.device)
+            output = self.Discriminator_instance(real_cpu)
+            self_errD_real = self.criterion(output, label)
+            # self discriminator performance on real
+
+            real_cpu = data[0].to(oponnent.device)
+            _batch_size = real_cpu.size(0)
+            label = torch.full((_batch_size,), oponnent.real_label, device=oponnent.device)
+            output = oponnent.Discriminator_instance(real_cpu)
+            oponnent_errD_real = oponnent.criterion(output, label)
+            # opponnent discriminator performance on real data
+
+            noise = torch.randn(_batch_size, oponnent.latent_vector_size, 1, 1,
+                                device=oponnent.device)
+            fake = oponnent.Generator_instance(noise)
+            label.fill_(self.fake_label)
+            output = self.Discriminator_instance(fake.detach())
+            self_average_error_on_gan = output.mean().item()
+            self_errD_fake = self.criterion(output, label)
+            # self discriminator performance on opponent's fake
+
+            noise = torch.randn(_batch_size, self.latent_vector_size, 1, 1,
+                                device=self.device)
+            fake = self.Generator_instance(noise)
+            label.fill_(oponnent.fake_label)
+            output = oponnent.Discriminator_instance(fake.detach())
+            oponnent_average_error_on_gan = output.mean().item()
+            oponnent_errD_fake = oponnent.criterion(output, label)
+            # oponnent performance on my self's fake
+
+            # TODO: we need to perform as well a comparison between gans within self and the
+            #  opponent
+
+            self_total_disc_error = self_errD_real + self_errD_fake
+            oponnent_total_disc_error = oponnent_errD_real + oponnent_errD_fake
+
+            margin = self_total_disc_error - oponnent_total_disc_error
+
+            if margin > 0: # I won
+                margin_multiplier = np.log(abs(margin) + 1) * (2.2 /(self.elo -
+                                                                     oponnent.elo)*0.001+2.2)
+                self.elo += margin_multiplier/2
+                oponnent.elo -= margin_multiplier/2
+
+            elif margin < 0: # oponnent won
+                margin_multiplier = np.log(abs(margin) + 1) * (2.2 / (oponnent.elo -
+                                                                      self.elo) * 0.001 + 2.2)
+                oponnent.elo += margin_multiplier / 2
+                self.elo -= margin_multiplier / 2
+
+
+
 if __name__ == "__main__":
     image_folder = "./image"
     image_size = 64
     number_of_colors = 1
+    imtype = 'mnist'
 
     mnist_dataset = dset.MNIST(root=image_folder, download=True,
                            transform=transforms.Compose([
@@ -383,7 +412,9 @@ if __name__ == "__main__":
                                transforms.Normalize((0.5,), (0.5,)),
                            ]))
 
-    mnist_gan_trainer = Gan_Trainer(mnist_dataset,
-                                    number_of_colors=number_of_colors,
-                                    image_dimensions=image_size)
+    mnist_gan_trainer = GanTrainer(mnist_dataset,
+                                   number_of_colors=number_of_colors,
+                                   image_dimensions=image_size,
+                                   image_type=imtype)
+
     mnist_gan_trainer.do_pair_training()
