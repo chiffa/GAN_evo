@@ -11,7 +11,7 @@ import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
 from src.gans.nn_structure import NetworkStructure
-from src.mongo_interface import push_to_db, get_from_db
+from src.mongo_interface import push_to_db, get_from_db, update_in_db
 from os.path import abspath
 from random import sample
 import string
@@ -157,7 +157,7 @@ class GanTrainer(object):
                     device="cuda:1", memoization_location="./memoized",
                     number_of_colors=1, image_dimensions=64, image_type='mnist'):
 
-        self.random_tag = ''.join(sample(char_set * 6, 6))
+        self.random_tag = ''.join(sample(char_set * 10, 10))
 
         self.disc_elo = 1500
         self.gen_elo = 1500
@@ -232,7 +232,8 @@ class GanTrainer(object):
             self.Discriminator_instance.load_state_dict(torch.load(memoized_discriminator))
 
     def hyperparameters_key(self):
-        key = {'image_chars': (self.image_type,
+        key = {'random_tag': self.random_tag,
+               'image_chars': (self.image_type,
                                self.image_dimensions,
                                type(mnist_dataset).__name__),
                'training_params': (self.workers,
@@ -250,7 +251,8 @@ class GanTrainer(object):
 
     def save(self):
         payload = {'Generator_state': self.Generator_instance.state_dict(),
-                   'Discriminator_state': self.Discriminator_instance.state_dict()}
+                   'Discriminator_state': self.Discriminator_instance.state_dict(),
+                   'score_ratings': (self.matches, self.disc_elo, self.gen_elo)}
         payload = payload.update(self.hyperparameters_key())
 
         push_to_db(payload, 'gan-disc')
@@ -261,9 +263,11 @@ class GanTrainer(object):
         if query_result is not None:
             self.Generator_instance.load_state_dict(query_result['Generator_state'])
             self.Discriminator_instance.load_state_dict(query_result['Discriminator_state'])
+            self.matches, self.disc_elo, self.gen_elo = query_result['score_ratings']
 
     def update_match_results(self):
-        pass
+        update_in_db({'random_tag': self.random_tag}, 'gan-disc',
+                     {'score_ratings': (self.matches, self.disc_elo, self.gen_elo)})
 
 
     def do_pair_training(self, _epochs=None):
@@ -286,7 +290,7 @@ class GanTrainer(object):
                 output = self.Discriminator_instance(real_cpu)
                 errD_real = self.criterion(output, label)
                 errD_real.backward()
-                D_x = output.mean().item()
+                average_disc_success_on_real = output.mean().item()
 
                 # train with fake
                 noise = torch.randn(_batch_size, self.latent_vector_size, 1, 1, device=self.device)
@@ -312,12 +316,21 @@ class GanTrainer(object):
                 output = self.Discriminator_instance(fake)
                 errG = self.criterion(output, label)
                 errG.backward()
-                D_G_z2 = output.mean().item()
+                average_disc_error_on_gan_post_update = output.mean().item()
                 self.optimizerG.step()
 
-                print('[%d/%d][%d/%d] Loss_D: %.4f Loss_G: %.4f D(x): %.4f D(G(z)): %.4f / %.4f'
+                print('[%02d/%02d][%03d/%03d]'
+                      '\tdisc loss: %.4f'
+                      '\tgen loss: %.4f'
+                      '\tdisc success on real: %.4f'
+                      '\tdisc error on gen pre/post update: %.4f / %.4f'
                       % (epoch, self.training_epochs, i, len(self.dataloader),
-                         total_discriminator_error.item(), errG.item(), D_x, average_disc_error_on_gan, D_G_z2))
+                         total_discriminator_error.item(),
+                         errG.item(),
+                         average_disc_success_on_real,
+                         average_disc_error_on_gan,
+                         average_disc_error_on_gan_post_update),
+                      end='\r')
 
                 if i % 100 == 0:  # that's a bit of a bruteforce for logging.
                     vutils.save_image(real_cpu,
@@ -442,6 +455,9 @@ class GanTrainer(object):
             self.matches += 1
             oponnent.matches += 1
 
+            self.update_match_results()
+            oponnent.update_match_results()
+
 
 if __name__ == "__main__":
     image_folder = "./image"
@@ -461,4 +477,11 @@ if __name__ == "__main__":
                                    image_dimensions=image_size,
                                    image_type=imtype)
 
+    print(mnist_gan_trainer.random_tag)
+
     mnist_gan_trainer.do_pair_training()
+    mnist_gan_trainer.save()
+
+    # ========
+
+    # gan_1 = mnist_gan_trainer.restore()

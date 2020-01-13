@@ -61,3 +61,6 @@ Application logistics:
 - The training pair should be done in the module, binding temporary parameters overall.
 - In the current configuration, we can start parallel training of the pairs that are mapped with
 signature of training parameters + timestamp, then stored in a mongodb
+
+- We now need to spin up a method to find all the image-type associated GAN pairs, filter by
+fitness and perform a match round between them.
