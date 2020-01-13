@@ -159,7 +159,8 @@ class GanTrainer(object):
 
         self.random_tag = ''.join(sample(char_set * 6, 6))
 
-        self.elo = 1500
+        self.disc_elo = 1500
+        self.gen_elo = 1500
         self.matches = 0
 
         self.number_of_colors = number_of_colors
@@ -359,13 +360,32 @@ class GanTrainer(object):
             oponnent_errD_real = oponnent.criterion(output, label)
             # opponnent discriminator performance on real data
 
+            noise = torch.randn(_batch_size, self.latent_vector_size, 1, 1,
+                                device=self.device)
+            fake = self.Generator_instance(noise)
+            label.fill_(self.fake_label)
+            output = self.Discriminator_instance(fake.detach())
+            self_self_average_error_on_gan = output.mean().item()
+            self_self_errD_fake = self.criterion(output, label)
+            # self discriminator performance on self fake
+
+            noise = torch.randn(_batch_size, oponnent.latent_vector_size, 1, 1,
+                                device=oponnent.device)
+            fake = oponnent.Generator_instance(noise)
+            label.fill_(oponnent.fake_label)
+            output = oponnent.Discriminator_instance(fake.detach())
+            oponnent_oponnent_average_error_on_gan = output.mean().item()
+            oponnent_oponnent_errD_fake = oponnent.criterion(output, label)
+            # oponnent performance on my oponnent's fake
+            
+            
             noise = torch.randn(_batch_size, oponnent.latent_vector_size, 1, 1,
                                 device=oponnent.device)
             fake = oponnent.Generator_instance(noise)
             label.fill_(self.fake_label)
             output = self.Discriminator_instance(fake.detach())
-            self_average_error_on_gan = output.mean().item()
-            self_errD_fake = self.criterion(output, label)
+            self_oponnent_average_error_on_gan = output.mean().item()
+            self_oponnent_errD_fake = self.criterion(output, label)
             # self discriminator performance on opponent's fake
 
             noise = torch.randn(_batch_size, self.latent_vector_size, 1, 1,
@@ -373,30 +393,54 @@ class GanTrainer(object):
             fake = self.Generator_instance(noise)
             label.fill_(oponnent.fake_label)
             output = oponnent.Discriminator_instance(fake.detach())
-            oponnent_average_error_on_gan = output.mean().item()
-            oponnent_errD_fake = oponnent.criterion(output, label)
+            oponnent_self_average_error_on_gan = output.mean().item()
+            oponnent_self_errD_fake = oponnent.criterion(output, label)
             # oponnent performance on my self's fake
 
-            # TODO: we need to perform as well a comparison between gans within self and the
-            #  opponent
+            self_discriminator_performance = self_errD_real + \
+                                             self_self_errD_fake + \
+                                             self_oponnent_errD_fake
 
-            self_total_disc_error = self_errD_real + self_errD_fake
-            oponnent_total_disc_error = oponnent_errD_real + oponnent_errD_fake
+            oponnent_discriminator_perfomance = self_errD_real + \
+                                                oponnent_oponnent_errD_fake + \
+                                                oponnent_self_errD_fake
 
-            margin = self_total_disc_error - oponnent_total_disc_error
+            self_gan_performance = np.min(oponnent_self_average_error_on_gan,
+                                          oponnent_oponnent_average_error_on_gan)
 
-            if margin > 0: # I won
-                margin_multiplier = np.log(abs(margin) + 1) * (2.2 /(self.elo -
-                                                                     oponnent.elo)*0.001+2.2)
+            oponnent_gan_performance = np.min(self_oponnent_average_error_on_gan,
+                                              self_self_average_error_on_gan)
+
+
+            disc_margin = self_discriminator_performance - oponnent_discriminator_perfomance
+            gen_margin = self_gan_performance - oponnent_gan_performance
+
+            if disc_margin > 0: # I won
+                margin_multiplier = np.log(abs(disc_margin) + 1) * (2.2 /(self.disc_elo -
+                                                                     oponnent.disc_elo)*0.001+2.2)
                 self.elo += margin_multiplier/2
                 oponnent.elo -= margin_multiplier/2
 
-            elif margin < 0: # oponnent won
-                margin_multiplier = np.log(abs(margin) + 1) * (2.2 / (oponnent.elo -
-                                                                      self.elo) * 0.001 + 2.2)
+            elif disc_margin < 0: # oponnent won
+                margin_multiplier = np.log(abs(disc_margin) + 1) * (2.2 / (oponnent.disc_elo -
+                                                                      self.disc_elo) * 0.001 + 2.2)
                 oponnent.elo += margin_multiplier / 2
                 self.elo -= margin_multiplier / 2
 
+            if gen_margin > 0: # I won
+                margin_multiplier = np.log(abs(gen_margin) + 1) * (2.2 /(self.gen_elo -
+                                                                     oponnent.gen_elo)*0.001+2.2)
+                self.elo += margin_multiplier/2
+                oponnent.elo -= margin_multiplier/2
+
+            elif gen_margin < 0: # oponnent won
+                margin_multiplier = np.log(abs(gen_margin) + 1) * (2.2 / (oponnent.gen_elo -
+                                                                      self.gen_elo) * 0.001 + 2.2)
+                oponnent.elo += margin_multiplier / 2
+                self.elo -= margin_multiplier / 2
+
+            self.matches += 1
+            oponnent.matches += 1
 
 
 if __name__ == "__main__":
