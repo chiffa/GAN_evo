@@ -53,14 +53,17 @@ and then send into the arena on their own.
 
 Application logistics:
 =======================
-- Logistics to store the gans and discriminators (mongodb)
-    - for that we can use the state dict of pytorch and move it in and out of mongodb, pulling in
+DONE - Logistics to store the gans and discriminators (mongodb)
+DONE - for that we can use the state dict of pytorch and move it in and out of mongodb,
+pulling in
      and out of the python instances with a model.state_dict() and model.load_state_dict()
      model.eval()
-- Logistics to pipe some of the inputs into some of the outputs
-- The training pair should be done in the module, binding temporary parameters overall.
-- In the current configuration, we can start parallel training of the pairs that are mapped with
-signature of training parameters + timestamp, then stored in a mongodb
+? - Logistics to pipe some of the inputs into some of the outputs
+DONE - The training pair should be done in the module, binding temporary parameters overall.
+DONE - In the current configuration, we can start parallel training of the pairs that are mapped
+with signature of training parameters + unique ID, then stored in a mongodb
 
 - We now need to spin up a method to find all the image-type associated GAN pairs, filter by
 fitness and perform a match round between them.
+DONE: - Add a numpy array to store various metrics, add it to the GAN pair graph and store in DB.
+-Plot it as well.

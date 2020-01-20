@@ -44,6 +44,16 @@ def update_in_db(key, type, update_payload):
                                           {"$set": update_payload})
 
 
+def list_data_by_filter(filter, type):
+
+    if type not in ['gan-disc', 'image']:
+        raise(Exception("%s is not a supported collection in the database" % type))
+
+    collection = client[type]
+
+    return collection.find(filter)  # that returns a cursor - aka an iterator
+
+
 if __name__ == "__main__":
     gans_db = client['gan-disc']
     image_db = client['image']

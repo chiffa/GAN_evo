@@ -155,7 +155,9 @@ class GanTrainer(object):
                     latent_vector_size=64, generator_latent_maps=64, discriminator_latent_maps=64,
                     learning_rate=0.0002, beta1=0.5, training_epochs=25,
                     device="cuda:1", memoization_location="./memoized",
-                    number_of_colors=1, image_dimensions=64, image_type='mnist'):
+                    number_of_colors=1, image_dimensions=64, image_type='mnist',
+                    from_dict=None):
+
 
         self.random_tag = ''.join(sample(char_set * 10, 10))
 
@@ -206,6 +208,7 @@ class GanTrainer(object):
                                                     self.number_of_colors).to(device)
         self.Discriminator_instance.apply(weights_init)
 
+
         self.criterion = nn.BCELoss()
 
         self.fixed_noise = torch.randn(batch_size,
@@ -221,6 +224,34 @@ class GanTrainer(object):
                                      lr=learning_rate, betas=(beta1, 0.999))
         self.optimizerG = optim.Adam(self.Generator_instance.parameters(),
                                      lr=learning_rate, betas=(beta1, 0.999))
+
+        self.training_trace = []
+
+        if from_dict is not None:
+            self.random_tag = from_dict['random_tag']
+            self.image_type, self.image_dimensions, dataset_name = from_dict['image_chars']
+            self.workers, self.batch_size = from_dict['training_params']
+            self.latent_vector_size, self.generator_latent_maps, self.discriminator_latent_maps,\
+                criterion_name, G_optimizer_name, D_optimizer_name = \
+                from_dict['training_parameters']
+            self.Generator_instance.load_state_dict(from_dict['Generator_state'])
+            self.Discriminator_instance.load_state_dict(from_dict['Discriminator_state'])
+            self.matches, self.disc_elo, self.gen_elo = from_dict['score_ratings']
+            self.training_trace = from_dict['training_trace']
+
+            if type(mnist_dataset).__name__ != dataset_name or \
+                type(self.criterion).__name__ != criterion_name or \
+                type(self.optimizerG).__name__ != G_optimizer_name or \
+                type(self.optimizerD).__name__ != D_optimizer_name:
+                raise Exception('Inconsistent names: '
+                                '\n\tdataset: %s || %s'
+                                '\n\tcriterion: %s || %s'
+                                '\n\toptimizerG: %s || %s'
+                                '\n\toptimizerD: %s || %s' %
+                                (type(mnist_dataset).__name__, dataset_name,
+                                 type(self.criterion).__name__, criterion_name,
+                                 type(self.optimizerG).__name__, G_optimizer_name,
+                                 type(self.optimizerD).__name__, D_optimizer_name))
 
 
     def retrieve_from_memoization(self, memoized_discriminator="", memoized_generator=""):
@@ -252,7 +283,8 @@ class GanTrainer(object):
     def save(self):
         payload = {'Generator_state': self.Generator_instance.state_dict(),
                    'Discriminator_state': self.Discriminator_instance.state_dict(),
-                   'score_ratings': (self.matches, self.disc_elo, self.gen_elo)}
+                   'score_ratings': (self.matches, self.disc_elo, self.gen_elo),
+                   'training_trace': self.training_trace}
         payload = payload.update(self.hyperparameters_key())
 
         push_to_db(payload, 'gan-disc')
@@ -268,6 +300,7 @@ class GanTrainer(object):
     def update_match_results(self):
         update_in_db({'random_tag': self.random_tag}, 'gan-disc',
                      {'score_ratings': (self.matches, self.disc_elo, self.gen_elo)})
+
 
 
     def do_pair_training(self, _epochs=None):
@@ -331,6 +364,13 @@ class GanTrainer(object):
                          average_disc_error_on_gan,
                          average_disc_error_on_gan_post_update),
                       end='\r')
+
+                self.training_trace.append([epoch, i,
+                         total_discriminator_error.item(),
+                         errG.item(),
+                         average_disc_success_on_real,
+                         average_disc_error_on_gan,
+                         average_disc_error_on_gan_post_update])
 
                 if i % 100 == 0:  # that's a bit of a bruteforce for logging.
                     vutils.save_image(real_cpu,
@@ -428,25 +468,25 @@ class GanTrainer(object):
             disc_margin = self_discriminator_performance - oponnent_discriminator_perfomance
             gen_margin = self_gan_performance - oponnent_gan_performance
 
-            if disc_margin > 0: # I won
+            if disc_margin > 0:  # my disc won
                 margin_multiplier = np.log(abs(disc_margin) + 1) * (2.2 /(self.disc_elo -
                                                                      oponnent.disc_elo)*0.001+2.2)
                 self.elo += margin_multiplier/2
                 oponnent.elo -= margin_multiplier/2
 
-            elif disc_margin < 0: # oponnent won
+            elif disc_margin < 0:  # oponnent's disc won
                 margin_multiplier = np.log(abs(disc_margin) + 1) * (2.2 / (oponnent.disc_elo -
                                                                       self.disc_elo) * 0.001 + 2.2)
                 oponnent.elo += margin_multiplier / 2
                 self.elo -= margin_multiplier / 2
 
-            if gen_margin > 0: # I won
+            if gen_margin > 0:  # my gen won
                 margin_multiplier = np.log(abs(gen_margin) + 1) * (2.2 /(self.gen_elo -
                                                                      oponnent.gen_elo)*0.001+2.2)
                 self.elo += margin_multiplier/2
                 oponnent.elo -= margin_multiplier/2
 
-            elif gen_margin < 0: # oponnent won
+            elif gen_margin < 0:  # oponnent's gen won
                 margin_multiplier = np.log(abs(gen_margin) + 1) * (2.2 / (oponnent.gen_elo -
                                                                       self.gen_elo) * 0.001 + 2.2)
                 oponnent.elo += margin_multiplier / 2
