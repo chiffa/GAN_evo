@@ -11,13 +11,15 @@ import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
 from src.gans.nn_structure import NetworkStructure
-from src.mongo_interface import push_to_db, get_from_db, update_in_db
+from src.mongo_interface import gan_pair_push_to_db, gan_pair_get_from_db, gan_pair_update_in_db
 from os.path import abspath
 from random import sample
 import string
 import numpy as np
 
+
 char_set = string.ascii_uppercase + string.digits
+
 
 # custom weights initialization called on netG and netD
 def weights_init(m):
@@ -285,12 +287,12 @@ class GanTrainer(object):
                    'Discriminator_state': self.Discriminator_instance.state_dict(),
                    'score_ratings': (self.matches, self.disc_elo, self.gen_elo),
                    'training_trace': self.training_trace}
-        payload = payload.update(self.hyperparameters_key())
+        payload.update(self.hyperparameters_key())
 
-        push_to_db(payload, 'gan-disc')
+        gan_pair_push_to_db(payload)
 
     def restore(self):
-        query_result = get_from_db(self.hyperparameters_key(), 'gan-disc')
+        query_result = gan_pair_get_from_db(self.hyperparameters_key())
 
         if query_result is not None:
             self.Generator_instance.load_state_dict(query_result['Generator_state'])
@@ -298,8 +300,8 @@ class GanTrainer(object):
             self.matches, self.disc_elo, self.gen_elo = query_result['score_ratings']
 
     def update_match_results(self):
-        update_in_db({'random_tag': self.random_tag}, 'gan-disc',
-                     {'score_ratings': (self.matches, self.disc_elo, self.gen_elo)})
+        gan_pair_update_in_db({'random_tag': self.random_tag},
+                              {'score_ratings': (self.matches, self.disc_elo, self.gen_elo)})
 
 
 
@@ -353,10 +355,10 @@ class GanTrainer(object):
                 self.optimizerG.step()
 
                 print('[%02d/%02d][%03d/%03d]'
-                      '\tdisc loss: %.4f'
-                      '\tgen loss: %.4f'
-                      '\tdisc success on real: %.4f'
-                      '\tdisc error on gen pre/post update: %.4f / %.4f'
+                      '\tdisc loss: %.4f; '
+                      '\tgen loss: %.4f; '
+                      '\tdisc success on real: %.4f; '
+                      '\tdisc error on gen pre/post update: %.4f / %.4f; '
                       % (epoch, self.training_epochs, i, len(self.dataloader),
                          total_discriminator_error.item(),
                          errG.item(),
@@ -388,6 +390,7 @@ class GanTrainer(object):
                 self.memoization_location, epoch))
             torch.save(self.Discriminator_instance.state_dict(), '%s/netD_epoch_%d.pth' % (
                 self.memoization_location, epoch))
+            print('')
 
 
     def match(self, oponnent):
@@ -515,7 +518,8 @@ if __name__ == "__main__":
     mnist_gan_trainer = GanTrainer(mnist_dataset,
                                    number_of_colors=number_of_colors,
                                    image_dimensions=image_size,
-                                   image_type=imtype)
+                                   image_type=imtype,
+                                   training_epochs=1)
 
     print(mnist_gan_trainer.random_tag)
 
