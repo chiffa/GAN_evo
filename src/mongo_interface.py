@@ -84,11 +84,13 @@ def gan_pair_list_by_filter(filter_dict):
 
 def gan_pair_purge_db():
 
-    r1 = client['gan-disc']['main'].delete_many({})
-    r2 = client['image']['main'].delte_many({})
+    r1 = gan_trainer_collection.delete_many({})
+    r1d = disc_collection.delete_many({})
+    r1g = gan_trainer_collection.delete_many({})
+    # r2 = client['image']['main'].delte_many({})
 
-    print("deletion results: gan/disc: %s; images: %s" % (r1.deleted_count,
-                                                          r2.deleted_count))
+    print("deletion results: train/gen/disc: %d/%d/%d" % (
+        r1.deleted_count, r1g.deleted_count, r1d.deleted_count))
 
 
 if __name__ == "__main__":

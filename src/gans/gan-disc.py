@@ -518,8 +518,7 @@ if __name__ == "__main__":
     mnist_gan_trainer = GanTrainer(mnist_dataset,
                                    number_of_colors=number_of_colors,
                                    image_dimensions=image_size,
-                                   image_type=imtype,
-                                   training_epochs=1)
+                                   image_type=imtype)
 
     print(mnist_gan_trainer.random_tag)
 
