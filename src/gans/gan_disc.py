@@ -471,6 +471,8 @@ class GanTrainer(object):
             disc_margin = self_discriminator_performance - oponnent_discriminator_perfomance
             gen_margin = self_gan_performance - oponnent_gan_performance
 
+            # TODO: that should be a discriminator and generator elo scores.
+
             if disc_margin > 0:  # my disc won
                 margin_multiplier = np.log(abs(disc_margin) + 1) * (2.2 /(self.disc_elo -
                                                                      oponnent.disc_elo)*0.001+2.2)
@@ -494,6 +496,13 @@ class GanTrainer(object):
                                                                       self.gen_elo) * 0.001 + 2.2)
                 oponnent.elo += margin_multiplier / 2
                 self.elo -= margin_multiplier / 2
+
+            print("\t\tself disc perf: %.4f; self gen perf: %.4f"
+                  "\t\toppo disc perf: %.4f; oppo gen perf: %.4f"
+                  "\tupdated elo scores: self:%.2f\t oppo:%.2f"%
+                  (self_discriminator_performance, self_gan_performance,
+                   oponnent_discriminator_perfomance, oponnent_gan_performance,
+                   self.elo, oponnent.elo))
 
             self.matches += 1
             oponnent.matches += 1

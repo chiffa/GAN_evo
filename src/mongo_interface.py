@@ -4,6 +4,7 @@ import pprint
 import pickle
 from bson.objectid import ObjectId
 
+
 root_password = os.environ['MONGOROOTPASS']
 print(root_password)
 client = MongoClient(username='root', password=root_password)
@@ -79,7 +80,15 @@ def gan_pair_update_in_db(key, update_payload):
 
 def gan_pair_list_by_filter(filter_dict):
 
-    return gan_trainer_collection.find(filter_dict)  # that returns a cursor - aka an iterator
+    for payload in gan_trainer_collection.find(filter_dict):
+        gen_id = payload['Generator_state']
+        disc_id = payload['Discriminator_state']
+        gen_dump = pickle.loads(gen_collection.find_one({"_id": ObjectId(gen_id)})['weights'])
+        disc_dump = pickle.loads(disc_collection.find_one({"_id": ObjectId(disc_id)})['weights'])
+        payload['Generator_state'] = gen_dump
+        payload['Discriminator_state'] = disc_dump
+
+        yield payload
 
 
 def gan_pair_purge_db():
@@ -94,14 +103,10 @@ def gan_pair_purge_db():
 
 
 if __name__ == "__main__":
-    gans_db = client['gan-disc']
-    gans_db_main = gans_db['main']
-    gans_db_gen = gans_db['generator']
-    gans_db_disc = gans_db['discriminator']
 
-    image_db = client['image']
-    image_db_main = image_db['main']
-
-    gan_pair_purge_db()
+    # gan_pair_purge_db()
+    for item in gan_pair_list_by_filter({}):
+        pprint.pprint(item['random_tag'])
+    pass
 
 
