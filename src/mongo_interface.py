@@ -26,8 +26,8 @@ def gan_pair_push_to_db(payload):
     gen_dump = payload['Generator_state']
     disc_dump = payload['Discriminator_state']
 
-    gen_id = gen_collection.insert_one({'weights': pickle.dumps(gen_dump)})
-    disc_id = disc_collection.insert_one({'weights': pickle.dumps(disc_dump)})
+    gen_id = gen_collection.insert_one({'weights': pickle.dumps(gen_dump)}).inserted_id
+    disc_id = disc_collection.insert_one({'weights': pickle.dumps(disc_dump)}).inserted_id
 
     payload['Generator_state'] = str(gen_id)
     payload['Discriminator_state'] = str(disc_id)
@@ -95,7 +95,7 @@ def gan_pair_purge_db():
 
     r1 = gan_trainer_collection.delete_many({})
     r1d = disc_collection.delete_many({})
-    r1g = gan_trainer_collection.delete_many({})
+    r1g = gen_collection.delete_many({})
     # r2 = client['image']['main'].delte_many({})
 
     print("deletion results: train/gen/disc: %d/%d/%d" % (
@@ -105,6 +105,7 @@ def gan_pair_purge_db():
 if __name__ == "__main__":
 
     # gan_pair_purge_db()
+
     for item in gan_pair_list_by_filter({}):
         pprint.pprint(item['random_tag'])
     pass
