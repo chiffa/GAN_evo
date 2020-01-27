@@ -162,6 +162,7 @@ class GanTrainer(object):
 
 
         self.random_tag = ''.join(sample(char_set * 10, 10))
+        self.dataset_type = type(dataset).__name__
 
         self.disc_elo = 1500
         self.gen_elo = 1500
@@ -233,7 +234,10 @@ class GanTrainer(object):
             self.random_tag = from_dict['random_tag']
             self.image_type, self.image_dimensions, dataset_name = from_dict['image_chars']
             self.workers, self.batch_size = from_dict['training_params']
-            self.latent_vector_size, self.generator_latent_maps, self.discriminator_latent_maps,\
+            print(from_dict['training_parameters'])
+            self.latent_vector_size, self.generator_latent_maps, self.discriminator_latent_maps =\
+                from_dict['latent_maps_params']
+            self.learning_rate, self.beta1, self.training_epochs, self.real_label, self.fake_label,\
                 criterion_name, G_optimizer_name, D_optimizer_name = \
                 from_dict['training_parameters']
             self.Generator_instance.load_state_dict(from_dict['Generator_state'])
@@ -241,7 +245,7 @@ class GanTrainer(object):
             self.matches, self.disc_elo, self.gen_elo = from_dict['score_ratings']
             self.training_trace = from_dict['training_trace']
 
-            if type(mnist_dataset).__name__ != dataset_name or \
+            if self.dataset_type != dataset_name or \
                 type(self.criterion).__name__ != criterion_name or \
                 type(self.optimizerG).__name__ != G_optimizer_name or \
                 type(self.optimizerD).__name__ != D_optimizer_name:
@@ -250,7 +254,7 @@ class GanTrainer(object):
                                 '\n\tcriterion: %s || %s'
                                 '\n\toptimizerG: %s || %s'
                                 '\n\toptimizerD: %s || %s' %
-                                (type(mnist_dataset).__name__, dataset_name,
+                                (self.dataset_type, dataset_name,
                                  type(self.criterion).__name__, criterion_name,
                                  type(self.optimizerG).__name__, G_optimizer_name,
                                  type(self.optimizerD).__name__, D_optimizer_name))
@@ -268,7 +272,7 @@ class GanTrainer(object):
         key = {'random_tag': self.random_tag,
                'image_chars': (self.image_type,
                                self.image_dimensions,
-                               type(mnist_dataset).__name__),
+                               self.dataset_type),
                'training_params': (self.workers,
                                    self.batch_size),
                'latent_maps_params': (self.latent_vector_size,
@@ -461,54 +465,76 @@ class GanTrainer(object):
                                                 oponnent_oponnent_errD_fake + \
                                                 oponnent_self_errD_fake
 
-            self_gan_performance = np.min(oponnent_self_average_error_on_gan,
-                                          oponnent_oponnent_average_error_on_gan)
+            self_gan_performance = np.min([oponnent_self_average_error_on_gan,
+                                          oponnent_oponnent_average_error_on_gan])
 
-            oponnent_gan_performance = np.min(self_oponnent_average_error_on_gan,
-                                              self_self_average_error_on_gan)
+            oponnent_gan_performance = np.min([self_oponnent_average_error_on_gan,
+                                              self_self_average_error_on_gan])
 
 
-            disc_margin = self_discriminator_performance - oponnent_discriminator_perfomance
+            disc_margin = (self_discriminator_performance -
+                           oponnent_discriminator_perfomance).cpu().detach().float()
             gen_margin = self_gan_performance - oponnent_gan_performance
 
-            # TODO: that should be a discriminator and generator elo scores.
+            # print(disc_margin)
+            # print(gen_margin)
+
+            # TODO: ugly hacks from here on
+
+            if self.disc_elo == oponnent.disc_elo:
+                self.disc_elo -= 5
+                oponnent.disc_elo += 5
+
+            if self.gen_elo == oponnent.gen_elo:
+                self.gen_elo -= 5
+                oponnent.gen_elo+=5
 
             if disc_margin > 0:  # my disc won
                 margin_multiplier = np.log(abs(disc_margin) + 1) * (2.2 /(self.disc_elo -
                                                                      oponnent.disc_elo)*0.001+2.2)
-                self.elo += margin_multiplier/2
-                oponnent.elo -= margin_multiplier/2
+                self.disc_elo += margin_multiplier/2
+                oponnent.disc_elo -= margin_multiplier/2
 
             elif disc_margin < 0:  # oponnent's disc won
                 margin_multiplier = np.log(abs(disc_margin) + 1) * (2.2 / (oponnent.disc_elo -
                                                                       self.disc_elo) * 0.001 + 2.2)
-                oponnent.elo += margin_multiplier / 2
-                self.elo -= margin_multiplier / 2
+                oponnent.disc_elo += margin_multiplier / 2
+                self.disc_elo -= margin_multiplier / 2
 
             if gen_margin > 0:  # my gen won
                 margin_multiplier = np.log(abs(gen_margin) + 1) * (2.2 /(self.gen_elo -
                                                                      oponnent.gen_elo)*0.001+2.2)
-                self.elo += margin_multiplier/2
-                oponnent.elo -= margin_multiplier/2
+                self.gen_elo += margin_multiplier/2
+                oponnent.gen_elo -= margin_multiplier/2
 
             elif gen_margin < 0:  # oponnent's gen won
                 margin_multiplier = np.log(abs(gen_margin) + 1) * (2.2 / (oponnent.gen_elo -
                                                                       self.gen_elo) * 0.001 + 2.2)
-                oponnent.elo += margin_multiplier / 2
-                self.elo -= margin_multiplier / 2
+                oponnent.gen_elo += margin_multiplier / 2
+                self.gen_elo -= margin_multiplier / 2
 
-            print("\t\tself disc perf: %.4f; self gen perf: %.4f"
-                  "\t\toppo disc perf: %.4f; oppo gen perf: %.4f"
-                  "\tupdated elo scores: self:%.2f\t oppo:%.2f"%
+            print("\self disc/gen perf: %.4f/%4.f;"
+                  "\toppo disc/gen perf: %.4f/%.4f;"
+                  "\tupdated disc elo scores: self/opp:%.2f/%.2f\t"
+                  "\tupdated gen elo scores: self/opp:%.2f/%.2f" %
                   (self_discriminator_performance, self_gan_performance,
                    oponnent_discriminator_perfomance, oponnent_gan_performance,
-                   self.elo, oponnent.elo))
+                   self.disc_elo, oponnent.disc_elo,
+                   self.gen_elo, oponnent.gen_elo),
+                  end='\r')
 
             self.matches += 1
             oponnent.matches += 1
 
-            self.update_match_results()
-            oponnent.update_match_results()
+        self.disc_elo = float(self.disc_elo)
+        self.gen_elo = float(self.gen_elo)
+
+        oponnent.disc_elo = float(oponnent.disc_elo)
+        oponnent.gen_elo = float(oponnent.gen_elo)
+
+        self.update_match_results()
+        oponnent.update_match_results()
+        print('\n')
 
 
 if __name__ == "__main__":
@@ -527,7 +553,8 @@ if __name__ == "__main__":
     mnist_gan_trainer = GanTrainer(mnist_dataset,
                                    number_of_colors=number_of_colors,
                                    image_dimensions=image_size,
-                                   image_type=imtype)
+                                   image_type=imtype,
+                                   training_epochs=25)
 
     print(mnist_gan_trainer.random_tag)
 
