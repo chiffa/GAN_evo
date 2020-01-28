@@ -102,6 +102,16 @@ def gan_pair_purge_db():
         r1.deleted_count, r1g.deleted_count, r1d.deleted_count))
 
 
+def gan_pair_eliminate(filter_dict):
+
+    for payload in gan_trainer_collection.find(filter_dict):
+        gen_id = payload['Generator_state']
+        disc_id = payload['Discriminator_state']
+        gen_collection.delete_one({"_id": ObjectId(gen_id)})
+        disc_collection.delete_one({"_id": ObjectId(disc_id)})
+        gan_trainer_collection.delete_one({"_id": payload['_id']})
+
+
 if __name__ == "__main__":
 
     # gan_pair_purge_db()

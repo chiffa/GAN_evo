@@ -40,6 +40,7 @@ Can we talk about the beneficial vs nefarious mutation distribution?
 TODO: the problem is that the convolutional levels perform a modificaiton of the size that is not
  trivial. It's basically dims_out = (dims_in + padding * 2 - kernel_size + stride) // stride
 
+Solution: perform a resize from the tensorflow toolkit.
 
 After some testing:
 ===================
@@ -67,3 +68,10 @@ with signature of training parameters + unique ID, then stored in a mongodb
 fitness and perform a match round between them.
 DONE: - Add a numpy array to store various metrics, add it to the GAN pair graph and store in DB.
 -Plot it as well.
+
+Containirization:
+=================
+We will need to manage a cluster of containers on the proper cloud with the help of python script if
+ we are to deploy. right now we synchronize on the genetic_algo. Ideally, once finished training,
+ every new algo will pull all available opponnents and decide from whom he will be inheriting next.
+ => Asynchronius fight
