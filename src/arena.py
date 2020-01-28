@@ -1,4 +1,4 @@
-from src.mongo_interface import gan_pair_list_by_filter
+from src.mongo_interface import gan_pair_list_by_filter, gan_pair_update_in_db
 from src.gans.gan_disc import GanTrainer
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
@@ -9,8 +9,6 @@ def run_match(dataset, limiter={}):
     participants = []
 
     for trainer in gan_pair_list_by_filter(limiter):
-        print(trainer['random_tag'])
-        print([(key, type(value)) for key,value in trainer.items()])
         participants.append(GanTrainer(dataset, from_dict=trainer))
 
     for A, B in combinations(participants, 2):
@@ -20,6 +18,40 @@ def run_match(dataset, limiter={}):
                A.disc_elo, A.gen_elo,
                B.disc_elo, B.gen_elo))
         A.match(B)
+
+    print("rankings by discriminator score:")
+    disc_score_accumulator = 0
+    for trainer in sorted(participants, key=lambda x: x.disc_elo, reverse=True):
+        print("\t %s: %.2f" % (trainer.random_tag, trainer.disc_elo))
+        disc_score_accumulator += trainer.disc_elo
+
+    print("total discriminator elo score: %.2f" % disc_score_accumulator)
+
+    print("rankings by generator score:")
+    gen_score_accumulator = 0
+    for trainer in sorted(participants, key=lambda x: x.gen_elo, reverse=True):
+        print("\t %s: %.2f" % (trainer.random_tag, trainer.gen_elo))
+        gen_score_accumulator += trainer.gen_elo
+
+    print("total generator elo score: %.2f" % gen_score_accumulator)
+
+    print("models meta-parameters:")
+    for trainer in participants:
+        print('training %s with following parameter array: '
+              'bs: %s, dlv: %s, glv: %s, '
+              'lr: %.5f, b: %.2f, tep: %s' % (trainer.random_tag,
+                                              trainer.batch_size, trainer.latent_vector_size,
+                                              trainer.generator_latent_maps,
+                                              trainer.learning_rate, trainer.beta1,
+                                              trainer.training_epochs))
+
+
+def reset_scores(dataset, limiter={}):
+    participants = []
+
+    for trainer in gan_pair_list_by_filter(limiter):
+        gan_pair_update_in_db({'random_tag': trainer['random_tag']},
+                              {'score_ratings': (0, 1500, 1500)})
 
 
 if __name__ == "__main__":
@@ -34,4 +66,7 @@ if __name__ == "__main__":
                                transforms.ToTensor(),
                                transforms.Normalize((0.5,), (0.5,)),
                            ]))
+
+    # TODO: implement a proper limiter wrt the dataset base and immutables
+    # reset_scores(dataset=mnist_dataset)
     run_match(dataset=mnist_dataset)
