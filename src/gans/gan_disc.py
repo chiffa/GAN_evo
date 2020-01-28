@@ -31,6 +31,10 @@ def weights_init(m):
         m.bias.data.fill_(0)
 
 
+def margin_to_score_update():
+    pass
+
+
 class Generator(nn.Module):
 
     def __init__(self, ngpu, latent_vector_size, generator_latent_maps, number_of_colors):
@@ -234,12 +238,19 @@ class GanTrainer(object):
             self.random_tag = from_dict['random_tag']
             self.image_type, self.image_dimensions, dataset_name = from_dict['image_chars']
             self.workers, self.batch_size = from_dict['training_params']
-            print(from_dict['training_parameters'])
             self.latent_vector_size, self.generator_latent_maps, self.discriminator_latent_maps =\
                 from_dict['latent_maps_params']
             self.learning_rate, self.beta1, self.training_epochs, self.real_label, self.fake_label,\
                 criterion_name, G_optimizer_name, D_optimizer_name = \
                 from_dict['training_parameters']
+            self.Discriminator_instance = Discriminator(ngpu,
+                                                        self.latent_vector_size,
+                                                        self.discriminator_latent_maps,
+                                                        self.number_of_colors).to(device)
+            self.Generator_instance = Generator(ngpu,
+                                                self.latent_vector_size,
+                                                self.generator_latent_maps,
+                                                self.number_of_colors).to(self.device)
             self.Generator_instance.load_state_dict(from_dict['Generator_state'])
             self.Discriminator_instance.load_state_dict(from_dict['Discriminator_state'])
             self.matches, self.disc_elo, self.gen_elo = from_dict['score_ratings']
@@ -313,6 +324,14 @@ class GanTrainer(object):
 
         if _epochs is not None:
             self.training_epochs = _epochs
+
+        print('training %s with following parameter array: '
+              'bs: %s, dlv: %s, glv: %s, '
+              'lr: %.5f, b: %.2f, tep: %s' % (self.random_tag,
+                                              self.batch_size, self.latent_vector_size,
+                                              self.generator_latent_maps,
+                                              self.learning_rate, self.beta1,
+                                              self.training_epochs))
 
         for epoch in range(self.training_epochs):
             for i, data in enumerate(self.dataloader, 0):
@@ -425,8 +444,8 @@ class GanTrainer(object):
             fake = self.Generator_instance(noise)
             label.fill_(self.fake_label)
             output = self.Discriminator_instance(fake.detach())
-            self_self_average_error_on_gan = output.mean().item()
-            self_self_errD_fake = self.criterion(output, label)
+            self_gen_self_disc_av_err = output.mean().item()
+            self_gen_self_disc_errD = self.criterion(output, label)
             # self discriminator performance on self fake
 
             noise = torch.randn(_batch_size, oponnent.latent_vector_size, 1, 1,
@@ -434,8 +453,8 @@ class GanTrainer(object):
             fake = oponnent.Generator_instance(noise)
             label.fill_(oponnent.fake_label)
             output = oponnent.Discriminator_instance(fake.detach())
-            oponnent_oponnent_average_error_on_gan = output.mean().item()
-            oponnent_oponnent_errD_fake = oponnent.criterion(output, label)
+            opp_gen_opp_disc_av_err = output.mean().item()
+            opp_gen_opp_disc_errD = oponnent.criterion(output, label)
             # oponnent performance on my oponnent's fake
             
             
@@ -444,8 +463,8 @@ class GanTrainer(object):
             fake = oponnent.Generator_instance(noise)
             label.fill_(self.fake_label)
             output = self.Discriminator_instance(fake.detach())
-            self_oponnent_average_error_on_gan = output.mean().item()
-            self_oponnent_errD_fake = self.criterion(output, label)
+            opp_gen_self_disc_av_err = output.mean().item()
+            opp_gen_self_disc_errD = self.criterion(output, label)
             # self discriminator performance on opponent's fake
 
             noise = torch.randn(_batch_size, self.latent_vector_size, 1, 1,
@@ -453,27 +472,27 @@ class GanTrainer(object):
             fake = self.Generator_instance(noise)
             label.fill_(oponnent.fake_label)
             output = oponnent.Discriminator_instance(fake.detach())
-            oponnent_self_average_error_on_gan = output.mean().item()
-            oponnent_self_errD_fake = oponnent.criterion(output, label)
+            self_gen_opp_disc_av_err = output.mean().item()
+            self_gen_opp_disc_errD = oponnent.criterion(output, label)
             # oponnent performance on my self's fake
 
-            self_discriminator_performance = self_errD_real + \
-                                             self_self_errD_fake + \
-                                             self_oponnent_errD_fake
+            self_discriminator_error = self_errD_real + \
+                                             self_gen_self_disc_errD + \
+                                             opp_gen_self_disc_errD
 
-            oponnent_discriminator_perfomance = self_errD_real + \
-                                                oponnent_oponnent_errD_fake + \
-                                                oponnent_self_errD_fake
+            oponnent_discriminator_error = oponnent_errD_real + \
+                                                opp_gen_opp_disc_errD + \
+                                                self_gen_opp_disc_errD
 
-            self_gan_performance = np.min([oponnent_self_average_error_on_gan,
-                                          oponnent_oponnent_average_error_on_gan])
+            self_gan_performance = np.min([self_gen_opp_disc_av_err,
+                                           self_gen_self_disc_av_err])
 
-            oponnent_gan_performance = np.min([self_oponnent_average_error_on_gan,
-                                              self_self_average_error_on_gan])
+            oponnent_gan_performance = np.min([opp_gen_self_disc_av_err,
+                                              opp_gen_opp_disc_av_err])
 
 
-            disc_margin = (self_discriminator_performance -
-                           oponnent_discriminator_perfomance).cpu().detach().float()
+            disc_margin = ( -self_discriminator_error +
+                           oponnent_discriminator_error).cpu().detach().float()
             gen_margin = self_gan_performance - oponnent_gan_performance
 
             # print(disc_margin)
@@ -513,12 +532,13 @@ class GanTrainer(object):
                 oponnent.gen_elo += margin_multiplier / 2
                 self.gen_elo -= margin_multiplier / 2
 
-            print("\self disc/gen perf: %.4f/%4.f;"
+            print("\tself disc/gen perf: %.4f/%4.f;"
                   "\toppo disc/gen perf: %.4f/%.4f;"
                   "\tupdated disc elo scores: self/opp:%.2f/%.2f\t"
                   "\tupdated gen elo scores: self/opp:%.2f/%.2f" %
-                  (self_discriminator_performance, self_gan_performance,
-                   oponnent_discriminator_perfomance, oponnent_gan_performance,
+                  (self_discriminator_error.cpu().detach().float(),
+                   self_gan_performance,
+                   oponnent_discriminator_error, oponnent_gan_performance,
                    self.disc_elo, oponnent.disc_elo,
                    self.gen_elo, oponnent.gen_elo),
                   end='\r')
@@ -554,7 +574,7 @@ if __name__ == "__main__":
                                    number_of_colors=number_of_colors,
                                    image_dimensions=image_size,
                                    image_type=imtype,
-                                   training_epochs=25)
+                                   training_epochs=15)
 
     print(mnist_gan_trainer.random_tag)
 
