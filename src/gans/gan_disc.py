@@ -12,7 +12,7 @@ import torchvision.transforms as transforms
 import torchvision.utils as vutils
 from src.gans.nn_structure import NetworkStructure
 from src.mongo_interface import gan_pair_push_to_db, gan_pair_get_from_db, gan_pair_update_in_db
-from os.path import abspath
+from os.path import abspath, join
 from random import sample
 import string
 import numpy as np
@@ -157,12 +157,12 @@ class Discriminator(nn.Module):
 class GanTrainer(object):
 
     def __init__(self, dataset,
-                    ngpu=1, workers=2, batch_size=64,
-                    latent_vector_size=64, generator_latent_maps=64, discriminator_latent_maps=64,
-                    learning_rate=0.0002, beta1=0.5, training_epochs=25,
-                    device="cuda:1", memoization_location="./memoized",
-                    number_of_colors=1, image_dimensions=64, image_type='mnist',
-                    from_dict=None):
+                 ngpu=1, workers=2, batch_size=64,
+                 latent_vector_size=64, generator_latent_maps=64, discriminator_latent_maps=64,
+                 learning_rate=0.0002, beta1=0.5, training_epochs=25,
+                 device="cuda:1", memoization_location="./memoized",
+                 number_of_colors=1, image_dimensions=64, image_type='mnist',
+                 from_dict=None, sample_image_folder='~/trainer_samples'):
 
 
         self.random_tag = ''.join(sample(char_set * 10, 10))
@@ -177,7 +177,7 @@ class GanTrainer(object):
         self.image_dimensions = image_dimensions
         self.image_type = image_type
 
-        print(abspath(memoization_location))
+        # print(abspath(memoization_location))
 
         # Makes a directory where things are dumped.
         try:
@@ -269,6 +269,9 @@ class GanTrainer(object):
                                  type(self.criterion).__name__, criterion_name,
                                  type(self.optimizerG).__name__, G_optimizer_name,
                                  type(self.optimizerD).__name__, D_optimizer_name))
+
+        self.image_path = abspath(sample_image_folder)
+        os.makedirs(self.image_path, exist_ok=True)
 
 
     def retrieve_from_memoization(self, memoized_discriminator="", memoized_generator=""):
@@ -476,6 +479,8 @@ class GanTrainer(object):
             self_gen_opp_disc_errD = oponnent.criterion(output, label)
             # oponnent performance on my self's fake
 
+            # TODO: move away from cross-entropyto the error on the relevant factors in %
+
             self_discriminator_error = self_errD_real + \
                                              self_gen_self_disc_errD + \
                                              opp_gen_self_disc_errD
@@ -484,15 +489,17 @@ class GanTrainer(object):
                                                 opp_gen_opp_disc_errD + \
                                                 self_gen_opp_disc_errD
 
-            self_gan_performance = np.min([self_gen_opp_disc_av_err,
-                                           self_gen_self_disc_av_err])
 
-            oponnent_gan_performance = np.min([opp_gen_self_disc_av_err,
-                                              opp_gen_opp_disc_av_err])
+            self_gan_performance = min(self_gen_opp_disc_av_err,
+                                           self_gen_self_disc_av_err)
+
+            oponnent_gan_performance = min(opp_gen_self_disc_av_err,
+                                              opp_gen_opp_disc_av_err)
 
 
             disc_margin = ( -self_discriminator_error +
                            oponnent_discriminator_error).cpu().detach().float()
+
             gen_margin = self_gan_performance - oponnent_gan_performance
 
             # print(disc_margin)
@@ -532,13 +539,14 @@ class GanTrainer(object):
                 oponnent.gen_elo += margin_multiplier / 2
                 self.gen_elo -= margin_multiplier / 2
 
-            print("\tself disc/gen perf: %.4f/%4.f;"
-                  "\toppo disc/gen perf: %.4f/%.4f;"
+            print("\tself disc err/gen perf: %.2E/%.2E;"
+                  "\toppo disc err/gen perf: %.2E/%.2E;"
                   "\tupdated disc elo scores: self/opp:%.2f/%.2f\t"
                   "\tupdated gen elo scores: self/opp:%.2f/%.2f" %
                   (self_discriminator_error.cpu().detach().float(),
                    self_gan_performance,
-                   oponnent_discriminator_error, oponnent_gan_performance,
+                   oponnent_discriminator_error,
+                   oponnent_gan_performance,
                    self.disc_elo, oponnent.disc_elo,
                    self.gen_elo, oponnent.gen_elo),
                   end='\r')
@@ -557,11 +565,36 @@ class GanTrainer(object):
         print('\n')
 
 
+    def sample_images(self, annotation=''):
+
+        data = next(iter(self.dataloader))
+        real_cpu = data[0].to(self.device)
+
+        _batch_size = real_cpu.size(0)
+        noise = torch.randn(self.batch_size, self.latent_vector_size, 1, 1,
+                            device=self.device)
+        fake = self.Generator_instance(noise)
+
+        name_correction = self.random_tag
+        if len(annotation) > 0:
+            name_correction = name_correction + '.' + annotation
+
+        vutils.save_image(real_cpu,
+                          '%s/%s.real_samples.png' % (self.image_path, name_correction),
+                          normalize=True)
+
+        vutils.save_image(fake.detach(),
+                          '%s/%s.fake_samples.png' % (self.image_path, name_correction),
+                          normalize=True)
+
+
 if __name__ == "__main__":
     image_folder = "./image"
     image_size = 64
     number_of_colors = 1
     imtype = 'mnist'
+
+    image_samples_folder = '~/Trainer_samples'
 
     mnist_dataset = dset.MNIST(root=image_folder, download=True,
                            transform=transforms.Compose([

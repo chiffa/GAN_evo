@@ -112,6 +112,7 @@ def gan_pair_eliminate(filter_dict):
         gan_trainer_collection.delete_one({"_id": payload['_id']})
 
 
+
 if __name__ == "__main__":
 
     # gan_pair_purge_db()

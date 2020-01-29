@@ -54,6 +54,13 @@ def reset_scores(dataset, limiter={}):
                               {'score_ratings': (0, 1500, 1500)})
 
 
+def sample_generator_images(dataset, limiter={}):
+    for trainer in gan_pair_list_by_filter(limiter):
+        trainer_instance = GanTrainer(dataset, from_dict=trainer)
+        trainer_instance.sample_images('gen/disc Elos: %.2f/%2.f' % (trainer_instance.gen_elo,
+                                                                     trainer_instance.disc_elo))
+
+
 if __name__ == "__main__":
     image_folder = "./image"
     image_size = 64
@@ -67,6 +74,6 @@ if __name__ == "__main__":
                                transforms.Normalize((0.5,), (0.5,)),
                            ]))
 
-    # TODO: implement a proper limiter wrt the dataset base and immutables
     # reset_scores(dataset=mnist_dataset)
     run_match(dataset=mnist_dataset)
+    sample_generator_images(mnist_dataset)

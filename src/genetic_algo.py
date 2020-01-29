@@ -121,9 +121,12 @@ def generation_round(weak_clear_bound, mutation_intensity, genetic_pool_size):
 
 
 if __name__ == "__main__":
+    run_match(mnist_dataset)
     for _ in range(0, 5):
         new_gen = generation_round(1100, 0.05, 4)
         for trainer in new_gen:
             trainer.do_pair_training()
             trainer.save()
         run_match(mnist_dataset)
+
+
