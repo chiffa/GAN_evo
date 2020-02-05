@@ -35,6 +35,10 @@ def margin_to_score_update():
     pass
 
 
+def count_parameters(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+
 class Generator(nn.Module):
 
     def __init__(self, ngpu, latent_vector_size, generator_latent_maps, number_of_colors):
@@ -102,6 +106,9 @@ class Generator(nn.Module):
             output = self.main(input)
         return output
 
+    def size_on_disc(self):
+        return count_parameters(self.main)
+
 
 class Discriminator(nn.Module):
 
@@ -153,6 +160,9 @@ class Discriminator(nn.Module):
 
         return output.view(-1, 1).squeeze(1)
 
+    def size_on_disc(self):
+        return count_parameters(self.main)
+
 
 class GanTrainer(object):
 
@@ -162,9 +172,9 @@ class GanTrainer(object):
                  learning_rate=0.0002, beta1=0.5, training_epochs=25,
                  device="cuda:1", memoization_location="./memoized",
                  number_of_colors=1, image_dimensions=64, image_type='mnist',
-                 from_dict=None, sample_image_folder='~/trainer_samples'):
+                 from_dict=None, sample_image_folder='~/trainer_samples', size_hard_limiter=50000):
 
-
+        self.size_hard_limiter = size_hard_limiter
         self.random_tag = ''.join(sample(char_set * 10, 10))
         self.dataset_type = type(dataset).__name__
 
@@ -301,6 +311,11 @@ class GanTrainer(object):
         return key
 
     def save(self):
+        if self.Generator_instance.size_on_disc > self.size_hard_limiter or \
+            self.Discriminator_instance.size_on_disc > self.size_hard_limiter:
+            print("Gen/disc model too big to store - saving dropped")
+            return None
+
         payload = {'Generator_state': self.Generator_instance.state_dict(),
                    'Discriminator_state': self.Discriminator_instance.state_dict(),
                    'score_ratings': (self.matches, self.disc_elo, self.gen_elo),
@@ -325,16 +340,21 @@ class GanTrainer(object):
 
     def do_pair_training(self, _epochs=None):
 
+        if self.Generator_instance.size_on_disc > self.size_hard_limiter or \
+            self.Discriminator_instance.size_on_disc > self.size_hard_limiter:
+            print("Gen/disc model too big to store - training dropped")
+            return None
+
         if _epochs is not None:
             self.training_epochs = _epochs
 
-        print('training %s with following parameter array: '
-              'bs: %s, dlv: %s, glv: %s, '
-              'lr: %.5f, b: %.2f, tep: %s' % (self.random_tag,
-                                              self.batch_size, self.latent_vector_size,
-                                              self.generator_latent_maps,
-                                              self.learning_rate, self.beta1,
-                                              self.training_epochs))
+        # print('training %s with following parameter array: '
+        #       'bs: %s, dlv: %s, glv: %s, '
+        #       'lr: %.5f, b: %.2f, tep: %s' % (self.random_tag,
+        #                                       self.batch_size, self.latent_vector_size,
+        #                                       self.generator_latent_maps,
+        #                                       self.learning_rate, self.beta1,
+        #                                       self.training_epochs))
 
         for epoch in range(self.training_epochs):
             for i, data in enumerate(self.dataloader, 0):
@@ -513,7 +533,7 @@ class GanTrainer(object):
 
             if self.gen_elo == oponnent.gen_elo:
                 self.gen_elo -= 5
-                oponnent.gen_elo+=5
+                oponnent.gen_elo += 5
 
             if disc_margin > 0:  # my disc won
                 margin_multiplier = np.log(abs(disc_margin) + 1) * (2.2 /(self.disc_elo -
@@ -586,6 +606,17 @@ class GanTrainer(object):
         vutils.save_image(fake.detach(),
                           '%s/%s.fake_samples.png' % (self.image_path, name_correction),
                           normalize=True)
+
+
+def train_run(generator_instance, discriminator_instance,
+              generator_optimizer, discriminator_optimizer,
+              loss_criterion_function):
+    """
+    optimizer should be a partial function, mostly likely provided by the training
+    instance, that only requires the parameters of the disc/generator insances
+    """
+
+    pass
 
 
 if __name__ == "__main__":

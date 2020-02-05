@@ -3,7 +3,7 @@ import torchvision.datasets as dset
 import torchvision.transforms as transforms
 from src.mongo_interface import gan_pair_eliminate, gan_pair_list_by_filter
 from src.gans.gan_disc import GanTrainer
-from src.arena import run_match
+from src.arena import run_match, sample_generator_images
 from copy import deepcopy
 
 #TODO: factor this out to a single modification point
@@ -121,12 +121,26 @@ def generation_round(weak_clear_bound, mutation_intensity, genetic_pool_size):
 
 
 if __name__ == "__main__":
+
+    trainer_1 = GanTrainer(mnist_dataset, training_epochs=5)
+    trainer_1.do_pair_training()
+    trainer_1.save()
+
+    trainer_2 = GanTrainer(mnist_dataset, training_epochs=15)
+    trainer_2.do_pair_training()
+    trainer_2.save()
+
+    trainer_3 = GanTrainer(mnist_dataset, training_epochs=25)
+    trainer_3.do_pair_training()
+    trainer_3.save()
+
     run_match(mnist_dataset)
+
     for _ in range(0, 5):
-        new_gen = generation_round(1100, 0.05, 4)
+        new_gen = generation_round(1100, 0.1, 4)
         for trainer in new_gen:
             trainer.do_pair_training()
             trainer.save()
+        sample_generator_images(mnist_dataset)
         run_match(mnist_dataset)
-
 

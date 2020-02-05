@@ -67,9 +67,24 @@ with signature of training parameters + unique ID, then stored in a mongodb
 - We now need to spin up a method to find all the image-type associated GAN pairs, filter by
 fitness and perform a match round between them.
 DONE: - Add a numpy array to store various metrics, add it to the GAN pair graph and store in DB.
--Plot it as well.
+EH Not needed now: -Plot it as well.
 
-Containirization:
+- TODO: add saving of the discriminator/generator + training traces to the disk. Mongod should only
+contain the pointer to the path (that breaks containerization though)
+
+- TODO: add support for cross-training the discriminator/generator
+
+- TODO: add support for the multi-generator pull in the individual trainer (lists)
+
+- TODO: move the training, matching and cross-training out of self into the arena level. replace
+self by an (generator_supplier_instance, descriminator_supplier_instance, gen_optimizer,
+disc_optimizer, criterion) => training trace + internal object modification/saving
+
+That would allow a single function, unifying the match, training and cross-training
+
+
+
+Containerization:
 =================
 We will need to manage a cluster of containers on the proper cloud with the help of python script if
  we are to deploy. right now we synchronize on the genetic_algo. Ideally, once finished training,
