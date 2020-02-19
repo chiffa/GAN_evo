@@ -39,6 +39,22 @@ def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
+class GaussianNoise(nn.Module):
+
+    def __init__(self, sigma=0.1, device="cuda:1"):
+        super().__init__()
+        self.sigma = sigma
+        self.is_relative_detach = True
+        self.noise = torch.tensor(0).to(device)
+
+    def forward(self, x):
+        if self.training and self.sigma != 0:
+            scale = self.sigma * x.detach() if self.is_relative_detach else self.sigma * x
+            sampled_noise = self.noise.repeat(*x.size()).normal_() * scale
+            x = x + sampled_noise
+        return x
+
+
 class Generator(nn.Module):
 
     def __init__(self, ngpu, latent_vector_size, generator_latent_maps, number_of_colors):
@@ -118,6 +134,7 @@ class Discriminator(nn.Module):
         self.latent_vector_size = latent_vector_size
         self.discriminator_latent_maps = discriminator_latent_maps
         self.number_of_colors = number_of_colors
+        self.noise = GaussianNoise()
         self.main = nn.Sequential(
             # input is (nc) x 64 x 64
             nn.Conv2d(in_channels=self.number_of_colors,
@@ -154,14 +171,122 @@ class Discriminator(nn.Module):
 
     def forward(self, input):
         if input.is_cuda and self.ngpu > 1:
+            input = self.noise(input)
             output = nn.parallel.data_parallel(self.main, input, range(self.ngpu))
         else:
+            input = self.noise(input)
             output = self.main(input)
 
         return output.view(-1, 1).squeeze(1)
 
     def size_on_disc(self):
         return count_parameters(self.main)
+
+
+def match_training_round(generator_instance, discriminator_instance,
+                         disc_optimizer, gen_optimizer, criterion,
+                         dataloader, device, latent_vector_size, mode="match",
+                         real_label=1, fake_label=0, training_epochs=1,
+                         noise_floor=0.01):
+    training_trace = []
+    match_trace = []
+
+    match = False
+    train_d = False
+    train_g = False
+
+    if mode == "match":
+        match = True
+
+    if mode == "train":
+        train_d = True
+        train_g = True
+
+    if mode == "train_g":
+        train_g = True
+
+    if mode == "train_d":
+        train_d = True
+
+    for epoch in range(training_epochs):
+        for i, data in enumerate(dataloader, 0):
+
+            # train with real
+            discriminator_instance.zero_grad()
+            real_cpu = data[0].to(device)
+            _batch_size = real_cpu.size(0)
+            label = torch.full((_batch_size,), real_label, device=device)
+
+            output = discriminator_instance(real_cpu)
+            errD_real = criterion(output, label)
+
+            if train_d:
+                errD_real.backward()
+            average_disc_success_on_real = output.mean().item()
+
+            # train with fake
+            noise = torch.randn(_batch_size, latent_vector_size, 1, 1, device=device)
+            fake = generator_instance(noise)  # generates fake data
+
+            label.fill_(fake_label)
+            output = discriminator_instance(fake.detach())  # flags input as
+            # non-gradientable
+            errD_fake = criterion(output, label)  # calculates the loss for the prediction
+            # error
+
+            if train_d:
+                errD_fake.backward()  # backpropagates it
+
+            average_disc_error_on_gan = output.mean().item()
+            average_disc_error_on_real = 1 - average_disc_success_on_real
+
+            total_discriminator_error = errD_real + errD_fake
+
+            if train_d:
+                disc_optimizer.step()
+
+            if train_g:
+                generator_instance.zero_grad()  # clears gradients from the previous back
+                # propagations
+                label.fill_(real_label)  # fake labels are real for generator cost
+                output = discriminator_instance(fake)
+                total_generator_error = criterion(output, label)
+                total_generator_error.backward()
+                average_disc_error_on_gan_post_update = output.mean().item()
+                gen_optimizer.step()
+
+            if train_g or train_d:
+
+                if not train_g:
+                    total_generator_error = total_discriminator_error
+                    average_disc_error_on_gan_post_update = average_disc_error_on_gan
+
+                print('[%02d/%02d][%03d/%03d]'
+                      '\tdisc loss: %.4f; '
+                      '\tgen loss: %.4f; '
+                      '\tdisc success on real: %.4f; '
+                      '\tdisc error on gen pre/post update: %.4f / %.4f; '
+                      % (epoch, training_epochs, i, len(dataloader),
+                         total_discriminator_error.item(),
+                         total_generator_error.item(),
+                         average_disc_success_on_real,
+                         average_disc_error_on_gan,
+                         average_disc_error_on_gan_post_update),
+                      end='\r')
+
+                training_trace.append([epoch, i,
+                                            total_discriminator_error.item(),
+                                            total_generator_error.item(),
+                                            average_disc_success_on_real,
+                                            average_disc_error_on_gan,
+                                            average_disc_error_on_gan_post_update])
+                return training_trace
+
+            if match:
+                match_trace.append([average_disc_error_on_real,
+                                    average_disc_error_on_gan])
+
+                return match_trace
 
 
 class GanTrainer(object):
@@ -273,8 +398,8 @@ class GanTrainer(object):
                 raise Exception('Inconsistent names: '
                                 '\n\tdataset: %s || %s'
                                 '\n\tcriterion: %s || %s'
-                                '\n\toptimizerG: %s || %s'
-                                '\n\toptimizerD: %s || %s' %
+                                '\n\tgen_optimizer: %s || %s'
+                                '\n\tdisc_optimizer: %s || %s' %
                                 (self.dataset_type, dataset_name,
                                  type(self.criterion).__name__, criterion_name,
                                  type(self.optimizerG).__name__, G_optimizer_name,

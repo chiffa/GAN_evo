@@ -76,13 +76,13 @@ contain the pointer to the path (that breaks containerization though)
 
 - TODO: add support for the multi-generator pull in the individual trainer (lists)
 
-- TODO: move the training, matching and cross-training out of self into the arena level. replace
+- Done: move the training, matching and cross-training out of self into the arena level. replace
 self by an (generator_supplier_instance, descriminator_supplier_instance, gen_optimizer,
 disc_optimizer, criterion) => training trace + internal object modification/saving
 
 That would allow a single function, unifying the match, training and cross-training
 
-
+- TODO: Add a random noise layer properl
 
 Containerization:
 =================
