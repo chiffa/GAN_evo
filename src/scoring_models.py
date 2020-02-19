@@ -1,4 +1,5 @@
 import numpy as np
+from scipy import stats
 
 
 def simple_elo(elo_A, elo_B, A_lead, factor_k=16):
@@ -29,17 +30,25 @@ def log_weighted_elo(elo_A, elo_B, A_lead, base_k=16):
                         factor_k_function=multiplier_function)
 
 
-def virus_host_fitness(self_errD_real, oponnent_errD_real,
-                       self_gen_opp_disc_av_err, self_gen_self_disc_av_err,
-                       opp_gen_self_disc_av_err, opp_gen_opp_disc_av_err,
-                       autoimmunity_factor_A, autoimmunity_factor_B,
-                       virulence_factor_A, virulence_factor_B):
-    pass
+def pathogen_host_fitness(real_av_error, fake_av_error,
+                          autoimmunity_factor=20, virulence_factor=20,
+                          effective_phenotype_space_dimenstions=80):
+    """
+    The reason that we are using Weibull is due to the existence of the historical reasons of
+    the Fisherian phenotypic model.
 
+    We assume that the only adverse effect on the host fitness from the pathogen is due to his
+    reproduction, involving host cells break-up.
 
-def elo_algs_wrapper(self_errD_real, self_gen_self_disc_errD, opp_gen_self_disc_errD,
-                     oponnent_errD_real, opp_gen_opp_disc_errD, self_gen_opp_disc_errD,
-                     self_gen_opp_disc_av_err, self_gen_self_disc_av_err,
-                     opp_gen_self_disc_av_err, opp_gen_opp_disc_av_err
-                     ):
-    pass
+    the 20 is equivalent to about 5% error starting to be seriously problematic
+
+    """
+
+    host_fitness = stats.weibull_min.cdf(real_av_error * autoimmunity_factor
+                                 + fake_av_error * virulence_factor,
+                                 effective_phenotype_space_dimenstions)
+
+    pathogen_fitness = stats.weibull_min.cdf((1-fake_av_error) * virulence_factor*2,
+                                 effective_phenotype_space_dimenstions)
+
+    return host_fitness, pathogen_fitness
