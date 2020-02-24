@@ -5,6 +5,10 @@ import torchvision.transforms as transforms
 from itertools import combinations
 
 
+# TODO: two-updates (Generator, then Generator tries to outrun the DISC)
+# TODO: Generator pulls in the disc population, tries to bind to some, then gets chased. Discs
+#  get cleared if its fitness is too low.
+
 def run_match(dataset, limiter={}):
     participants = []
 
@@ -19,21 +23,21 @@ def run_match(dataset, limiter={}):
                B.disc_elo, B.gen_elo))
         A.match(B)
 
-    print("rankings by discriminator score:")
+    print("rankings by discriminator_instance score:")
     disc_score_accumulator = 0
     for trainer in sorted(participants, key=lambda x: x.disc_elo, reverse=True):
         print("\t %s: %.2f" % (trainer.random_tag, trainer.disc_elo))
         disc_score_accumulator += trainer.disc_elo
 
-    print("total discriminator elo score: %.2f" % disc_score_accumulator)
+    print("total discriminator_instance elo score: %.2f" % disc_score_accumulator)
 
-    print("rankings by generator score:")
+    print("rankings by generator_instance score:")
     gen_score_accumulator = 0
     for trainer in sorted(participants, key=lambda x: x.gen_elo, reverse=True):
         print("\t %s: %.2f" % (trainer.random_tag, trainer.gen_elo))
         gen_score_accumulator += trainer.gen_elo
 
-    print("total generator elo score: %.2f" % gen_score_accumulator)
+    print("total generator_instance elo score: %.2f" % gen_score_accumulator)
 
     print("models meta-parameters:")
     for trainer in participants:

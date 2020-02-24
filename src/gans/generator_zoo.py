@@ -1,5 +1,9 @@
 import torch.nn as nn
 from src.gans.nn_structure import NetworkStructure
+from random import sample
+import string
+
+char_set = string.ascii_uppercase + string.digits
 
 
 def count_parameters(model):
@@ -10,10 +14,13 @@ class Generator(nn.Module):
 
     def __init__(self, ngpu, latent_vector_size, generator_latent_maps, number_of_colors):
         super(Generator, self).__init__()
+        self.tag = "gen_base"
+        self.random_tag = ''.join(sample(char_set * 10, 10))
         self.ngpu = ngpu
         self.latent_vector_size = latent_vector_size
         self.generator_latent_maps = generator_latent_maps
         self.number_of_colors = number_of_colors
+        self.encounter_trace = []
         self.main = nn.Sequential(
             # input is Z, going into a convolution
             nn.ConvTranspose2d(in_channels=self.latent_vector_size,
@@ -76,3 +83,11 @@ class Generator(nn.Module):
     def size_on_disc(self):
         return count_parameters(self.main)
 
+    def save_instance_state(self):
+        pass
+
+    def recover_from_store(self, stored_state):
+        pass
+
+    def sample_images(self):
+        pass

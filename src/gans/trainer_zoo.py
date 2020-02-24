@@ -12,6 +12,8 @@ import torchvision.transforms as transforms
 import torchvision.utils as vutils
 from src.gans.nn_structure import NetworkStructure
 from src.mongo_interface import gan_pair_push_to_db, gan_pair_get_from_db, gan_pair_update_in_db
+from src.gans.discriminator_zoo import Discriminator
+from src.gans.generator_zoo import Generator
 from os.path import abspath, join
 from random import sample
 import string
@@ -31,6 +33,33 @@ def weights_init(m):
         m.bias.data.fill_(0)
 
 
+class GANEnvironment(object):
+
+    def __init__(self, dataset,
+                 number_of_colors=1, image_dimensions=64, batch_size=64,
+                 ngpu=1, workers=2, device="cuda:1",
+                 sample_image_folder='/home/kucharav/trainer_samples',
+                 true_label=1, fake_label=0, latent_vector_size=64):
+
+        self.number_of_colors = number_of_colors
+        self.image_dimensions = image_dimensions
+        self.image_type = type(dataset).__name__
+
+        self.dataloader = torch.utils.data.DataLoader(dataset,
+                                                      batch_size=batch_size,
+                                                      shuffle=True,
+                                                      num_workers=int(workers))
+        self.dataset_type = type(dataset).__name__
+
+        self.device = torch.device(device)
+        self.ngpu = ngpu
+        self.true_label = true_label
+        self.fake_label = fake_label
+
+        self.latent_vector_size = latent_vector_size
+        self.sample_image_folder = sample_image_folder
+
+
 def margin_to_score_update():
     pass
 
@@ -39,155 +68,14 @@ def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
-class GaussianNoise(nn.Module):
-
-    def __init__(self, sigma=0.1, device="cuda:1"):
-        super().__init__()
-        self.sigma = sigma
-        self.is_relative_detach = True
-        self.noise = torch.tensor(0).to(device)
-
-    def forward(self, x):
-        if self.training and self.sigma != 0:
-            scale = self.sigma * x.detach() if self.is_relative_detach else self.sigma * x
-            sampled_noise = self.noise.repeat(*x.size()).normal_() * scale
-            x = x + sampled_noise
-        return x
-
-
-class Generator(nn.Module):
-
-    def __init__(self, ngpu, latent_vector_size, generator_latent_maps, number_of_colors):
-        super(Generator, self).__init__()
-        self.ngpu = ngpu
-        self.latent_vector_size = latent_vector_size
-        self.generator_latent_maps = generator_latent_maps
-        self.number_of_colors = number_of_colors
-        self.main = nn.Sequential(
-            # input is Z, going into a convolution
-            nn.ConvTranspose2d(in_channels=self.latent_vector_size,
-                               out_channels=self.generator_latent_maps * 8,
-                               kernel_size=4,
-                               stride=1,
-                               padding=0,
-                               bias=False),
-            nn.BatchNorm2d(num_features=self.generator_latent_maps * 8),
-            nn.ReLU(inplace=True),
-            # state size. (ngf*8) x 4 x 4
-            nn.ConvTranspose2d(in_channels=self.generator_latent_maps * 8,
-                               out_channels=self.generator_latent_maps * 4,
-                               kernel_size=4,
-                               stride=2,
-                               padding=1,
-                               bias=False),
-            nn.BatchNorm2d(self.generator_latent_maps * 4),
-            nn.ReLU(True),
-            # state size. (ngf*4) x 8 x 8
-            nn.ConvTranspose2d(in_channels=self.generator_latent_maps * 4,
-                               out_channels=self.generator_latent_maps * 2,
-                               kernel_size=4,
-                               stride=2,
-                               padding=1,
-                               bias=False),
-            nn.BatchNorm2d(self.generator_latent_maps * 2),
-            nn.ReLU(True),
-            # state size. (ngf*2) x 16 x 16
-            nn.ConvTranspose2d(in_channels=self.generator_latent_maps * 2,
-                               out_channels=self.generator_latent_maps,
-                               kernel_size=4,
-                               stride=2,
-                               padding=1,
-                               bias=False),
-            nn.BatchNorm2d(self.generator_latent_maps),
-            nn.ReLU(True),
-            # state size. (ngf) x 32 x 32
-            nn.ConvTranspose2d(in_channels=self.generator_latent_maps,
-                               out_channels=self.number_of_colors,
-                               kernel_size=4,
-                               stride=2,
-                               padding=1,
-                               bias=False),
-            nn.Tanh()
-            # state size. (nc) x 64 x 64
-        )
-
-    def bind_nn_structure(self, network: NetworkStructure):
-        # TODO: check that the in/out dimensions are consistent
-        self.main = nn.Sequential(network.compile())
-
-    def forward(self, input):
-        if input.is_cuda and self.ngpu > 1:
-            output = nn.parallel.data_parallel(self.main, input, range(self.ngpu))
-        else:
-            output = self.main(input)
-        return output
-
-    def size_on_disc(self):
-        return count_parameters(self.main)
-
-
-class Discriminator(nn.Module):
-
-    def __init__(self, ngpu, latent_vector_size, discriminator_latent_maps, number_of_colors):
-        super(Discriminator, self).__init__()
-        self.ngpu = ngpu
-        self.latent_vector_size = latent_vector_size
-        self.discriminator_latent_maps = discriminator_latent_maps
-        self.number_of_colors = number_of_colors
-        self.noise = GaussianNoise()
-        self.main = nn.Sequential(
-            # input is (nc) x 64 x 64
-            nn.Conv2d(in_channels=self.number_of_colors,
-                      out_channels=self.discriminator_latent_maps,
-                      kernel_size=4,
-                      stride=2,  # affects the size of the out map (divides)
-                      padding=1,  # affects the size of the out map
-                      bias=False),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf) x 32 x 32
-            nn.Conv2d(self.discriminator_latent_maps, self.discriminator_latent_maps * 2, 4, 2, 1,
-                      bias=False),
-            nn.BatchNorm2d(self.discriminator_latent_maps * 2),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf*2) x 16 x 16
-            nn.Conv2d(self.discriminator_latent_maps * 2, self.discriminator_latent_maps * 4, 4, 2,
-                      1,
-                      bias=False),
-            nn.BatchNorm2d(self.discriminator_latent_maps * 4),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf*4) x 8 x 8
-            nn.Conv2d(self.discriminator_latent_maps * 4, self.discriminator_latent_maps * 8, 4, 2,
-                      1, bias=False),
-            nn.BatchNorm2d(self.discriminator_latent_maps * 8),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf*8) x 4 x 4
-            nn.Conv2d(self.discriminator_latent_maps * 8, 1, 4, 1, 0, bias=False),
-            nn.Sigmoid()
-        )
-
-    def bind_nn_structure(self, network: NetworkStructure):
-        #TODO: check if in/out dimensions are consistent
-        self.main = nn.Sequential(network.compile())
-
-    def forward(self, input):
-        if input.is_cuda and self.ngpu > 1:
-            input = self.noise(input)
-            output = nn.parallel.data_parallel(self.main, input, range(self.ngpu))
-        else:
-            input = self.noise(input)
-            output = self.main(input)
-
-        return output.view(-1, 1).squeeze(1)
-
-    def size_on_disc(self):
-        return count_parameters(self.main)
-
-
 def match_training_round(generator_instance, discriminator_instance,
                          disc_optimizer, gen_optimizer, criterion,
                          dataloader, device, latent_vector_size, mode="match",
                          real_label=1, fake_label=0, training_epochs=1,
-                         noise_floor=0.01):
+                         noise_floor=0.01, fitness_biases=(1, 1)):
+
+    # TODO: add an offset for the advance of the GAN training before disc training
+
     training_trace = []
     match_trace = []
 
@@ -247,8 +135,7 @@ def match_training_round(generator_instance, discriminator_instance,
 
             if train_g:
                 generator_instance.zero_grad()  # clears gradients from the previous back
-                # propagations
-                label.fill_(real_label)  # fake labels are real for generator cost
+                label.fill_(real_label)  # fake labels are real for generator_instance cost
                 output = discriminator_instance(fake)
                 total_generator_error = criterion(output, label)
                 total_generator_error.backward()
@@ -287,6 +174,114 @@ def match_training_round(generator_instance, discriminator_instance,
                                     average_disc_error_on_gan])
 
                 return match_trace
+
+
+class Arena(object):
+
+    def __init__(self, enviorment, generator_instance, discriminator_instance,
+                 generator_optimizer_partial, discriminator_optimizer_partial,
+                 criterion=nn.BCELoss(), sef_host_weights=(1, 1)):
+
+        self.env = enviorment
+
+        self.generator_instance = generator_instance
+        self.discriminator_instance = discriminator_instance
+
+        self.generator_optimizer = generator_optimizer_partial(generator_instance.parameters())
+        self.discriminator_optimizer = discriminator_optimizer_partial(
+            discriminator_instance.parameters())
+
+        self.criterion = criterion
+
+        self.training_trace = []
+
+    def save_training_trace(self):
+        pass
+
+    def decide_infection(self):
+        pass
+
+    def decide_survival(self):
+        pass
+
+    def match(self):
+        match_training_round(self.generator_instance, self.discriminator_instance,
+                             self.discriminator_optimizer, self.generator_optimizer,
+                             self.criterion,
+                             self.env.dataloader, self.env.device,
+                             self.env.latent_vector_size,
+                             mode="match",
+                             real_label=self.env.true_label,
+                             fake_label=self.env.fake_label,
+                             training_epochs=1)
+
+    def cross_train(self, epochs=1, gan_only=False, disc_only=False):
+
+        mode = "train"
+
+        if gan_only and disc_only:
+            raise Exception('Both Gan and Disc training are set to only')
+        if gan_only:
+            mode = "train_g"
+        if disc_only:
+            mode = "train_d"
+
+        match_training_round(self.generator_instance, self.discriminator_instance,
+                             self.discriminator_optimizer, self.generator_optimizer,
+                             self.criterion,
+                             self.env.dataloader, self.env.device,
+                             self.env.latent_vector_size,
+                             mode=mode,
+                             real_label=self.env.true_label,
+                             fake_label=self.env.fake_label,
+                             training_epochs=epochs)
+
+
+
+
+
+class Trainer(object):
+
+    def __init__(self, ngpu=1, workers=2, device="cuda:1"):
+        self.device = torch.device
+        self.ngpu
+        pass
+
+    def bind_dataset(self, dataset, number_of_colors=1, image_dimensions=64, image_type='mnist', batch_size=64):
+        self.dataloader = torch.utils.data.DataLoader(dataset,
+                                                      batch_size=batch_size,
+                                                      shuffle=True,
+                                                      num_workers=int(self.workers))
+        self.dataset_type = type(dataset).__name__
+
+        self.number_of_colors = number_of_colors
+        # self.memoization_location = memoization_location
+        self.image_dimensions = image_dimensions
+        self.image_type = image_type
+
+    def bind_discriminator_instance(self, discriminator_instance, disc_optimizer_partial_funct):
+        self.discriminator_instance = discriminator_instance
+        self.disc_optimizer = disc_optimizer_partial_funct(discriminator_instance.parameters())
+
+    def bind_denerator_instance(self, generator_instance, gen_optimizer_partial_funct):
+        self.generator_instance = generator_instance
+        self.generator_instance = gen_optimizer_partial_funct(generator_instance.parameters())
+
+    def bind_criterion(self, criterion, self_rec_weight, path_rec_weight):
+        self.criterion = criterion
+        self.fitness_biases = (self_rec_weight, path_rec_weight)
+
+    def save_round_trace(self):
+        pass
+
+    def save_image_samples(self):
+        pass
+
+    def match(self):
+        pass
+
+    def train(self, only_gen=False, only_disc=False):
+        pass
 
 
 class GanTrainer(object):
@@ -342,6 +337,7 @@ class GanTrainer(object):
                                             self.latent_vector_size,
                                             self.generator_latent_maps,
                                             self.number_of_colors).to(self.device)
+
         self.Generator_instance.apply(weights_init)
 
         self.Discriminator_instance = Discriminator(ngpu,
@@ -518,7 +514,7 @@ class GanTrainer(object):
                 ###########################
                 self.Generator_instance.zero_grad()  # clears gradients from the previous back
                 # propagations
-                label.fill_(self.real_label)  # fake labels are real for generator cost
+                label.fill_(self.real_label)  # fake labels are real for generator_instance cost
                 output = self.Discriminator_instance(fake)
                 errG = self.criterion(output, label)
                 errG.backward()
@@ -578,14 +574,14 @@ class GanTrainer(object):
             label = torch.full((_batch_size,), self.real_label, device=self.device)
             output = self.Discriminator_instance(real_cpu)
             self_errD_real = self.criterion(output, label)
-            # self discriminator performance on real
+            # self discriminator_instance performance on real
 
             real_cpu = data[0].to(oponnent.device)
             _batch_size = real_cpu.size(0)
             label = torch.full((_batch_size,), oponnent.real_label, device=oponnent.device)
             output = oponnent.Discriminator_instance(real_cpu)
             oponnent_errD_real = oponnent.criterion(output, label)
-            # opponnent discriminator performance on real data
+            # opponnent discriminator_instance performance on real data
 
             noise = torch.randn(_batch_size, self.latent_vector_size, 1, 1,
                                 device=self.device)
@@ -594,7 +590,7 @@ class GanTrainer(object):
             output = self.Discriminator_instance(fake.detach())
             self_gen_self_disc_av_err = output.mean().item()
             self_gen_self_disc_errD = self.criterion(output, label)
-            # self discriminator performance on self fake
+            # self discriminator_instance performance on self fake
 
             noise = torch.randn(_batch_size, oponnent.latent_vector_size, 1, 1,
                                 device=oponnent.device)
@@ -613,7 +609,7 @@ class GanTrainer(object):
             output = self.Discriminator_instance(fake.detach())
             opp_gen_self_disc_av_err = output.mean().item()
             opp_gen_self_disc_errD = self.criterion(output, label)
-            # self discriminator performance on opponent's fake
+            # self discriminator_instance performance on opponent's fake
 
             noise = torch.randn(_batch_size, self.latent_vector_size, 1, 1,
                                 device=self.device)
@@ -738,7 +734,7 @@ def train_run(generator_instance, discriminator_instance,
               loss_criterion_function):
     """
     optimizer should be a partial function, mostly likely provided by the training
-    instance, that only requires the parameters of the disc/generator insances
+    instance, that only requires the parameters of the disc/generator_instance insances
     """
 
     pass

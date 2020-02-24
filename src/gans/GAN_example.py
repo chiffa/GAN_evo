@@ -20,8 +20,8 @@ parser.add_argument('--workers', type=int, help='number of data loading workers'
 parser.add_argument('--batchSize', type=int, default=64, help='input batch size')
 parser.add_argument('--imageSize', type=int, default=64, help='the height / width of the input image to network')
 parser.add_argument('--nz', type=int, default=100, help='size of the latent z vector')
-parser.add_argument('--ngf', type=int, default=64)  # generator latent feature map
-parser.add_argument('--ndf', type=int, default=64)  # discriminator latent feature map
+parser.add_argument('--ngf', type=int, default=64)  # generator_instance latent feature map
+parser.add_argument('--ndf', type=int, default=64)  # discriminator_instance latent feature map
 parser.add_argument('--training_epochs', type=int, default=25, help='number of epochs to train for')
 parser.add_argument('--learning_rate', type=float, default=0.0002, help='learning rate, default=0.0002')
 parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for adam. default=0.5')
@@ -288,7 +288,7 @@ for epoch in range(opt.niter):
         # (2) Update G network: maximize log(D(G(z)))
         ###########################
         Generator_instance.zero_grad()
-        label.fill_(real_label)  # fake labels are real for generator cost
+        label.fill_(real_label)  # fake labels are real for generator_instance cost
         output = Discriminator_instance(fake)
         errG = criterion(output, label)
         errG.backward()

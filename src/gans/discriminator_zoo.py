@@ -1,21 +1,42 @@
+import torch
 import torch.nn as nn
 from src.gans.nn_structure import NetworkStructure
+from random import sample
+import string
 
+char_set = string.ascii_uppercase + string.digits
+
+class GaussianNoise(nn.Module):
+
+    def __init__(self, sigma=0.1, device="cuda:1"):
+        super().__init__()
+        self.sigma = sigma
+        self.is_relative_detach = True
+        self.noise = torch.tensor(0).to(device)
+
+    def forward(self, x):
+        if self.training and self.sigma != 0:
+            scale = self.sigma * x.detach() if self.is_relative_detach else self.sigma * x
+            sampled_noise = self.noise.repeat(*x.size()).normal_() * scale
+            x = x + sampled_noise
+        return x
 
 
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
-
 class Discriminator(nn.Module):
 
     def __init__(self, ngpu, latent_vector_size, discriminator_latent_maps, number_of_colors):
         super(Discriminator, self).__init__()
+        self.tag = "disc_base"
+        self.random_tag = ''.join(sample(char_set * 10, 10))
         self.ngpu = ngpu
         self.latent_vector_size = latent_vector_size
         self.discriminator_latent_maps = discriminator_latent_maps
         self.number_of_colors = number_of_colors
+        self.encounter_trace = []
         # TODO: Gaussian noise injection
         # self.noise = GaussianNoise()
         self.main = nn.Sequential(
@@ -62,6 +83,12 @@ class Discriminator(nn.Module):
 
         return output.view(-1, 1).squeeze(1)
 
+    def save_instance_state(self):
+        pass
+
+    def recover_from_store(self, stored_state):
+        pass
+
     def size_on_disc(self):
         return count_parameters(self.main)
 
@@ -70,6 +97,8 @@ class Discriminator_with_full_linear(nn.Module):
 
     def __init__(self, ngpu, latent_vector_size, discriminator_latent_maps, number_of_colors):
         super(Discriminator, self).__init__()
+        self.tag = 'disc_with_linear'
+        self.random_tag = ''.join(sample(char_set * 10, 10))
         self.ngpu = ngpu
         self.latent_vector_size = latent_vector_size
         self.discriminator_latent_maps = discriminator_latent_maps
@@ -133,6 +162,8 @@ class Discriminator_PReLU(nn.Module):
 
         def __init__(self, ngpu, latent_vector_size, discriminator_latent_maps, number_of_colors):
             super(Discriminator, self).__init__()
+            self.tag = "disc_PReLU"
+            self.random_tag = ''.join(sample(char_set * 10, 10))
             self.ngpu = ngpu
             self.latent_vector_size = latent_vector_size
             self.discriminator_latent_maps = discriminator_latent_maps
