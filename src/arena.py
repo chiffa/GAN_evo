@@ -1,5 +1,5 @@
 from src.mongo_interface import gan_pair_list_by_filter, gan_pair_update_in_db
-from src.gans.gan_disc import GanTrainer
+from src.gans.trainer_zoo import GanTrainer
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
 from itertools import combinations

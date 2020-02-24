@@ -2,7 +2,7 @@ import numpy as np
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
 from src.mongo_interface import gan_pair_eliminate, gan_pair_list_by_filter
-from src.gans.gan_disc import GanTrainer
+from src.gans.trainer_zoo import GanTrainer
 from src.arena import run_match, sample_generator_images
 from copy import deepcopy
 
