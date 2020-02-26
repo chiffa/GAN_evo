@@ -74,7 +74,7 @@ def match_training_round(generator_instance, discriminator_instance,
                          real_label=1, fake_label=0, training_epochs=1,
                          noise_floor=0.01, fitness_biases=(1, 1)):
 
-    # TODO: add an offset for the advance of the GAN training before disc training
+    # TODO: add an argument to offset for the advance of the GAN training before disc training
 
     training_trace = []
     match_trace = []
