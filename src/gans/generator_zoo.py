@@ -2,8 +2,27 @@ import torch.nn as nn
 from src.gans.nn_structure import NetworkStructure
 from random import sample
 import string
+import pickle
+import torchvision.utils as vutils
 
 char_set = string.ascii_uppercase + string.digits
+
+
+def generate_hyperparameter_key(_self):
+    key = {'random_tag': _self.random_tag,
+           'gen_type': type(_self).__name__,
+           'gen_latent_params': _self.gnenerator_latent_maps}
+    return key
+
+
+def save(_self):
+    key = _self.generate_hyperparameter_key()
+    payload = {'encounter_trace': _self.encounter_trace,
+               'gen_state': pickle.dumps(_self.state_dict())}
+
+    key.update(payload)
+
+    return key
 
 
 def count_parameters(model):
@@ -21,6 +40,7 @@ class Generator(nn.Module):
         self.generator_latent_maps = generator_latent_maps
         self.number_of_colors = number_of_colors
         self.encounter_trace = []
+        self.tag_trace = [self.random_tag]
         self.main = nn.Sequential(
             # input is Z, going into a convolution
             nn.ConvTranspose2d(in_channels=self.latent_vector_size,
@@ -83,11 +103,12 @@ class Generator(nn.Module):
     def size_on_disc(self):
         return count_parameters(self.main)
 
+    def generate_hyperparameter_key(self):
+        return generate_hyperparameter_key(self)
+
     def save_instance_state(self):
-        pass
+        return save(self)
 
-    def recover_from_store(self, stored_state):
-        pass
-
-    def sample_images(self):
-        pass
+    def regen_tab(self):
+        self.random_tag = ''.join(sample(char_set * 10, 10))
+        self.tag_trace += [self.random_tag]

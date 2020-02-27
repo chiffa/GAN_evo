@@ -9,6 +9,7 @@ from itertools import combinations
 # TODO: Generator pulls in the disc population, tries to bind to some, then gets chased. Discs
 #  get cleared if its fitness is too low.
 
+
 def run_match(dataset, limiter={}):
     participants = []
 

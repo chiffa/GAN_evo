@@ -3,8 +3,27 @@ import torch.nn as nn
 from src.gans.nn_structure import NetworkStructure
 from random import sample
 import string
+import pickle
 
 char_set = string.ascii_uppercase + string.digits
+
+
+def generate_hyperparameter_key(_self):
+    key = {'random_tag': _self.random_tag,
+           'disc_type': type(_self).__name__,
+           'disc_latent_params': _self.discriminator_latent_maps}
+    return key
+
+
+def storage_representation(_self):
+    key = _self.generate_hyperparameter_key()
+    payload = {'encounter_trace': _self.encounter_trace,
+                'disc_state': pickle.dumps(_self.state_dict())}
+
+    key.update(payload)
+
+    return key
+
 
 class GaussianNoise(nn.Module):
 
@@ -36,7 +55,8 @@ class Discriminator(nn.Module):
         self.latent_vector_size = latent_vector_size
         self.discriminator_latent_maps = discriminator_latent_maps
         self.number_of_colors = number_of_colors
-        self.encounter_trace = []
+        self.encounter_trace = []  # ((type, id, training_trace, match score))
+        self.tag_trace = [self.random_tag]
         # TODO: Gaussian noise injection
         # self.noise = GaussianNoise()
         self.main = nn.Sequential(
@@ -83,14 +103,18 @@ class Discriminator(nn.Module):
 
         return output.view(-1, 1).squeeze(1)
 
-    def save_instance_state(self):
-        pass
+    def generate_hyperparameter_key(self):
+        return generate_hyperparameter_key(self)
 
-    def recover_from_store(self, stored_state):
-        pass
+    def save_instance_state(self):
+        return storage_representation(self)
 
     def size_on_disc(self):
         return count_parameters(self.main)
+
+    def regen_tab(self):
+        self.random_tag = ''.join(sample(char_set * 10, 10))
+        self.tag_trace += [self.random_tag]
 
 
 class Discriminator_with_full_linear(nn.Module):
@@ -103,6 +127,8 @@ class Discriminator_with_full_linear(nn.Module):
         self.latent_vector_size = latent_vector_size
         self.discriminator_latent_maps = discriminator_latent_maps
         self.number_of_colors = number_of_colors
+        self.encounter_trace = []  # ((type, id, training_trace, match score))
+        self.tag_trace = [self.random_tag]
         # TODO: Gaussian noise injection
         # self.noise = GaussianNoise()
         self.main = nn.Sequential(
@@ -154,68 +180,90 @@ class Discriminator_with_full_linear(nn.Module):
 
         return output.view(-1, 1).squeeze(1)
 
+    def generate_hyperparameter_key(self):
+        return generate_hyperparameter_key(self)
+
+    def save_instance_state(self):
+        return storage_representation(self)
+
     def size_on_disc(self):
         return count_parameters(self.main)
+
+    def regen_tab(self):
+        self.random_tag = ''.join(sample(char_set * 10, 10))
+        self.tag_trace += [self.random_tag]
 
 
 class Discriminator_PReLU(nn.Module):
 
-        def __init__(self, ngpu, latent_vector_size, discriminator_latent_maps, number_of_colors):
-            super(Discriminator, self).__init__()
-            self.tag = "disc_PReLU"
-            self.random_tag = ''.join(sample(char_set * 10, 10))
-            self.ngpu = ngpu
-            self.latent_vector_size = latent_vector_size
-            self.discriminator_latent_maps = discriminator_latent_maps
-            self.number_of_colors = number_of_colors
-            # TODO: Gaussian noise injection
-            # self.noise = GaussianNoise()
-            self.main = nn.Sequential(
-                # input is (nc) x 64 x 64
-                nn.Conv2d(in_channels=self.number_of_colors,
-                          out_channels=self.discriminator_latent_maps,
-                          kernel_size=4,
-                          stride=2,  # affects the size of the out map (divides)
-                          padding=1,  # affects the size of the out map
-                          bias=False),
-                nn.PReLU(0.2, inplace=True),
-                # state size. (ndf) x 32 x 32
-                nn.Conv2d(self.discriminator_latent_maps, self.discriminator_latent_maps * 2, 4, 2,
-                          1,
-                          bias=False),
-                nn.BatchNorm2d(self.discriminator_latent_maps * 2),
-                nn.PReLU(0.2, inplace=True),
-                # state size. (ndf*2) x 16 x 16
-                nn.Conv2d(self.discriminator_latent_maps * 2, self.discriminator_latent_maps * 4, 4,
-                          2,
-                          1,
-                          bias=False),
-                nn.BatchNorm2d(self.discriminator_latent_maps * 4),
-                nn.PReLU(0.2, inplace=True),
-                # state size. (ndf*4) x 8 x 8
-                nn.Conv2d(self.discriminator_latent_maps * 4, self.discriminator_latent_maps * 8, 4,
-                          2,
-                          1, bias=False),
-                nn.BatchNorm2d(self.discriminator_latent_maps * 8),
-                nn.PReLU(0.2, inplace=True),
-                # state size. (ndf*8) x 4 x 4
-                nn.Conv2d(self.discriminator_latent_maps * 8, 1, 4, 1, 0, bias=False),
-                nn.Sigmoid()
-            )
+    def __init__(self, ngpu, latent_vector_size, discriminator_latent_maps, number_of_colors):
+        super(Discriminator, self).__init__()
+        self.tag = "disc_PReLU"
+        self.random_tag = ''.join(sample(char_set * 10, 10))
+        self.ngpu = ngpu
+        self.latent_vector_size = latent_vector_size
+        self.discriminator_latent_maps = discriminator_latent_maps
+        self.number_of_colors = number_of_colors
+        self.encounter_trace = []  # ((type, id, training_trace, match score))
+        self.tag_trace = [self.random_tag]
+        # TODO: Gaussian noise injection
+        # self.noise = GaussianNoise()
+        self.main = nn.Sequential(
+            # input is (nc) x 64 x 64
+            nn.Conv2d(in_channels=self.number_of_colors,
+                      out_channels=self.discriminator_latent_maps,
+                      kernel_size=4,
+                      stride=2,  # affects the size of the out map (divides)
+                      padding=1,  # affects the size of the out map
+                      bias=False),
+            nn.PReLU(0.2, inplace=True),
+            # state size. (ndf) x 32 x 32
+            nn.Conv2d(self.discriminator_latent_maps, self.discriminator_latent_maps * 2, 4, 2,
+                      1,
+                      bias=False),
+            nn.BatchNorm2d(self.discriminator_latent_maps * 2),
+            nn.PReLU(0.2, inplace=True),
+            # state size. (ndf*2) x 16 x 16
+            nn.Conv2d(self.discriminator_latent_maps * 2, self.discriminator_latent_maps * 4, 4,
+                      2,
+                      1,
+                      bias=False),
+            nn.BatchNorm2d(self.discriminator_latent_maps * 4),
+            nn.PReLU(0.2, inplace=True),
+            # state size. (ndf*4) x 8 x 8
+            nn.Conv2d(self.discriminator_latent_maps * 4, self.discriminator_latent_maps * 8, 4,
+                      2,
+                      1, bias=False),
+            nn.BatchNorm2d(self.discriminator_latent_maps * 8),
+            nn.PReLU(0.2, inplace=True),
+            # state size. (ndf*8) x 4 x 4
+            nn.Conv2d(self.discriminator_latent_maps * 8, 1, 4, 1, 0, bias=False),
+            nn.Sigmoid()
+        )
 
-        def bind_nn_structure(self, network: NetworkStructure):
-            # TODO: check if in/out dimensions are consistent
-            self.main = nn.Sequential(network.compile())
+    def bind_nn_structure(self, network: NetworkStructure):
+        # TODO: check if in/out dimensions are consistent
+        self.main = nn.Sequential(network.compile())
 
-        def forward(self, input):
-            if input.is_cuda and self.ngpu > 1:
-                input = self.noise(input)
-                output = nn.parallel.data_parallel(self.main, input, range(self.ngpu))
-            else:
-                input = self.noise(input)
-                output = self.main(input)
+    def forward(self, input):
+        if input.is_cuda and self.ngpu > 1:
+            input = self.noise(input)
+            output = nn.parallel.data_parallel(self.main, input, range(self.ngpu))
+        else:
+            input = self.noise(input)
+            output = self.main(input)
 
-            return output.view(-1, 1).squeeze(1)
+        return output.view(-1, 1).squeeze(1)
 
-        def size_on_disc(self):
-            return count_parameters(self.main)
+    def generate_hyperparameter_key(self):
+        return generate_hyperparameter_key(self)
+
+    def save_instance_state(self):
+        return storage_representation(self)
+
+    def size_on_disc(self):
+        return count_parameters(self.main)
+
+    def regen_tab(self):
+        self.random_tag = ''.join(sample(char_set * 10, 10))
+        self.tag_trace += [self.random_tag]

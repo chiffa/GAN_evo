@@ -82,7 +82,17 @@ disc_optimizer, criterion) => training trace + internal object modification/savi
 
 That would allow a single function, unifying the match, training and cross-training
 
-- TODO: Add a random noise layer properl
+- TODO: Add a random noise layer properly
+
+
+- Refactoring is proving to be a bit more challenging. Saving is direct, but with multi-type dicts,
+and the environment factored out, we need a high-level mixer to pull them all together into
+recoverable elements at later stages.
+
+- Similarly, storage/de-storage requires an injection from environment - so within an arena
+
+- Similarly, traces now require enforced ordering, unless we start forking off aggressively. Which
+might be a plan actually.
 
 Containerization:
 =================

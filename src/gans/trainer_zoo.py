@@ -59,6 +59,17 @@ class GANEnvironment(object):
         self.latent_vector_size = latent_vector_size
         self.sample_image_folder = sample_image_folder
 
+    def hyperparameter_key(self):
+        key = {'image_params': (self.image_type,
+                               self.image_dimensions,
+                               self.dataset_type,
+                               self.number_of_colors),
+               'labeling_params': (self.true_label,
+                                  self.fake_label),
+               'env_latent_params': self.latent_vector_size
+               }
+        return key
+
 
 def margin_to_score_update():
     pass
@@ -176,13 +187,15 @@ def match_training_round(generator_instance, discriminator_instance,
                 return match_trace
 
 
+
+
 class Arena(object):
 
-    def __init__(self, enviorment, generator_instance, discriminator_instance,
+    def __init__(self, environment, generator_instance, discriminator_instance,
                  generator_optimizer_partial, discriminator_optimizer_partial,
                  criterion=nn.BCELoss(), sef_host_weights=(1, 1)):
 
-        self.env = enviorment
+        self.env = environment
 
         self.generator_instance = generator_instance
         self.discriminator_instance = discriminator_instance

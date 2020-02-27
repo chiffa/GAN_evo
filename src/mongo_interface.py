@@ -15,45 +15,6 @@ gen_collection = gan_pair_db['generator_instance']
 disc_collection = gan_pair_db['discriminator_instance']
 
 
-
-def pure_gen_push_to_db(payload):
-    pass
-
-
-def pure_disc_push_to_db(payload):
-    pass
-
-
-def match_trace_to_db(payload):
-    pass
-
-
-def retrieve_pure_gen(key):
-    pass
-
-
-def retrieve_pure_disc(key):
-    pass
-
-
-def clear_pure_gen(filter):
-    pass
-
-
-def clear_pure_disc(filter):
-    pass
-
-
-def filter_pure_gen(filter):
-    pass
-
-
-def filter_pure_disc(filter):
-    pass
-
-
-
-
 def gan_pair_push_to_db(payload):
 
     def check_payload():
