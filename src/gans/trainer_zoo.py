@@ -18,6 +18,9 @@ from os.path import abspath, join
 from random import sample
 import string
 import numpy as np
+from src.new_mongo_interface import save_pure_disc, save_pure_gen, filter_pure_disc, \
+    filter_pure_gen, update_pure_disc, update_pure_gen
+
 
 
 char_set = string.ascii_uppercase + string.digits
@@ -188,12 +191,11 @@ def match_training_round(generator_instance, discriminator_instance,
 
 
 
-
 class Arena(object):
 
     def __init__(self, environment, generator_instance, discriminator_instance,
                  generator_optimizer_partial, discriminator_optimizer_partial,
-                 criterion=nn.BCELoss(), sef_host_weights=(1, 1)):
+                 criterion=nn.BCELoss(), host_pathogen_weights=(1, 1)):
 
         self.env = environment
 
@@ -206,11 +208,6 @@ class Arena(object):
 
         self.criterion = criterion
 
-        self.training_trace = []
-
-    def save_training_trace(self):
-        pass
-
     def decide_infection(self):
         pass
 
@@ -218,7 +215,7 @@ class Arena(object):
         pass
 
     def match(self):
-        match_training_round(self.generator_instance, self.discriminator_instance,
+        trace = match_training_round(self.generator_instance, self.discriminator_instance,
                              self.discriminator_optimizer, self.generator_optimizer,
                              self.criterion,
                              self.env.dataloader, self.env.device,
@@ -227,6 +224,23 @@ class Arena(object):
                              real_label=self.env.true_label,
                              fake_label=self.env.fake_label,
                              training_epochs=1)
+
+        d_encounter_trace = [type(self.generator_instance).__name__, self.generator_instance.tag,
+                           [], trace]
+
+        g_encounter_trace = [type(self.discriminator_instance).__name__,
+                             self.discriminator_instance.tag,
+                           [], trace]
+
+        self.discriminator_instance.encounter_trace.append(d_encounter_trace)
+        self.generator_instance.encounter_trace.append(g_encounter_trace)
+
+        update_pure_disc(self.discriminator_instance.tag,
+                         {'encounter_trace': self.discriminator_instance.encounter_trace})
+
+        update_pure_gen(self.generator_instance.tag,
+                         {'encounter_trace': self.generator_instance.encounter_trace})
+
 
     def cross_train(self, epochs=1, gan_only=False, disc_only=False):
 
@@ -239,7 +253,7 @@ class Arena(object):
         if disc_only:
             mode = "train_d"
 
-        match_training_round(self.generator_instance, self.discriminator_instance,
+        trace = match_training_round(self.generator_instance, self.discriminator_instance,
                              self.discriminator_optimizer, self.generator_optimizer,
                              self.criterion,
                              self.env.dataloader, self.env.device,
@@ -249,8 +263,23 @@ class Arena(object):
                              fake_label=self.env.fake_label,
                              training_epochs=epochs)
 
+        d_encounter_trace = [type(self.generator_instance).__name__,
+                             self.generator_instance.tag,
+                             trace, []]
 
+        g_encounter_trace = [type(self.discriminator_instance).__name__,
+                             self.discriminator_instance.tag,
+                             trace, []]
 
+        self.discriminator_instance.encounter_trace.append(d_encounter_trace)
+        self.generator_instance.encounter_trace.append(g_encounter_trace)
+
+        self.discriminator_instance.bump_random_tag()
+        self.generator_instance.bump_random_tag()
+
+        save_pure_disc(self.discriminator_instance.save_insance_state)
+
+        save_pure_gen(self.generator_instance.tag.save_instance_state)
 
 
 class Trainer(object):

@@ -112,7 +112,7 @@ class Discriminator(nn.Module):
     def size_on_disc(self):
         return count_parameters(self.main)
 
-    def regen_tab(self):
+    def bump_random_tag(self):
         self.random_tag = ''.join(sample(char_set * 10, 10))
         self.tag_trace += [self.random_tag]
 
@@ -189,7 +189,7 @@ class Discriminator_with_full_linear(nn.Module):
     def size_on_disc(self):
         return count_parameters(self.main)
 
-    def regen_tab(self):
+    def bump_random_tag(self):
         self.random_tag = ''.join(sample(char_set * 10, 10))
         self.tag_trace += [self.random_tag]
 
@@ -264,6 +264,6 @@ class Discriminator_PReLU(nn.Module):
     def size_on_disc(self):
         return count_parameters(self.main)
 
-    def regen_tab(self):
+    def bump_random_tag(self):
         self.random_tag = ''.join(sample(char_set * 10, 10))
         self.tag_trace += [self.random_tag]

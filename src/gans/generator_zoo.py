@@ -109,6 +109,6 @@ class Generator(nn.Module):
     def save_instance_state(self):
         return save(self)
 
-    def regen_tab(self):
+    def bump_random_label(self):
         self.random_tag = ''.join(sample(char_set * 10, 10))
         self.tag_trace += [self.random_tag]
