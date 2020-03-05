@@ -18,7 +18,8 @@ def generate_hyperparameter_key(_self):
 def save(_self):
     key = _self.generate_hyperparameter_key()
     payload = {'encounter_trace': _self.encounter_trace,
-               'gen_state': pickle.dumps(_self.state_dict())}
+               'gen_state': pickle.dumps(_self.state_dict()),
+               'fitness_map': _self.fitness_map}
 
     key.update(payload)
 
@@ -39,6 +40,7 @@ class Generator(nn.Module):
         self.latent_vector_size = latent_vector_size
         self.generator_latent_maps = generator_latent_maps
         self.number_of_colors = number_of_colors
+        self.fitness_map = {}
         self.encounter_trace = []
         self.tag_trace = [self.random_tag]
         self.main = nn.Sequential(

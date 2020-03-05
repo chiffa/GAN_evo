@@ -20,7 +20,7 @@ import string
 import numpy as np
 from src.new_mongo_interface import save_pure_disc, save_pure_gen, filter_pure_disc, \
     filter_pure_gen, update_pure_disc, update_pure_gen
-
+from src.scoring_models import pathogen_host_fitness
 
 
 char_set = string.ascii_uppercase + string.digits
@@ -88,8 +88,6 @@ def match_training_round(generator_instance, discriminator_instance,
                          real_label=1, fake_label=0, training_epochs=1,
                          noise_floor=0.01, fitness_biases=(1, 1)):
 
-    # TODO: add an argument to offset for the advance of the GAN training before disc training
-
     training_trace = []
     match_trace = []
 
@@ -110,8 +108,15 @@ def match_training_round(generator_instance, discriminator_instance,
     if mode == "train_d":
         train_d = True
 
+    dataloader_limiter = None
+
+    if training_epochs < 1:
+        dataloader_limiter = int(len(dataloader)*training_epochs)
+        training_epochs = 1
+
+
     for epoch in range(training_epochs):
-        for i, data in enumerate(dataloader, 0):
+        for i, data in enumerate(dataloader, 0)[:dataloader_limiter]:
 
             # train with real
             discriminator_instance.zero_grad()
@@ -187,7 +192,18 @@ def match_training_round(generator_instance, discriminator_instance,
                 match_trace.append([average_disc_error_on_real,
                                     average_disc_error_on_gan])
 
-                return match_trace
+    # TODO: potential optimization, although not a very potent one.
+    # matching requires no real data training.
+    # training needs to return the average error on the reals, but can't - because that's
+    # the last pass one that finishes the training, without any backward propagation
+
+    if train_g or train_d:
+        return np.array(train_g)
+
+    if match:
+        match_trace = np.array(match_trace)
+        match_trace = np.mean(match_trace, axis=0)
+        return match_trace
 
 
 
@@ -208,10 +224,8 @@ class Arena(object):
 
         self.criterion = criterion
 
-    def decide_infection(self):
-        pass
-
     def decide_survival(self):
+
         pass
 
     def match(self):
@@ -235,11 +249,29 @@ class Arena(object):
         self.discriminator_instance.encounter_trace.append(d_encounter_trace)
         self.generator_instance.encounter_trace.append(g_encounter_trace)
 
-        update_pure_disc(self.discriminator_instance.tag,
-                         {'encounter_trace': self.discriminator_instance.encounter_trace})
+        host_fitness, pathogen_fitness = pathogen_host_fitness(trace[0], trace[1])
 
-        update_pure_gen(self.generator_instance.tag,
-                         {'encounter_trace': self.generator_instance.encounter_trace})
+        if pathogen_fitness > 1:  # contamination
+            self.generator_instance.fitness_map = {
+                self.discriminator_instance.random_tag: pathogen_fitness}
+            self.discriminator_instance.gen_error_map = {self.generator_instance.radom_tag: trace[1]}
+
+
+        else:  # No contamination
+            # clear pathogens if exist
+            self.generator_instance.fitness_map.pop(self.discriminator_instance.random_tag, None)
+            self.discriminator_instance.gen_error_map.pop(self.generator_instance.radom_tag, None)
+
+        update_pure_disc(self.discriminator_instance.random_tag,
+                         {'encounter_trace': self.discriminator_instance.encounter_trace,
+                          'self_error': trace[0],
+                          'gen_error_map': self.discriminator_instance.fitness_map})
+
+        update_pure_gen(self.generator_instance.random_tag,
+                        {'encounter_trace': self.generator_instance.encounter_trace,
+                         'fitness_map': self.generator_instance.fitness_map})
+
+
 
 
     def cross_train(self, epochs=1, gan_only=False, disc_only=False):

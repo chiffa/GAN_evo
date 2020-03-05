@@ -18,7 +18,7 @@ We would like to explore the following modalities of evolution:
  - RAC curves weighting effect - letting some fakes through vs blocking the true ones.
  - algorithms for the evolution: Genetic vs Particle Swarm optimization
  - Optimization to induce into error a single discriminator rather than a cluster of them.
- 
+ - importance of the standing variation vs the one emerging under immediate selection
 
 ## Parameters so far: 
  - Structure of the layers (In>NLF>Conv>NLF>Full_conn>NLF>Out)
@@ -36,3 +36,6 @@ We would like to explore the following modalities of evolution:
 ## Life deploy testing:
  - detection of adverse comments on eg. Discord servers (cf MalwareTech).
  
+## Potential future expansion:
+ - co-linearity of the viral infection estimated by the random keys from which they were generated
+ (Host-pathogen gans angle)

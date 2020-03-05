@@ -18,7 +18,11 @@ def generate_hyperparameter_key(_self):
 def storage_representation(_self):
     key = _self.generate_hyperparameter_key()
     payload = {'encounter_trace': _self.encounter_trace,
-                'disc_state': pickle.dumps(_self.state_dict())}
+                'disc_state': pickle.dumps(_self.state_dict()),
+                'self_error': _self.real_error,
+                'gen_error_map': _self.gen_error_map,
+                # Map needs to include both the generator errors and virulence factors.
+                'current_fitness': _self.current_fitness}
 
     key.update(payload)
 
@@ -55,6 +59,9 @@ class Discriminator(nn.Module):
         self.latent_vector_size = latent_vector_size
         self.discriminator_latent_maps = discriminator_latent_maps
         self.number_of_colors = number_of_colors
+        self.real_error = 1.
+        self.gen_errors_map = {}
+        self.current_fitness = 0.
         self.encounter_trace = []  # ((type, id, training_trace, match score))
         self.tag_trace = [self.random_tag]
         # TODO: Gaussian noise injection
@@ -127,6 +134,9 @@ class Discriminator_with_full_linear(nn.Module):
         self.latent_vector_size = latent_vector_size
         self.discriminator_latent_maps = discriminator_latent_maps
         self.number_of_colors = number_of_colors
+        self.real_error = 1.
+        self.gen_errors_map = {}
+        self.current_fitness = 0.
         self.encounter_trace = []  # ((type, id, training_trace, match score))
         self.tag_trace = [self.random_tag]
         # TODO: Gaussian noise injection
@@ -204,6 +214,9 @@ class Discriminator_PReLU(nn.Module):
         self.latent_vector_size = latent_vector_size
         self.discriminator_latent_maps = discriminator_latent_maps
         self.number_of_colors = number_of_colors
+        self.real_error = 1.
+        self.gen_errors_map = {}
+        self.current_fitness = 0.
         self.encounter_trace = []  # ((type, id, training_trace, match score))
         self.tag_trace = [self.random_tag]
         # TODO: Gaussian noise injection
