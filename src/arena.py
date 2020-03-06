@@ -73,11 +73,11 @@ if __name__ == "__main__":
     imtype = 'mnist'
 
     mnist_dataset = dset.MNIST(root=image_folder, download=True,
-                           transform=transforms.Compose([
-                               transforms.Resize(image_size),
-                               transforms.ToTensor(),
-                               transforms.Normalize((0.5,), (0.5,)),
-                           ]))
+                               transform=transforms.Compose([
+                                   transforms.Resize(image_size),
+                                   transforms.ToTensor(),
+                                   transforms.Normalize((0.5,), (0.5,)),
+                               ]))
 
     # reset_scores(dataset=mnist_dataset)
     # run_match(dataset=mnist_dataset)

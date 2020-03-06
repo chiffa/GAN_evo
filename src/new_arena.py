@@ -46,4 +46,5 @@ if __name__ == "__main__":
                   )
 
     arena.cross_train(2)
+    arena.sample_images()
     print(arena.match())

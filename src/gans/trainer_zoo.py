@@ -71,6 +71,7 @@ class GANEnvironment(object):
                                   self.fake_label),
                'env_latent_params': self.latent_vector_size
                }
+
         return key
 
 
@@ -314,9 +315,34 @@ class Arena(object):
         self.discriminator_instance.bump_random_tag()
         self.generator_instance.bump_random_tag()
 
+        # TODO: inject hyperparameter keys
+
         save_pure_disc(self.discriminator_instance.save_insance_state)
 
         save_pure_gen(self.generator_instance.tag.save_instance_state)
+
+
+    def sample_images(self, annotation=''):
+
+        data = next(iter(self.env.dataloader))
+        real_cpu = data[0].to(self.env.device)
+
+        _batch_size = real_cpu.size(0)
+        noise = torch.randn(self.env.batch_size, self.env.latent_vector_size, 1, 1,
+                            device=self.env.device)
+        fake = self.generator_instance(noise)
+
+        name_correction = self.generator_instance.random_tag
+        if len(annotation) > 0:
+            name_correction = name_correction + '.' + annotation
+
+        vutils.save_image(real_cpu,
+                          '%s/%s.real_samples.png' % (self.env.sample_image_folder, name_correction),
+                          normalize=True)
+
+        vutils.save_image(fake.detach(),
+                          '%s/%s.fake_samples.png' % (self.env.sample_image_folder, name_correction),
+                          normalize=True)
 
 
 
