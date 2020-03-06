@@ -117,7 +117,10 @@ def match_training_round(generator_instance, discriminator_instance,
 
 
     for epoch in range(training_epochs):
-        for i, data in enumerate(dataloader, 0)[:dataloader_limiter]:
+        for i, data in enumerate(dataloader, 0):
+
+            if dataloader_limiter is not None and i > dataloader_limiter:
+                break
 
             # train with real
             discriminator_instance.zero_grad()

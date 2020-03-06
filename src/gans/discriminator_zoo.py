@@ -104,10 +104,10 @@ class Discriminator(nn.Module):
 
     def forward(self, input):
         if input.is_cuda and self.ngpu > 1:
-            input = self.noise(input)
+            # input = self.noise(input)
             output = nn.parallel.data_parallel(self.main, input, range(self.ngpu))
         else:
-            input = self.noise(input)
+            # input = self.noise(input)
             output = self.main(input)
 
         return output.view(-1, 1).squeeze(1)
@@ -186,10 +186,10 @@ class Discriminator_with_full_linear(nn.Module):
 
     def forward(self, input):
         if input.is_cuda and self.ngpu > 1:
-            input = self.noise(input)
+            # input = self.noise(input)
             output = nn.parallel.data_parallel(self.main, input, range(self.ngpu))
         else:
-            input = self.noise(input)
+            # input = self.noise(input)
             output = self.main(input)
 
         return output.view(-1, 1).squeeze(1)
@@ -266,10 +266,10 @@ class Discriminator_PReLU(nn.Module):
 
     def forward(self, input):
         if input.is_cuda and self.ngpu > 1:
-            input = self.noise(input)
+            # input = self.noise(input)
             output = nn.parallel.data_parallel(self.main, input, range(self.ngpu))
         else:
-            input = self.noise(input)
+            # input = self.noise(input)
             output = self.main(input)
 
         return output.view(-1, 1).squeeze(1)
