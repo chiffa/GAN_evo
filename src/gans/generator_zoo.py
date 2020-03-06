@@ -32,7 +32,10 @@ def count_parameters(model):
 
 class Generator(nn.Module):
 
-    def __init__(self, ngpu, latent_vector_size, generator_latent_maps, number_of_colors):
+
+    # TODO: change to the environment binding
+    def __init__(self, ngpu, latent_vector_size, generator_latent_maps, number_of_colors,
+                 virulence = 20):
         super(Generator, self).__init__()
         self.tag = "gen_base"
         self.random_tag = ''.join(sample(char_set * 10, 10))
@@ -43,6 +46,7 @@ class Generator(nn.Module):
         self.fitness_map = {}
         self.encounter_trace = []
         self.tag_trace = [self.random_tag]
+        self.virulence = virulence
         self.main = nn.Sequential(
             # input is Z, going into a convolution
             nn.ConvTranspose2d(in_channels=self.latent_vector_size,

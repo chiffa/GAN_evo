@@ -51,7 +51,8 @@ def count_parameters(model):
 
 class Discriminator(nn.Module):
 
-    def __init__(self, ngpu, latent_vector_size, discriminator_latent_maps, number_of_colors):
+    def __init__(self, ngpu, latent_vector_size, discriminator_latent_maps, number_of_colors,
+                 autoimmunity=20):
         super(Discriminator, self).__init__()
         self.tag = "disc_base"
         self.random_tag = ''.join(sample(char_set * 10, 10))
@@ -64,6 +65,7 @@ class Discriminator(nn.Module):
         self.current_fitness = 0.
         self.encounter_trace = []  # ((type, id, training_trace, match score))
         self.tag_trace = [self.random_tag]
+        self.autoimmunity = autoimmunity
         # TODO: Gaussian noise injection
         # self.noise = GaussianNoise()
         self.main = nn.Sequential(
@@ -126,7 +128,8 @@ class Discriminator(nn.Module):
 
 class Discriminator_with_full_linear(nn.Module):
 
-    def __init__(self, ngpu, latent_vector_size, discriminator_latent_maps, number_of_colors):
+    def __init__(self, ngpu, latent_vector_size, discriminator_latent_maps, number_of_colors,
+                 autoimmunity=20):
         super(Discriminator, self).__init__()
         self.tag = 'disc_with_linear'
         self.random_tag = ''.join(sample(char_set * 10, 10))
@@ -139,6 +142,7 @@ class Discriminator_with_full_linear(nn.Module):
         self.current_fitness = 0.
         self.encounter_trace = []  # ((type, id, training_trace, match score))
         self.tag_trace = [self.random_tag]
+        self.autoimmunity = autoimmunity
         # TODO: Gaussian noise injection
         # self.noise = GaussianNoise()
         self.main = nn.Sequential(
@@ -206,7 +210,8 @@ class Discriminator_with_full_linear(nn.Module):
 
 class Discriminator_PReLU(nn.Module):
 
-    def __init__(self, ngpu, latent_vector_size, discriminator_latent_maps, number_of_colors):
+    def __init__(self, ngpu, latent_vector_size, discriminator_latent_maps, number_of_colors,
+                 autoimmunity=20):
         super(Discriminator, self).__init__()
         self.tag = "disc_PReLU"
         self.random_tag = ''.join(sample(char_set * 10, 10))
@@ -219,6 +224,7 @@ class Discriminator_PReLU(nn.Module):
         self.current_fitness = 0.
         self.encounter_trace = []  # ((type, id, training_trace, match score))
         self.tag_trace = [self.random_tag]
+        self.autoimmunity = autoimmunity
         # TODO: Gaussian noise injection
         # self.noise = GaussianNoise()
         self.main = nn.Sequential(

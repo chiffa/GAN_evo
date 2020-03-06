@@ -20,7 +20,7 @@ import string
 import numpy as np
 from src.new_mongo_interface import save_pure_disc, save_pure_gen, filter_pure_disc, \
     filter_pure_gen, update_pure_disc, update_pure_gen
-from src.scoring_models import pathogen_host_fitness
+from src.scoring_models import pathogen_host_fitness, cumulative_host_fitness
 
 
 char_set = string.ascii_uppercase + string.digits
@@ -211,7 +211,7 @@ class Arena(object):
 
     def __init__(self, environment, generator_instance, discriminator_instance,
                  generator_optimizer_partial, discriminator_optimizer_partial,
-                 criterion=nn.BCELoss(), host_pathogen_weights=(1, 1)):
+                 criterion=nn.BCELoss()):
 
         self.env = environment
 
@@ -249,6 +249,8 @@ class Arena(object):
         self.discriminator_instance.encounter_trace.append(d_encounter_trace)
         self.generator_instance.encounter_trace.append(g_encounter_trace)
 
+        #TODO: add the weigtings by autoimmunity and virulence
+
         host_fitness, pathogen_fitness = pathogen_host_fitness(trace[0], trace[1])
 
         if pathogen_fitness > 1:  # contamination
@@ -262,15 +264,18 @@ class Arena(object):
             self.generator_instance.fitness_map.pop(self.discriminator_instance.random_tag, None)
             self.discriminator_instance.gen_error_map.pop(self.generator_instance.radom_tag, None)
 
+        self.discriminator_instance.current_fitness = cumulative_host_fitness(trace[0],
+                                                                              self.generator_instance.fitness_map.values())
+
         update_pure_disc(self.discriminator_instance.random_tag,
                          {'encounter_trace': self.discriminator_instance.encounter_trace,
                           'self_error': trace[0],
-                          'gen_error_map': self.discriminator_instance.fitness_map})
+                          'gen_error_map': self.discriminator_instance.fitness_map,
+                          'current_fitness': self.discriminator_instance.current_fitness})
 
         update_pure_gen(self.generator_instance.random_tag,
                         {'encounter_trace': self.generator_instance.encounter_trace,
                          'fitness_map': self.generator_instance.fitness_map})
-
 
 
 
@@ -313,49 +318,6 @@ class Arena(object):
 
         save_pure_gen(self.generator_instance.tag.save_instance_state)
 
-
-class Trainer(object):
-
-    def __init__(self, ngpu=1, workers=2, device="cuda:1"):
-        self.device = torch.device
-        self.ngpu
-        pass
-
-    def bind_dataset(self, dataset, number_of_colors=1, image_dimensions=64, image_type='mnist', batch_size=64):
-        self.dataloader = torch.utils.data.DataLoader(dataset,
-                                                      batch_size=batch_size,
-                                                      shuffle=True,
-                                                      num_workers=int(self.workers))
-        self.dataset_type = type(dataset).__name__
-
-        self.number_of_colors = number_of_colors
-        # self.memoization_location = memoization_location
-        self.image_dimensions = image_dimensions
-        self.image_type = image_type
-
-    def bind_discriminator_instance(self, discriminator_instance, disc_optimizer_partial_funct):
-        self.discriminator_instance = discriminator_instance
-        self.disc_optimizer = disc_optimizer_partial_funct(discriminator_instance.parameters())
-
-    def bind_denerator_instance(self, generator_instance, gen_optimizer_partial_funct):
-        self.generator_instance = generator_instance
-        self.generator_instance = gen_optimizer_partial_funct(generator_instance.parameters())
-
-    def bind_criterion(self, criterion, self_rec_weight, path_rec_weight):
-        self.criterion = criterion
-        self.fitness_biases = (self_rec_weight, path_rec_weight)
-
-    def save_round_trace(self):
-        pass
-
-    def save_image_samples(self):
-        pass
-
-    def match(self):
-        pass
-
-    def train(self, only_gen=False, only_disc=False):
-        pass
 
 
 class GanTrainer(object):
