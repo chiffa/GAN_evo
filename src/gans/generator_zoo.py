@@ -11,7 +11,7 @@ char_set = string.ascii_uppercase + string.digits
 def generate_hyperparameter_key(_self):
     key = {'random_tag': _self.random_tag,
            'gen_type': type(_self).__name__,
-           'gen_latent_params': _self.gnenerator_latent_maps}
+           'gen_latent_params': _self.generator_latent_maps}
     return key
 
 
@@ -115,6 +115,6 @@ class Generator(nn.Module):
     def save_instance_state(self):
         return save(self)
 
-    def bump_random_label(self):
+    def bump_random_tag(self):
         self.random_tag = ''.join(sample(char_set * 10, 10))
         self.tag_trace += [self.random_tag]

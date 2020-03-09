@@ -61,7 +61,7 @@ class Discriminator(nn.Module):
         self.discriminator_latent_maps = discriminator_latent_maps
         self.number_of_colors = number_of_colors
         self.real_error = 1.
-        self.gen_errors_map = {}
+        self.gen_error_map = {}
         self.current_fitness = 0.
         self.encounter_trace = []  # ((type, id, training_trace, match score))
         self.tag_trace = [self.random_tag]
@@ -138,7 +138,7 @@ class Discriminator_with_full_linear(nn.Module):
         self.discriminator_latent_maps = discriminator_latent_maps
         self.number_of_colors = number_of_colors
         self.real_error = 1.
-        self.gen_errors_map = {}
+        self.gen_error_map = {}
         self.current_fitness = 0.
         self.encounter_trace = []  # ((type, id, training_trace, match score))
         self.tag_trace = [self.random_tag]
@@ -220,7 +220,7 @@ class Discriminator_PReLU(nn.Module):
         self.discriminator_latent_maps = discriminator_latent_maps
         self.number_of_colors = number_of_colors
         self.real_error = 1.
-        self.gen_errors_map = {}
+        self.gen_error_map = {}
         self.current_fitness = 0.
         self.encounter_trace = []  # ((type, id, training_trace, match score))
         self.tag_trace = [self.random_tag]

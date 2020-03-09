@@ -25,12 +25,12 @@ if __name__ == "__main__":
     gen = Generator(ngpu=environment.ngpu,
                     latent_vector_size=environment.latent_vector_size,
                     generator_latent_maps=64,
-                    number_of_colors=environment.number_of_colors)
+                    number_of_colors=environment.number_of_colors).to(environment.device)
 
     disc = Discriminator(ngpu=environment.ngpu,
                          latent_vector_size=environment.latent_vector_size,
                          discriminator_latent_maps=64,
-                         number_of_colors=environment.number_of_colors)
+                         number_of_colors=environment.number_of_colors).to(environment.device)
 
     learning_rate = 0.0002
     beta1 = 0.5

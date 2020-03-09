@@ -21,17 +21,21 @@ def save_pure_gen(payload):
 
 
 def save_pure_disc(payload):
+    # pprint.pprint(payload)
     disc_id = pure_disc_collection.insert_one(payload)
     return disc_id
 
 
 def update_pure_gen(key, update_payload):
-    update_result = pure_gen_collection.find_one_and_update(key, {'$set': update_payload})
+    update_result = pure_gen_collection.find_one_and_update({'random_tag': key},
+                                                            {'$set': update_payload})
     return update_result
 
 
 def update_pure_disc(key, update_payload):
-    update_result = pure_disc_collection.find_one_and_update(key, {'$set': update_payload})
+    # pprint.pprint({key: update_payload})
+    update_result = pure_disc_collection.find_one_and_update({'random_tag': key},
+                                                             {'$set': update_payload})
     return update_result
 
 

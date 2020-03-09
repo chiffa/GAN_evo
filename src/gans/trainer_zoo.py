@@ -59,8 +59,15 @@ class GANEnvironment(object):
         self.true_label = true_label
         self.fake_label = fake_label
 
+        self.batch_size = batch_size
+
         self.latent_vector_size = latent_vector_size
         self.sample_image_folder = sample_image_folder
+
+        try:
+            os.makedirs(self.sample_image_folder)
+        except OSError:
+            pass
 
     def hyperparameter_key(self):
         key = {'image_params': (self.image_type,
@@ -190,7 +197,6 @@ def match_training_round(generator_instance, discriminator_instance,
                                             average_disc_success_on_real,
                                             average_disc_error_on_gan,
                                             average_disc_error_on_gan_post_update])
-                return training_trace
 
             if match:
                 match_trace.append([average_disc_error_on_real,
@@ -202,12 +208,12 @@ def match_training_round(generator_instance, discriminator_instance,
     # the last pass one that finishes the training, without any backward propagation
 
     if train_g or train_d:
-        return np.array(train_g)
+        return np.array(training_trace)
 
     if match:
         match_trace = np.array(match_trace)
         match_trace = np.mean(match_trace, axis=0)
-        return match_trace
+        return match_trace.tolist()
 
 
 
@@ -260,13 +266,13 @@ class Arena(object):
         if pathogen_fitness > 1:  # contamination
             self.generator_instance.fitness_map = {
                 self.discriminator_instance.random_tag: pathogen_fitness}
-            self.discriminator_instance.gen_error_map = {self.generator_instance.radom_tag: trace[1]}
-
+            self.discriminator_instance.gen_error_map = {self.generator_instance.random_tag:
+                                                             trace[1]}
 
         else:  # No contamination
             # clear pathogens if exist
             self.generator_instance.fitness_map.pop(self.discriminator_instance.random_tag, None)
-            self.discriminator_instance.gen_error_map.pop(self.generator_instance.radom_tag, None)
+            self.discriminator_instance.gen_error_map.pop(self.generator_instance.random_tag, None)
 
         self.discriminator_instance.current_fitness = cumulative_host_fitness(trace[0],
                                                                               self.generator_instance.fitness_map.values())
@@ -274,7 +280,7 @@ class Arena(object):
         update_pure_disc(self.discriminator_instance.random_tag,
                          {'encounter_trace': self.discriminator_instance.encounter_trace,
                           'self_error': trace[0],
-                          'gen_error_map': self.discriminator_instance.fitness_map,
+                          'gen_error_map': self.discriminator_instance.gen_error_map,
                           'current_fitness': self.discriminator_instance.current_fitness})
 
         update_pure_gen(self.generator_instance.random_tag,
@@ -320,9 +326,9 @@ class Arena(object):
 
         # TODO: inject hyperparameter keys
 
-        save_pure_disc(self.discriminator_instance.save_insance_state)
+        save_pure_disc(self.discriminator_instance.save_instance_state())
 
-        save_pure_gen(self.generator_instance.tag.save_instance_state)
+        save_pure_gen(self.generator_instance.save_instance_state())
 
 
     def sample_images(self, annotation=''):
