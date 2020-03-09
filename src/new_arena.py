@@ -45,6 +45,7 @@ if __name__ == "__main__":
                   discriminator_optimizer_partial=disc_opt_part,
                   )
 
-    arena.cross_train(2)
+    arena.cross_train(10)
     arena.sample_images()
+    print(arena.generator_instance.random_tag)
     print(arena.match())

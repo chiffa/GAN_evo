@@ -42,6 +42,7 @@ class GANEnvironment(object):
                  number_of_colors=1, image_dimensions=64, batch_size=64,
                  ngpu=1, workers=2, device="cuda:1",
                  sample_image_folder='/home/kucharav/trainer_samples',
+                 fid_image_folder='/home/kucharav/FID_samples',
                  true_label=1, fake_label=0, latent_vector_size=64):
 
         self.number_of_colors = number_of_colors
@@ -63,6 +64,7 @@ class GANEnvironment(object):
 
         self.latent_vector_size = latent_vector_size
         self.sample_image_folder = sample_image_folder
+        self.fid_image_folder = fid_image_folder
 
         try:
             os.makedirs(self.sample_image_folder)
@@ -201,14 +203,14 @@ def match_training_round(generator_instance, discriminator_instance,
             if match:
                 match_trace.append([average_disc_error_on_real,
                                     average_disc_error_on_gan])
-
+        print()
     # TODO: potential optimization, although not a very potent one.
     # matching requires no real data training.
     # training needs to return the average error on the reals, but can't - because that's
     # the last pass one that finishes the training, without any backward propagation
 
     if train_g or train_d:
-        return np.array(training_trace)
+        return np.array(training_trace).tolist()
 
     if match:
         match_trace = np.array(match_trace)
@@ -240,14 +242,14 @@ class Arena(object):
 
     def match(self):
         trace = match_training_round(self.generator_instance, self.discriminator_instance,
-                             self.discriminator_optimizer, self.generator_optimizer,
-                             self.criterion,
-                             self.env.dataloader, self.env.device,
-                             self.env.latent_vector_size,
-                             mode="match",
-                             real_label=self.env.true_label,
-                             fake_label=self.env.fake_label,
-                             training_epochs=1)
+                                     self.discriminator_optimizer, self.generator_optimizer,
+                                     self.criterion,
+                                     self.env.dataloader, self.env.device,
+                                     self.env.latent_vector_size,
+                                     mode="match",
+                                     real_label=self.env.true_label,
+                                     fake_label=self.env.fake_label,
+                                     training_epochs=1)
 
         d_encounter_trace = [type(self.generator_instance).__name__, self.generator_instance.tag,
                            [], trace]
@@ -301,14 +303,14 @@ class Arena(object):
             mode = "train_d"
 
         trace = match_training_round(self.generator_instance, self.discriminator_instance,
-                             self.discriminator_optimizer, self.generator_optimizer,
-                             self.criterion,
-                             self.env.dataloader, self.env.device,
-                             self.env.latent_vector_size,
-                             mode=mode,
-                             real_label=self.env.true_label,
-                             fake_label=self.env.fake_label,
-                             training_epochs=epochs)
+                                     self.discriminator_optimizer, self.generator_optimizer,
+                                     self.criterion,
+                                     self.env.dataloader, self.env.device,
+                                     self.env.latent_vector_size,
+                                     mode=mode,
+                                     real_label=self.env.true_label,
+                                     fake_label=self.env.fake_label,
+                                     training_epochs=epochs)
 
         d_encounter_trace = [type(self.generator_instance).__name__,
                              self.generator_instance.tag,
@@ -352,6 +354,31 @@ class Arena(object):
         vutils.save_image(fake.detach(),
                           '%s/%s.fake_samples.png' % (self.env.sample_image_folder, name_correction),
                           normalize=True)
+
+        localized_fid_folder = os.path.join(self.env.fid_image_folder,
+                                              self.generator_instance.random_tag)
+
+        localized_fid_folder_f = os.path.join(localized_fid_folder, 'fake')
+        localized_fid_folder_r = os.path.join(localized_fid_folder 'real')
+
+        try:
+            os.makedirs(localized_fid_folder_f)
+        except OSError:
+            pass
+
+        try:
+            os.makedirs(localized_fid_folder_r)
+        except OSError:
+            pass
+
+        for i in range(0, 64):
+            vutils.save_image(real_cpu[i, :, :, :],
+                              '%s/real_%d.png' % (localized_fid_folder_r, i),
+                              normalize=True)
+
+            vutils.save_image(fake.detach()[i, :, :, :],
+                              '%s/fake_%d.png' % (localized_fid_folder_f, i),
+                              normalize=True)
 
 
 
@@ -791,6 +818,7 @@ class GanTrainer(object):
         if len(annotation) > 0:
             name_correction = name_correction + '.' + annotation
 
+
         vutils.save_image(real_cpu,
                           '%s/%s.real_samples.png' % (self.image_path, name_correction),
                           normalize=True)
@@ -798,6 +826,7 @@ class GanTrainer(object):
         vutils.save_image(fake.detach(),
                           '%s/%s.fake_samples.png' % (self.image_path, name_correction),
                           normalize=True)
+
 
 
 def train_run(generator_instance, discriminator_instance,
