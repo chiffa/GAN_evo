@@ -130,7 +130,7 @@ class Discriminator_with_full_linear(nn.Module):
 
     def __init__(self, ngpu, latent_vector_size, discriminator_latent_maps, number_of_colors,
                  autoimmunity=20):
-        super(Discriminator, self).__init__()
+        super(Discriminator_with_full_linear, self).__init__()
         self.tag = 'disc_with_linear'
         self.random_tag = ''.join(sample(char_set * 10, 10))
         self.ngpu = ngpu
@@ -212,7 +212,7 @@ class Discriminator_PReLU(nn.Module):
 
     def __init__(self, ngpu, latent_vector_size, discriminator_latent_maps, number_of_colors,
                  autoimmunity=20):
-        super(Discriminator, self).__init__()
+        super(Discriminator_PReLU, self).__init__()
         self.tag = "disc_PReLU"
         self.random_tag = ''.join(sample(char_set * 10, 10))
         self.ngpu = ngpu
@@ -235,26 +235,26 @@ class Discriminator_PReLU(nn.Module):
                       stride=2,  # affects the size of the out map (divides)
                       padding=1,  # affects the size of the out map
                       bias=False),
-            nn.PReLU(0.2, inplace=True),
+            nn.PReLU(),
             # state size. (ndf) x 32 x 32
             nn.Conv2d(self.discriminator_latent_maps, self.discriminator_latent_maps * 2, 4, 2,
                       1,
                       bias=False),
             nn.BatchNorm2d(self.discriminator_latent_maps * 2),
-            nn.PReLU(0.2, inplace=True),
+            nn.PReLU(),
             # state size. (ndf*2) x 16 x 16
             nn.Conv2d(self.discriminator_latent_maps * 2, self.discriminator_latent_maps * 4, 4,
                       2,
                       1,
                       bias=False),
             nn.BatchNorm2d(self.discriminator_latent_maps * 4),
-            nn.PReLU(0.2, inplace=True),
+            nn.PReLU(),
             # state size. (ndf*4) x 8 x 8
             nn.Conv2d(self.discriminator_latent_maps * 4, self.discriminator_latent_maps * 8, 4,
                       2,
                       1, bias=False),
             nn.BatchNorm2d(self.discriminator_latent_maps * 8),
-            nn.PReLU(0.2, inplace=True),
+            nn.PReLU(),
             # state size. (ndf*8) x 4 x 4
             nn.Conv2d(self.discriminator_latent_maps * 8, 1, 4, 1, 0, bias=False),
             nn.Sigmoid()

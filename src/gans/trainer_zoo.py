@@ -359,7 +359,7 @@ class Arena(object):
                                               self.generator_instance.random_tag)
 
         localized_fid_folder_f = os.path.join(localized_fid_folder, 'fake')
-        localized_fid_folder_r = os.path.join(localized_fid_folder 'real')
+        localized_fid_folder_r = os.path.join(localized_fid_folder, 'real')
 
         try:
             os.makedirs(localized_fid_folder_f)
