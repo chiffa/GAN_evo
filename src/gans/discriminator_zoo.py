@@ -126,16 +126,16 @@ class Discriminator(nn.Module):
         self.tag_trace += [self.random_tag]
 
 
-class Discriminator_with_full_linear(nn.Module):
+class Discriminator_light(nn.Module):
 
     def __init__(self, ngpu, latent_vector_size, discriminator_latent_maps, number_of_colors,
                  autoimmunity=20):
-        super(Discriminator_with_full_linear, self).__init__()
-        self.tag = 'disc_with_linear'
+        super(Discriminator_light, self).__init__()
+        self.tag = 'disc_light'
         self.random_tag = ''.join(sample(char_set * 10, 10))
         self.ngpu = ngpu
         self.latent_vector_size = latent_vector_size
-        self.discriminator_latent_maps = discriminator_latent_maps
+        self.discriminator_latent_maps = discriminator_latent_maps//2
         self.number_of_colors = number_of_colors
         self.real_error = 1.
         self.gen_error_map = {}

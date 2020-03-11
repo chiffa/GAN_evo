@@ -323,8 +323,12 @@ class Arena(object):
         self.discriminator_instance.encounter_trace.append(d_encounter_trace)
         self.generator_instance.encounter_trace.append(g_encounter_trace)
 
+        print('disc: ', self.discriminator_instance.random_tag, '->',)
         self.discriminator_instance.bump_random_tag()
+        print(self.discriminator_instance.random_tag)
+        print('gen: ', self.generator_instance.random_tag, '->',)
         self.generator_instance.bump_random_tag()
+        print(self.generator_instance.random_tag,)
 
         # TODO: inject hyperparameter keys
 
