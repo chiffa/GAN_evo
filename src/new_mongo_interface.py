@@ -17,7 +17,7 @@ pure_disc_collection = gan_pair_db['pure_discriminator_instance']
 
 
 def separate_trace_save(trace):
-    trace_id = gan_trace.insert_one({'load': trace})
+    trace_id = gan_trace.insert_one({'load': trace}).inserted_id
     return str(trace_id)
 
 
@@ -31,15 +31,16 @@ def separate_trace_update(trace_id, new_trace):
                                   {'$set': {'load':new_trace}})
     return trace_id
 
+
 def save_pure_gen(payload):
     payload['encounter_trace'] = separate_trace_save(payload['encounter_trace'])
-    gen_id = pure_gen_collection.insert_one(payload)
+    gen_id = pure_gen_collection.insert_one(payload).inserted_id
     return gen_id
 
 
 def save_pure_disc(payload):
     payload['encounter_trace'] = separate_trace_save(payload['encounter_trace'])
-    disc_id = pure_disc_collection.insert_one(payload)
+    disc_id = pure_disc_collection.insert_one(payload).inserted_id
     return disc_id
 
 

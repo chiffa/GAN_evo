@@ -2,7 +2,7 @@ from src.gans.discriminator_zoo import Discriminator, Discriminator_PReLU, Discr
 from src.gans.generator_zoo import Generator
 from src.gans.trainer_zoo import Arena, GANEnvironment
 # from src.new_mongo_interface import save_pure_disc, save_pure_gen, filter_pure_disc, filter_pure_gen
-
+import pickle
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
 from itertools import combinations, product
@@ -67,8 +67,25 @@ def cross_train_iteration(hosts, pathogens, host_type_selector):
 
         arena.cross_train(1)
         arena.sample_images()
-        print(arena.generator_instance.random_tag, ': ', end='')
-        print("real_err: %s, gen_err: %s" % arena.match())
+        arena_match_results = arena.match()
+        print("%s: real_err: %s, gen_err: %s" % (
+            arena.generator_instance.random_tag,
+            arena_match_results[0], arena_match_results[1]))
+
+    for host, pathogen in product(hosts[host_type_selector], pathogens):
+
+        arena = Arena(environment=environment,
+                  generator_instance=pathogen,
+                  discriminator_instance=host,
+                  generator_optimizer_partial=gen_opt_part,
+                  discriminator_optimizer_partial=disc_opt_part)
+
+        arena_match_results = arena.match()
+
+        print("%s vs %s: real_err: %s, gen_err: %s" % (
+            arena.generator_instance.random_tag,
+            arena.discriminator_instance.random_tag,
+            arena_match_results[0], arena_match_results[1]))
 
     for host in hosts[host_type_selector]:
         print('host', host.random_tag, host.current_fitness, host.gen_error_map)
@@ -85,9 +102,20 @@ def chain_progression(individuals_per_species, starting_cluster):
     cross_train_iteration(hosts, pathogens, 'PreLU')
     cross_train_iteration(hosts, pathogens, 'base')
 
+    host_map = {}
+    pathogen_map = {}
+    for host in hosts['base']:
+        host_map[host.random_tag] = [host.gen_error_map, host.current_fitness, host.real_error,
+                                     host.tag_trace]
+
+    for pathogen in pathogens:
+        pathogen_map[pathogen.random_tag] = [pathogen.fitness_map, pathogen.tag_trace]
+
+    pickle.dump((host_map, pathogen_map), open('evolved_hosts_pathogen_map.dmp', 'w'))
+
 
 def brute_force_training(restarts, epochs):
-    print('bruteforcing restarts')
+    print('bruteforcing starts')
     hosts = spawn_host_population(restarts*3)['base']
     pathogens = spawn_pathogen_population(restarts)
 
@@ -100,12 +128,20 @@ def brute_force_training(restarts, epochs):
 
         arena.cross_train(epochs)
         arena.sample_images()
-        print(arena.generator_instance.random_tag)
-        print(arena.match())
+        arena_match_results = arena.match()
+        print("%s: real_err: %s, gen_err: %s" % (
+            arena.generator_instance.random_tag,
+            arena_match_results[0], arena_match_results[1]))
 
     for pathogen in pathogens:
-        print(pathogen.random_tag)
+        print(pathogen.random_tag, ": ", pathogen.fitness_map)
 
+    pathogen_map = {}
+
+    for pathogen in pathogens:
+        pathogen_map[pathogen.random_tag] = [pathogen.fitness_map, pathogen.tag_trace]
+
+    pickle.dump(pathogen_map, open('brute_force_pathogen_map.dmp', 'w'))
 
 if __name__ == "__main__":
     image_folder = "./image"
