@@ -9,6 +9,12 @@ from itertools import combinations, product
 import torch.optim as optim
 
 
+def render_evolution(random_tags_list):
+    for random_tag in random_tags_list:
+        print(random_tag, ' <- ', end='')
+    print()
+
+
 def spawn_host_population(individuals_per_species):
     hosts = {
         'base': [],
@@ -42,6 +48,7 @@ def spawn_pathogen_population(starting_cluster):
                     latent_vector_size=environment.latent_vector_size,
                     generator_latent_maps=64,
                     number_of_colors=environment.number_of_colors).to(environment.device))
+
     print('pathogens: ', [pathogen.random_tag for pathogen in pathogens])
     return pathogens
 
@@ -68,7 +75,7 @@ def cross_train_iteration(hosts, pathogens, host_type_selector):
 
     for pathogen in pathogens:
         print('pathogen', pathogen.random_tag, pathogen.fitness_map)
-
+        render_evolution(pathogen.tag_trace)
 
 def chain_progression(individuals_per_species, starting_cluster):
         # by default we will be starting with the weaker pathogens, at least for now
@@ -95,6 +102,9 @@ def brute_force_training(restarts, epochs):
         arena.sample_images()
         print(arena.generator_instance.random_tag)
         print(arena.match())
+
+    for pathogen in pathogens:
+        print(pathogen.random_tag)
 
 
 if __name__ == "__main__":
