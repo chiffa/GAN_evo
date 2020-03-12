@@ -289,7 +289,7 @@ class Arena(object):
                         {'encounter_trace': self.generator_instance.encounter_trace,
                          'fitness_map': self.generator_instance.fitness_map})
 
-
+        return trace
 
     def cross_train(self, epochs=1, gan_only=False, disc_only=False):
 
@@ -323,18 +323,20 @@ class Arena(object):
         self.discriminator_instance.encounter_trace.append(d_encounter_trace)
         self.generator_instance.encounter_trace.append(g_encounter_trace)
 
-        print('disc: ', self.discriminator_instance.random_tag, '->',)
+        print('disc: ', self.discriminator_instance.random_tag, '->', end='')
         self.discriminator_instance.bump_random_tag()
         print(self.discriminator_instance.random_tag)
-        print('gen: ', self.generator_instance.random_tag, '->',)
+        print('gen: ', self.generator_instance.random_tag, '->', end='')
         self.generator_instance.bump_random_tag()
-        print(self.generator_instance.random_tag,)
+        print(self.generator_instance.random_tag)
 
         # TODO: inject hyperparameter keys
 
         save_pure_disc(self.discriminator_instance.save_instance_state())
 
         save_pure_gen(self.generator_instance.save_instance_state())
+
+        return trace
 
 
     def sample_images(self, annotation=''):

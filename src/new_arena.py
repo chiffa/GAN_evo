@@ -16,17 +16,17 @@ def spawn_host_population(individuals_per_species):
         'light': []
     }  # Type: list
     for _ in range(0, individuals_per_species):
-        hosts.append(Discriminator(ngpu=environment.ngpu,
+        hosts['base'].append(Discriminator(ngpu=environment.ngpu,
                          latent_vector_size=environment.latent_vector_size,
                          discriminator_latent_maps=64,
                          number_of_colors=environment.number_of_colors).to(environment.device))
-        hosts.append(Discriminator_PReLU(ngpu=environment.ngpu,
+        hosts['PreLU'].append(Discriminator_PReLU(ngpu=environment.ngpu,
                          latent_vector_size=environment.latent_vector_size,
                          discriminator_latent_maps=64,
                          number_of_colors=environment.number_of_colors).to(environment.device))
-        hosts.append(Discriminator_light(ngpu=environment.ngpu,
+        hosts['light'].append(Discriminator(ngpu=environment.ngpu,
                                          latent_vector_size=environment.latent_vector_size,
-                                         discriminator_latent_maps=64,
+                                         discriminator_latent_maps=32,
                                          number_of_colors=environment.number_of_colors).to(environment.device))
 
     for host_type, _hosts in hosts.items():
@@ -53,18 +53,18 @@ def cross_train_iteration(hosts, pathogens, host_type_selector):
     for host, pathogen in product(hosts[host_type_selector], pathogens):
 
         arena = Arena(environment=environment,
-                  generator_instance=host,
-                  discriminator_instance=pathogen,
+                  generator_instance=pathogen,
+                  discriminator_instance=host,
                   generator_optimizer_partial=gen_opt_part,
                   discriminator_optimizer_partial=disc_opt_part)
 
         arena.cross_train(1)
         arena.sample_images()
-        print(arena.generator_instance.random_tag)
-        print(arena.match())
+        print(arena.generator_instance.random_tag, ': ', end='')
+        print("real_err: %s, gen_err: %s" % arena.match())
 
     for host in hosts[host_type_selector]:
-        print('host', host.random_tag, host.current_fitness, host.gen_fitness_map)
+        print('host', host.random_tag, host.current_fitness, host.gen_error_map)
 
     for pathogen in pathogens:
         print('pathogen', pathogen.random_tag, pathogen.fitness_map)
@@ -86,8 +86,8 @@ def brute_force_training(restarts, epochs):
 
     for host, pathogen in product(hosts, pathogens):
         arena = Arena(environment=environment,
-                  generator_instance=host,
-                  discriminator_instance=pathogen,
+                  generator_instance=pathogen,
+                  discriminator_instance=host,
                   generator_optimizer_partial=gen_opt_part,
                   discriminator_optimizer_partial=disc_opt_part)
 
