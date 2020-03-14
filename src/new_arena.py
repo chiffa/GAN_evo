@@ -111,15 +111,16 @@ def chain_progression(individuals_per_species, starting_cluster):
     for pathogen in pathogens:
         pathogen_map[pathogen.random_tag] = [pathogen.fitness_map, pathogen.tag_trace]
 
-    pickle.dump((host_map, pathogen_map), open('evolved_hosts_pathogen_map.dmp', 'w'))
+    pickle.dump((host_map, pathogen_map), open('evolved_hosts_pathogen_map.dmp', 'wb'))
 
 
 def brute_force_training(restarts, epochs):
     print('bruteforcing starts')
-    hosts = spawn_host_population(restarts*3)['base']
+    hosts = spawn_host_population(restarts)['base']
     pathogens = spawn_pathogen_population(restarts)
 
-    for host, pathogen in product(hosts, pathogens):
+
+    for host, pathogen in zip(hosts, pathogens):
         arena = Arena(environment=environment,
                   generator_instance=pathogen,
                   discriminator_instance=host,
@@ -141,7 +142,7 @@ def brute_force_training(restarts, epochs):
     for pathogen in pathogens:
         pathogen_map[pathogen.random_tag] = [pathogen.fitness_map, pathogen.tag_trace]
 
-    pickle.dump(pathogen_map, open('brute_force_pathogen_map.dmp', 'w'))
+    pickle.dump(pathogen_map, open('brute_force_pathogen_map.dmp', 'wb'))
 
 if __name__ == "__main__":
     image_folder = "./image"
@@ -155,7 +156,7 @@ if __name__ == "__main__":
                                    transforms.ToTensor(),
                                    transforms.Normalize((0.5,), (0.5,)),]))
 
-    environment = GANEnvironment(mnist_dataset)
+    environment = GANEnvironment(mnist_dataset, device="cuda:1")
 
     learning_rate = 0.0002
     beta1 = 0.5
@@ -163,7 +164,7 @@ if __name__ == "__main__":
     gen_opt_part = lambda x: optim.Adam(x, lr=learning_rate, betas=(beta1, 0.999))
     disc_opt_part = lambda x: optim.Adam(x, lr=learning_rate, betas=(beta1, 0.999))
 
-    chain_progression(5, 5)
+    # chain_progression(5, 5)
     brute_force_training(15, 5)
 
 
