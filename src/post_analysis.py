@@ -11,6 +11,11 @@ pprint(real_comparison)
 
 host_map, pathogen_map = pickle.load(open('evolved_hosts_pathogen_map.dmp', 'rb'))
 
+evolution_trace = {}
+
+for pathogen_tag, (_, evo_list) in pathogen_map.items():
+    evolution_trace[pathogen_tag] = [fid_map.get(tag, -1) for tag in evo_list[1:]]
+
 pprint(host_map)
 pprint(real_comparison)
 
@@ -38,3 +43,9 @@ print('brutefroce: %.2f %.2f' % (np.mean(bruteforce_stats), np.std(bruteforce_st
 print('evo: %.2f %.2f' % (np.mean(evo_stats), np.std(evo_stats)))
 print('t-test: %.2f p-val: %f' % ttest_ind(bruteforce_stats, evo_stats))
 plt.show()
+
+for key, trace in evolution_trace.items():
+    plt.plot(range(0, len(trace)), trace, label=key)
+plt.legend()
+plt.show()
+
