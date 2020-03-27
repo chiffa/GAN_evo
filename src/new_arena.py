@@ -121,23 +121,23 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget):
     #TODO: add FID only on the most recent filter
 
     pathogens_index = list(range(0, len(pathogens_list)))
-    pathogen_fitnesses = [1.]*len(pathogens_list)
+    pathogens_fitnesses = [1.]*len(pathogens_list)
 
     hosts_index = list(range(0, len(hosts_list)))
-    host_fitnesses = [1.]*len(hosts_list)
+    hosts_fitnesses = [1.]*len(hosts_list)
 
     host_idx_2_pathogens_carried = defaultdict(list)
 
     i = 0
 
     while i < pathogen_epochs_budget:
-        print('current fitness tables: %s; %s' % (host_fitnesses, pathogen_fitnesses))
-        current_host_idx = random.choice(hosts_index, weights=host_fitnesses)
-        current_pathogen_idx = random.choice(pathogens_index, weights=pathogen_fitnesses)
+        print('current fitness tables: %s; %s' % (hosts_fitnesses, pathogens_fitnesses))
+        current_host_idx = random.choices(hosts_index, weights=hosts_fitnesses)[0]
+        current_pathogen_idx = random.choices(pathogens_index, weights=pathogens_fitnesses)[0]
 
         arena = Arena(environment=environment,
-                  generator_instance=pathogens_list[current_host_idx],
-                  discriminator_instance=hosts_list[current_pathogen_idx],
+                  generator_instance=pathogens_list[current_pathogen_idx],
+                  discriminator_instance=hosts_list[current_host_idx],
                   generator_optimizer_partial=gen_opt_part,
                   discriminator_optimizer_partial=disc_opt_part)
 
@@ -146,7 +146,7 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget):
             arena.generator_instance.random_tag,
             arena_match_results[0], arena_match_results[1],
             arena.discriminator_instance.current_fitness,
-            arena.generator_instance.fitness_map[arena.generator_instance.random_tag]))
+            arena.generator_instance.fitness_map.get(arena.discriminator_instance.random_tag, -1)))
 
         # check if there is an ongoing infection.
 
@@ -154,44 +154,48 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget):
 
         # if no and the infection still would happen, proceed to training without further appending.
 
-        if arena.generator_instance.fitness_map[arena.generator_instance.random_tag] > 1:
+
+        if arena.generator_instance.fitness_map.get(arena.discriminator_instance.random_tag, -1) > 1:
             #infection
             if current_pathogen_idx not in host_idx_2_pathogens_carried[current_host_idx]:
-                host_idx_2_pathogens_carried[current_host_idx].append[current_pathogen_idx]
-            if host_fitnesses > 0.95:
+                host_idx_2_pathogens_carried[current_host_idx].append(current_pathogen_idx)
+            if arena.discriminator_instance.current_fitness > 0.95:
                 #immune system is not bothered
-                print('silent infection')
+                print('debug: pop evolve: silent infection')
                 arena.cross_train(gan_only=True)
                 i += 0.5
             else:
                 #immune sytem is active and competitive evolution happens:
-                print('full infection')
+                print('debug: pop evolve: full infection')
                 arena.cross_train()
                 i += 1
 
             arena.sample_images()
             arena_match_results = arena.match()
 
-            print("post-train: real_err: %s, gen_err: %s; updated fitnesses: host: %s path: %s" % (
-                arena_match_results[0], arena_match_results[1],
+            print("debug: pop evolve: post-train: real_err: %s, gen_err: %s" % (
+                arena_match_results[0], arena_match_results[1]))
+            print("debug: pop evolve: fitness map", arena.generator_instance.fitness_map)
+            print("debug: pop evolve: updated fitnesses: host: %s path: %s" % (
                 arena.discriminator_instance.current_fitness,
-                arena.generator_instance.fitness_map[arena.generator_instance.random_tag]))
+                arena.generator_instance.fitness_map.get(arena.discriminator_instance.random_tag, -1)))
 
-            host_fitnesses[hosts_index] = arena.discriminator_instance.current_fitness
-            pathogen_fitnesses[pathogens_index] = arena.generator_instance.fitness_map[arena.generator_instance.random_tag]
+            hosts_fitnesses[current_host_idx] = arena.discriminator_instance.current_fitness
+            pathogens_fitnesses[current_pathogen_idx] = arena.generator_instance.fitness_map.get(
+                arena.discriminator_instance.random_tag, -1)
 
         else:
-            print('infection fails')
+            print('debug: pop evolve: infection fails')
             if current_pathogen_idx in host_idx_2_pathogens_carried[current_host_idx]:
                 host_idx_2_pathogens_carried[current_host_idx].remove(current_pathogen_idx)
-            host_fitnesses[hosts_index] = arena.discriminator_instance.current_fitness
+            hosts_fitnesses[current_host_idx] = arena.discriminator_instance.current_fitness
 
 
 def chain_evolve(individuals_per_species, starting_cluster):
     # by default we will be starting with the weaker pathogens, at least for now
     hosts = spawn_host_population(individuals_per_species)
     pathogens = spawn_pathogen_population(starting_cluster)
-    default_budget = len(individuals_per_species)*len(starting_cluster)
+    default_budget = individuals_per_species*starting_cluster
     cross_train_iteration(hosts, pathogens, 'light', 1)
     evolve_in_population(hosts['light'], pathogens, default_budget)
     cross_train_iteration(hosts, pathogens, 'PreLU', 1)
