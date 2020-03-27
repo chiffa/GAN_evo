@@ -263,21 +263,28 @@ class Arena(object):
 
         #TODO: add the weigtings by autoimmunity and virulence
 
+        print('debug: inside match: real_error: %s, false_error: %s' % (trace[0], trace[1]))
+
         host_fitness, pathogen_fitness = pathogen_host_fitness(trace[0], trace[1])
 
-        if pathogen_fitness > 1:  # contamination
+        print('debug: inside match: host_fitness: %s, pathogen_fitness: %s' % (host_fitness,
+                                                                               pathogen_fitness))
+
+        if pathogen_fitness > 1:
+            print('debug: inside match: contamination branch')  # contamination
             self.generator_instance.fitness_map = {
                 self.discriminator_instance.random_tag: pathogen_fitness}
             self.discriminator_instance.gen_error_map = {self.generator_instance.random_tag:
                                                              trace[1]}
 
         else:  # No contamination
+            print('debug: inside match: no-contamination branch')
             # clear pathogens if exist
             self.generator_instance.fitness_map.pop(self.discriminator_instance.random_tag, None)
             self.discriminator_instance.gen_error_map.pop(self.generator_instance.random_tag, None)
 
         self.discriminator_instance.current_fitness = cumulative_host_fitness(trace[0],
-                                                                              self.generator_instance.fitness_map.values())
+                                                                              self.discriminator_instance.gen_error_map.values())
 
         update_pure_disc(self.discriminator_instance.random_tag,
                          {'encounter_trace': self.discriminator_instance.encounter_trace,
