@@ -9,6 +9,20 @@ from itertools import combinations, product
 import torch.optim as optim
 import random
 from collections import defaultdict
+import os
+from datetime import datetime
+
+
+evo_trace_dump_location = "evolved_hosts_pathogen_map.dmp"
+evo2_trace_dump_location = "evolved_2_hosts_pathogen_map.dmp"
+brute_force_trace_dump_location = 'brute_force_pathogen_map.dmp'
+
+
+def dump_with_backup(object, location):
+    if os.path.isfile(location):
+        new_location = location[:-4] + '-bckp-' + datetime.now().isoformat() + location[-4:]
+        os.rename(location, new_location)
+    pickle.dump(object, open(location, 'wb'))
 
 
 def render_evolution(random_tags_list):
@@ -113,7 +127,8 @@ def chain_progression(individuals_per_species, starting_cluster):
     for pathogen in pathogens:
         pathogen_map[pathogen.random_tag] = [pathogen.fitness_map, pathogen.tag_trace]
 
-    pickle.dump((host_map, pathogen_map), open('evolved_hosts_pathogen_map.dmp', 'wb'))
+    dump_with_backup((host_map, pathogen_map), evo_trace_dump_location)
+    # pickle.dump((host_map, pathogen_map), open('evolved_hosts_pathogen_map.dmp', 'wb'))
 
 
 def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget):
@@ -132,6 +147,10 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget):
 
     while i < pathogen_epochs_budget:
         print('current fitness tables: %s; %s' % (hosts_fitnesses, pathogens_fitnesses))
+
+        # TODO: realistically, we need to look in the carrying tables and then attempt to cross
+        #  the infections to other, more efficient hosts.
+
         current_host_idx = random.choices(hosts_index, weights=hosts_fitnesses)[0]
         current_pathogen_idx = random.choices(pathogens_index, weights=pathogens_fitnesses)[0]
 
@@ -211,7 +230,9 @@ def chain_evolve(individuals_per_species, starting_cluster):
     for pathogen in pathogens:
         pathogen_map[pathogen.random_tag] = [pathogen.fitness_map, pathogen.tag_trace]
 
-    pickle.dump((host_map, pathogen_map), open('evolved_2_hosts_pathogen_map.dmp', 'wb'))
+    dump_with_backup((host_map, pathogen_map), evo2_trace_dump_location)
+    # pickle.dump((host_map, pathogen_map), open('evolved_2_hosts_pathogen_map.dmp', 'wb'))
+
 
 def brute_force_training(restarts, epochs):
     print('bruteforcing starts')
@@ -241,7 +262,8 @@ def brute_force_training(restarts, epochs):
     for pathogen in pathogens:
         pathogen_map[pathogen.random_tag] = [pathogen.fitness_map, pathogen.tag_trace]
 
-    pickle.dump(pathogen_map, open('brute_force_pathogen_map.dmp', 'wb'))
+    dump_with_backup(pathogen_map, brute_force_trace_dump_location)
+    # pickle.dump(pathogen_map, open('brute_force_pathogen_map.dmp', 'wb'))
 
 if __name__ == "__main__":
     image_folder = "./image"
