@@ -4,9 +4,12 @@ from random import shuffle
 from itertools import combinations
 from src.fid_calc.fid_score import calculate_fid_given_paths
 import pickle
+import datetime
+
 
 balancing_folders_location = '/home/kucharav/FID_samples'
 fid_command = '/home/kucharav/Documents/pytorch-fid-master/fid_score.py'
+after_datetime = datetime.datetime.now() - datetime.timedelta(days=1)
 
 random_tag_list = []
 fid_map = {}

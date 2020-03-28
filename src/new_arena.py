@@ -148,12 +148,6 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget):
             arena.discriminator_instance.current_fitness,
             arena.generator_instance.fitness_map.get(arena.discriminator_instance.random_tag, -1)))
 
-        # check if there is an ongoing infection.
-
-        # if yes and infection would not happen anymore, clear it.
-
-        # if no and the infection still would happen, proceed to training without further appending.
-
 
         if arena.generator_instance.fitness_map.get(arena.discriminator_instance.random_tag, -1) > 1:
             #infection
@@ -180,15 +174,20 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget):
                 arena.discriminator_instance.current_fitness,
                 arena.generator_instance.fitness_map.get(arena.discriminator_instance.random_tag, -1)))
 
-            hosts_fitnesses[current_host_idx] = arena.discriminator_instance.current_fitness
-            pathogens_fitnesses[current_pathogen_idx] = arena.generator_instance.fitness_map.get(
-                arena.discriminator_instance.random_tag, -1)
+            hosts_fitnesses[current_host_idx] = max(
+                0.01, arena.discriminator_instance.current_fitness)
+            pathogens_fitnesses[current_pathogen_idx] = max(0.01,
+            arena.generator_instance.fitness_map.get(
+                arena.discriminator_instance.random_tag, -1))
 
         else:
             print('debug: pop evolve: infection fails')
+
             if current_pathogen_idx in host_idx_2_pathogens_carried[current_host_idx]:
                 host_idx_2_pathogens_carried[current_host_idx].remove(current_pathogen_idx)
-            hosts_fitnesses[current_host_idx] = arena.discriminator_instance.current_fitness
+
+            hosts_fitnesses[current_host_idx] = max(
+                0.01, arena.discriminator_instance.current_fitness)
 
 
 def chain_evolve(individuals_per_species, starting_cluster):
@@ -265,7 +264,7 @@ if __name__ == "__main__":
     disc_opt_part = lambda x: optim.Adam(x, lr=learning_rate, betas=(beta1, 0.999))
 
     # chain_progression(5, 5)
-    chain_evolve(2, 2)
+    chain_evolve(5, 5)
     # brute_force_training(5, 15)
 
 
