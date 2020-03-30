@@ -83,7 +83,10 @@ def spawn_pathogen_population(starting_cluster):
 
 
 def cross_train_iteration(hosts, pathogens, host_type_selector, epochs=1):
-    dump_trace(['cross-train started. parameters:', hosts, pathogens, host_type_selector, epochs,
+    dump_trace(['cross-train started. parameters:',
+                [host.random_tag for host in hosts],
+                [pathogen.random_tag for pathogen in pathogens],
+                host_type_selector, epochs,
                 'time:', datetime.now().isoformat()])
 
     print('cross-training round with host type: %s' % host_type_selector)
@@ -96,9 +99,27 @@ def cross_train_iteration(hosts, pathogens, host_type_selector, epochs=1):
                   generator_optimizer_partial=gen_opt_part,
                   discriminator_optimizer_partial=disc_opt_part)
 
+        dump_trace(['cross-match between:',
+                     arena.discriminator_instance.random_tag,
+                    arena.generator_instance.random_tag, ])
+
         arena.cross_train(epochs)
         arena.sample_images()
+
+        current_fid = calc_single_fid(arena.generator_instance.random_tag)
+        dump_trace(['sampled images from',
+                        arena.generator_instance.random_tag, current_fid])
+
         arena_match_results = arena.match()
+
+
+        dump_trace(['cross-train and match:',
+                    arena.discriminator_instance.random_tag,
+                    arena.generator_instance.random_tag,
+                    arena_match_results[0], arena_match_results[1],
+                    arena.discriminator_instance.current_fitness,
+                    arena.generator_instance.fitness_map.get(arena.discriminator_instance.random_tag, -1)])
+
         print("%s: real_err: %s, gen_err: %s" % (
             arena.generator_instance.random_tag,
             arena_match_results[0], arena_match_results[1]))
@@ -112,6 +133,13 @@ def cross_train_iteration(hosts, pathogens, host_type_selector, epochs=1):
                   discriminator_optimizer_partial=disc_opt_part)
 
         arena_match_results = arena.match()
+
+        dump_trace(['final cross-match:',
+                    arena.discriminator_instance.random_tag,
+                    arena.generator_instance.random_tag,
+                    arena_match_results[0], arena_match_results[1],
+                    arena.discriminator_instance.current_fitness,
+                    arena.generator_instance.fitness_map.get(arena.discriminator_instance.random_tag, -1)])
 
         print("%s vs %s: real_err: %s, gen_err: %s" % (
             arena.generator_instance.random_tag,
@@ -165,6 +193,11 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget):
 
     while i < pathogen_epochs_budget:
         print('current fitness tables: %s; %s' % (hosts_fitnesses, pathogens_fitnesses))
+        dump_trace(['current tag/fitness tables',
+                    [host.random_tag for host in hosts_list],
+                    [pathogen.random_tag for pathogen in pathogens_list],
+                    hosts_fitnesses, pathogens_fitnesses])
+        # TODO: add a restart from a static state
 
         # TODO: realistically, we need to look in the carrying tables and then attempt to cross
         #  the infections to other, more efficient hosts.
@@ -247,6 +280,8 @@ def chain_evolve(individuals_per_species, starting_cluster):
     hosts = spawn_host_population(individuals_per_species)
     pathogens = spawn_pathogen_population(starting_cluster)
     default_budget = individuals_per_species*starting_cluster
+
+    # TODO: add a restart from a random tags state
 
     cross_train_iteration(hosts, pathogens, 'light', 1)
     evolve_in_population(hosts['light'], pathogens, default_budget)
