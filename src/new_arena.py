@@ -11,11 +11,24 @@ import random
 from collections import defaultdict
 import os
 from datetime import datetime
+import csv
+from src.fid_analyser import calc_single_fid
 
 
 evo_trace_dump_location = "evolved_hosts_pathogen_map.dmp"
 evo2_trace_dump_location = "evolved_2_hosts_pathogen_map.dmp"
 brute_force_trace_dump_location = 'brute_force_pathogen_map.dmp'
+
+trace_dump_file = 'run_trace.csv'
+
+
+def dump_trace(payload_list):
+    if not os.path.isfile(trace_dump_file):
+        open(trace_dump_file, 'w')
+
+    with open(trace_dump_file, 'a') as destination:
+        writer = csv.writer(destination, delimiter = '\t')
+        writer.writerow(payload_list)
 
 
 def dump_with_backup(object, location):
@@ -70,6 +83,8 @@ def spawn_pathogen_population(starting_cluster):
 
 
 def cross_train_iteration(hosts, pathogens, host_type_selector, epochs=1):
+    dump_trace(['cross-train started. parameters:', hosts, pathogens, host_type_selector, epochs,
+                'time:', datetime.now().isoformat()])
 
     print('cross-training round with host type: %s' % host_type_selector)
 
@@ -133,7 +148,10 @@ def chain_progression(individuals_per_species, starting_cluster):
 
 def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget):
     #TODO: check infection decision correctness
-    #TODO: add FID only on the most recent filter
+
+    dump_trace(['evolve_in_population started. parameters:', hosts_list, pathogens_list,
+                pathogen_epochs_budget,
+                'time:', datetime.now().isoformat()])
 
     pathogens_index = list(range(0, len(pathogens_list)))
     pathogens_fitnesses = [1.]*len(pathogens_list)
@@ -167,53 +185,69 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget):
             arena.discriminator_instance.current_fitness,
             arena.generator_instance.fitness_map.get(arena.discriminator_instance.random_tag, -1)))
 
+        dump_trace(['pre-infection', current_host_idx, current_pathogen_idx,
+                     arena.discriminator_instance.random_tag,
+                    arena.generator_instance.random_tag, arena_match_results[0], arena_match_results[1],
+                    arena.discriminator_instance.current_fitness,
+            arena.generator_instance.fitness_map.get(arena.discriminator_instance.random_tag, -1)])
 
         if arena.generator_instance.fitness_map.get(arena.discriminator_instance.random_tag, -1) > 1:
             #infection
             if current_pathogen_idx not in host_idx_2_pathogens_carried[current_host_idx]:
                 host_idx_2_pathogens_carried[current_host_idx].append(current_pathogen_idx)
+                dump_trace(['contagion, current host state:', host_idx_2_pathogens_carried[
+                    current_host_idx, 'host fitness',  arena.discriminator_instance.current_fitness]])
             if arena.discriminator_instance.current_fitness > 0.95:
                 #immune system is not bothered
-                print('debug: pop evolve: silent infection')
+                # print('debug: pop evolve: silent infection')
                 arena.cross_train(gan_only=True)
                 i += 0.5
             else:
                 #immune sytem is active and competitive evolution happens:
-                print('debug: pop evolve: full infection')
+                # print('debug: pop evolve: full infection')
                 arena.cross_train()
                 i += 1
 
             arena.sample_images()
+            current_fid = calc_single_fid(arena.generator_instance.random_tag)
+            dump_trace(['sampled images from', current_pathogen_idx,
+                        arena.generator_instance.random_tag, current_fid])
             arena_match_results = arena.match()
 
-            print("debug: pop evolve: post-train: real_err: %s, gen_err: %s" % (
-                arena_match_results[0], arena_match_results[1]))
-            print("debug: pop evolve: fitness map", arena.generator_instance.fitness_map)
-            print("debug: pop evolve: updated fitnesses: host: %s path: %s" % (
-                arena.discriminator_instance.current_fitness,
-                arena.generator_instance.fitness_map.get(arena.discriminator_instance.random_tag, -1)))
+            dump_trace(['post-infection', current_host_idx, current_pathogen_idx,
+                        arena.discriminator_instance.random_tag,
+                    arena.generator_instance.random_tag, arena_match_results[0], arena_match_results[1],
+                    arena.discriminator_instance.current_fitness,
+            arena.generator_instance.fitness_map.get(arena.discriminator_instance.random_tag, -1)])
 
-            hosts_fitnesses[current_host_idx] = max(
-                0.01, arena.discriminator_instance.current_fitness)
-            pathogens_fitnesses[current_pathogen_idx] = max(0.01,
-            arena.generator_instance.fitness_map.get(
-                arena.discriminator_instance.random_tag, -1))
+            # print("debug: pop evolve: post-train: real_err: %s, gen_err: %s" % (
+                # arena_match_results[0], arena_match_results[1]))
+            # print("debug: pop evolve: fitness map", arena.generator_instance.fitness_map)
+            # print("debug: pop evolve: updated fitnesses: host: %s path: %s" % (
+            #     arena.discriminator_instance.current_fitness,
+            #     arena.generator_instance.fitness_map.get(arena.discriminator_instance.random_tag, -1)))
+
+            hosts_fitnesses[current_host_idx] = arena.discriminator_instance.current_fitness
+            pathogens_fitnesses[current_pathogen_idx] = arena.generator_instance.fitness_map.get(
+                arena.discriminator_instance.random_tag, -1)
 
         else:
-            print('debug: pop evolve: infection fails')
+            # print('debug: pop evolve: infection fails')
 
             if current_pathogen_idx in host_idx_2_pathogens_carried[current_host_idx]:
                 host_idx_2_pathogens_carried[current_host_idx].remove(current_pathogen_idx)
 
-            hosts_fitnesses[current_host_idx] = max(
-                0.01, arena.discriminator_instance.current_fitness)
+            hosts_fitnesses[current_host_idx] = arena.discriminator_instance.current_fitness
 
 
 def chain_evolve(individuals_per_species, starting_cluster):
     # by default we will be starting with the weaker pathogens, at least for now
+    dump_trace(['chain evolve started. parameters:', individuals_per_species, starting_cluster,
+                'time:', datetime.now().isoformat()])
     hosts = spawn_host_population(individuals_per_species)
     pathogens = spawn_pathogen_population(starting_cluster)
     default_budget = individuals_per_species*starting_cluster
+
     cross_train_iteration(hosts, pathogens, 'light', 1)
     evolve_in_population(hosts['light'], pathogens, default_budget)
     cross_train_iteration(hosts, pathogens, 'PreLU', 1)
@@ -235,10 +269,11 @@ def chain_evolve(individuals_per_species, starting_cluster):
 
 
 def brute_force_training(restarts, epochs):
+    dump_trace(['brute-force started. parameters:', restarts, epochs,
+                'time:', datetime.now().isoformat()])
     print('bruteforcing starts')
     hosts = spawn_host_population(restarts)['base']
     pathogens = spawn_pathogen_population(restarts)
-
 
     for host, pathogen in zip(hosts, pathogens):
         arena = Arena(environment=environment,
@@ -285,8 +320,9 @@ if __name__ == "__main__":
     gen_opt_part = lambda x: optim.Adam(x, lr=learning_rate, betas=(beta1, 0.999))
     disc_opt_part = lambda x: optim.Adam(x, lr=learning_rate, betas=(beta1, 0.999))
 
+    dump_trace(['run started at', datetime.now().isoformat()])
     # chain_progression(5, 5)
-    chain_evolve(5, 5)
+    chain_evolve(3, 3)
     # brute_force_training(5, 15)
 
 

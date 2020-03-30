@@ -2,6 +2,9 @@ import numpy as np
 from scipy import stats
 from matplotlib import pyplot as plt
 
+host_low_fitness_clip = 0.01
+pathogen_low_fitness_clip = 0.05
+
 
 def simple_elo(elo_A, elo_B, A_lead, factor_k=16):
     disc_e_a = 1. / (1. + 10 ** ((elo_B - elo_A) / 400))
@@ -54,14 +57,28 @@ def pathogen_host_fitness(real_av_error, fake_av_error,
     pathogen_fitness = virulence_factor * stats.weibull_min.cdf(fake_av_error * virulence_factor,
                                                                     effective_phenotype_space_dimensions)
 
+    host_fitness_clipped = False
+    host_pre_clip_fitness = host_fitness
+    if host_fitness < host_low_fitness_clip:
+        host_fitness_clipped = True
+        host_fitness = host_low_fitness_clip
+
+    pathogen_fitness_clipped = False
+    pathogen_pre_clip_fitness = pathogen_fitness
+    if pathogen_fitness < pathogen_low_fitness_clip:
+        pathogen_fitness_clipped = True
+        pathogen_fitness = pathogen_low_fitness_clip
+
     print('debug: raw scoring called with errors: real:%s, fake:%s; '
-          'cumulative load: %s;'
-          ' fitness returned: host:%s, '
-          'pathogen:%s' % (real_av_error,
-                           fake_av_error,
-                           cumulative_load,
-                           host_fitness,
-                           pathogen_fitness))
+          '\n\t cumulative load: %s;'
+          '\n\t host/pathogen pre-clip fitnesses: %s, %s'
+          '\n\t host/pathogen fitnesses clipped: %s, %s'
+          '\n\t fitness returned: host:%s, pathogen:%s' % (
+        real_av_error, fake_av_error,
+        cumulative_load,
+        host_pre_clip_fitness, pathogen_pre_clip_fitness,
+        host_fitness_clipped, pathogen_fitness_clipped,
+        host_fitness, pathogen_fitness))
 
     return host_fitness, pathogen_fitness
 
@@ -81,11 +98,21 @@ def cumulative_host_fitness(real_av_error, fake_av_error_vector,
 
     host_fitness = 1 - stats.weibull_min.cdf(cumulative_load, effective_phenotype_space_dimensions)
 
+    fitness_clipped = False
+    pre_clip_fitness = host_fitness
+    if host_fitness < host_low_fitness_clip:
+        fitness_clipped = True
+        host_fitness = host_low_fitness_clip
+
     print('debug: vector scoring called with errors: real:%s, fakes vector:%s;'
-          'cumulative deviation: %s;'
-          ' fitness returned: host:%s' % (real_av_error,
+          '\n\tcumulative deviation: %s;'
+          '\n\traw fitness: %s;'
+          '\n\tfitness clipped: %s'
+          '\n\tfitness returned: host:%s' % (real_av_error,
                                           fake_av_error_vector,
                                           cumulative_load,
+                                          pre_clip_fitness,
+                                          fitness_clipped,
                                           host_fitness))
 
     return host_fitness

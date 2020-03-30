@@ -12,6 +12,24 @@ fid_command = '/home/kucharav/Documents/pytorch-fid-master/fid_score.py'
 after_datetime = datetime.datetime.now() - datetime.timedelta(days=1)
 
 
+def calc_single_fid(random_tag):
+    total_path = os.path.join(balancing_folders_location, random_tag)
+
+    if os.path.isdir(total_path):
+        current_real = balancing_folders_location + '/' + random_tag + '/' + 'real'
+        current_fake = balancing_folders_location + '/' + random_tag + '/' + 'fake'
+
+        try:
+            fid_value = calculate_fid_given_paths([current_real, current_fake], 64, True, 2048)
+            print('fid compute', random_tag, ': ', fid_value)
+            return fid_value
+
+        except:
+            print("Unexpected error:", sys.exc_info()[0])
+
+    return -1
+
+
 def calc_gen_fids():
     random_tag_list = []
     fid_map = {}
