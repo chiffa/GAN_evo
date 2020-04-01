@@ -84,7 +84,7 @@ def spawn_pathogen_population(starting_cluster):
 
 def cross_train_iteration(hosts, pathogens, host_type_selector, epochs=1):
 
-    dump_trace(['>>', 'cross-train',
+    dump_trace(['>>>', 'cross-train',
                 [host.random_tag for host in hosts[host_type_selector]],
                 [pathogen.random_tag for pathogen in pathogens],
                 host_type_selector, epochs,
@@ -162,7 +162,7 @@ def cross_train_iteration(hosts, pathogens, host_type_selector, epochs=1):
         print('pathogen', pathogen.random_tag, pathogen.fitness_map)
         render_evolution(pathogen.tag_trace)
 
-    dump_trace(['<<', 'cross-train',
+    dump_trace(['<<<', 'cross-train',
                 datetime.now().isoformat()])
 
 def chain_progression(individuals_per_species, starting_cluster):
@@ -189,7 +189,7 @@ def chain_progression(individuals_per_species, starting_cluster):
 def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget):
     #TODO: check infection decision correctness
 
-    dump_trace(['>>', 'evolve_in_population',
+    dump_trace(['>>>', 'evolve_in_population',
                 [host.random_tag for host in hosts_list],
                 [pathogen.random_tag for pathogen in pathogens_list],
                 pathogen_epochs_budget,
@@ -346,13 +346,14 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget):
                     arena.generator_instance.fitness_map.get(
                         arena.discriminator_instance.random_tag, 0.05)])
 
-    dump_trace(['<<', 'evolve_in_population', datetime.now().isoformat()])
+    dump_trace(['<<<', 'evolve_in_population', datetime.now().isoformat()])
 
 
 def chain_evolve(individuals_per_species, starting_cluster):
     # by default we will be starting with the weaker pathogens, at least for now
-    dump_trace(['chain evolve started. parameters:', individuals_per_species, starting_cluster,
-                'time:', datetime.now().isoformat()])
+    dump_trace(['>>', 'chain evolve', individuals_per_species, starting_cluster,
+                datetime.now().isoformat()])
+    start = datetime.now()
     hosts = spawn_host_population(individuals_per_species)
     pathogens = spawn_pathogen_population(starting_cluster)
     default_budget = individuals_per_species*starting_cluster
@@ -380,10 +381,15 @@ def chain_evolve(individuals_per_species, starting_cluster):
 
     dump_with_backup((host_map, pathogen_map), evo2_trace_dump_location)
     # pickle.dump((host_map, pathogen_map), open('evolved_2_hosts_pathogen_map.dmp', 'wb'))
-
+    dump_trace(['<<', 'chain evolve', datetime.now().isoformat(),
+                (datetime.now() - start).total_seconds() / 60.0])
 
 def brute_force_training(restarts, epochs):
     dump_trace(['>>', 'brute-force',
+                restarts, epochs,
+                datetime.now().isoformat()])
+    start = datetime.now()
+    dump_trace(['>>>', 'brute-force',
                 restarts, epochs,
                 datetime.now().isoformat()])
     print('bruteforcing starts')
@@ -437,8 +443,11 @@ def brute_force_training(restarts, epochs):
 
     dump_with_backup(pathogen_map, brute_force_trace_dump_location)
     # pickle.dump(pathogen_map, open('brute_force_pathogen_map.dmp', 'wb'))
-    dump_trace(['<<', 'brute-force',
+    dump_trace(['<<<', 'brute-force',
                 datetime.now().isoformat()])
+    dump_trace(['<<', 'brute-force',
+                datetime.now().isoformat(),
+                (datetime.now() - start).total_seconds() / 60.0])
 
 
 if __name__ == "__main__":
@@ -463,8 +472,13 @@ if __name__ == "__main__":
 
     dump_trace(['>', 'run started', datetime.now().isoformat()])
     # chain_progression(5, 5)
-    chain_evolve(3, 3)
-    # brute_force_training(5, 15)
+    chain_evolve(3, 4)
+    chain_evolve(3, 4)
+    chain_evolve(3, 4)
+    chain_evolve(3, 4)
+    brute_force_training(5, 15)
+    brute_force_training(5, 15)
+    brute_force_training(5, 15)
     dump_trace(['<', 'run completed', datetime.now().isoformat()])
 
     # gen = Generator(ngpu=environment.ngpu,
