@@ -188,6 +188,15 @@ def chain_progression(individuals_per_species, starting_cluster):
 
 def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget):
 
+    def pathogen_fitness_retriever(pathogen):
+        fitness = 0.05
+        try:
+            fitness = max(pathogen.fitness_map.values())
+        except ValueError:
+            pass
+
+        return fitness
+
     dump_trace(['>>>', 'evolve_in_population',
                 [host.random_tag for host in hosts_list],
                 [pathogen.random_tag for pathogen in pathogens_list],
@@ -195,10 +204,11 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget):
                 datetime.now().isoformat()])
 
     pathogens_index = list(range(0, len(pathogens_list)))
-    pathogens_fitnesses = [1.]*len(pathogens_list)  # TODO: import from the previous iteration
+    pathogens_fitnesses = [pathogen_fitness_retriever(_pathogen) for _pathogen in pathogens_list]
+
 
     hosts_index = list(range(0, len(hosts_list)))
-    hosts_fitnesses = [1.]*len(hosts_list)  # TODO: import from the previous iteration
+    hosts_fitnesses = [_host.current_fitness for _host in hosts_list]
 
     host_idx_2_pathogens_carried = defaultdict(list)
 
@@ -262,7 +272,7 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget):
                 dump_trace(['silent infection'])
                 arena.cross_train(gan_only=True)
                 i += 0.5
-            else: # TODO: this branch is actually biased in case base error rate of gan
+            else:
                 #immune sytem is active and competitive evolution happens:
                 # print('debug: pop evolve: full infection')
                 dump_trace(['full infection'])
