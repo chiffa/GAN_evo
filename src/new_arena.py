@@ -187,7 +187,6 @@ def chain_progression(individuals_per_species, starting_cluster):
 
 
 def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget):
-    #TODO: check infection decision correctness
 
     dump_trace(['>>>', 'evolve_in_population',
                 [host.random_tag for host in hosts_list],
@@ -196,10 +195,10 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget):
                 datetime.now().isoformat()])
 
     pathogens_index = list(range(0, len(pathogens_list)))
-    pathogens_fitnesses = [1.]*len(pathogens_list)
+    pathogens_fitnesses = [1.]*len(pathogens_list)  # TODO: import from the previous iteration
 
     hosts_index = list(range(0, len(hosts_list)))
-    hosts_fitnesses = [1.]*len(hosts_list)
+    hosts_fitnesses = [1.]*len(hosts_list)  # TODO: import from the previous iteration
 
     host_idx_2_pathogens_carried = defaultdict(list)
 
@@ -256,13 +255,14 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget):
                         current_host_idx,
                         arena.discriminator_instance.current_fitness])
 
-            if arena.discriminator_instance.current_fitness > 0.95:
+            if arena.discriminator_instance.current_fitness > 0.95 or \
+                    arena.discriminator_instance.real_error > 0.1:
                 #immune system is not bothered
                 # print('debug: pop evolve: silent infection')
                 dump_trace(['silent infection'])
                 arena.cross_train(gan_only=True)
                 i += 0.5
-            else:
+            else: # TODO: this branch is actually biased in case base error rate of gan
                 #immune sytem is active and competitive evolution happens:
                 # print('debug: pop evolve: full infection')
                 dump_trace(['full infection'])
@@ -306,12 +306,18 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget):
 
             hosts_fitnesses[current_host_idx] = arena.discriminator_instance.current_fitness
 
+
+            try:
+                pathogens_fitnesses[current_pathogen_idx] = max(
+                    arena.generator_instance.fitness_map.values())
+            except ValueError:
+                pathogens_fitnesses[current_pathogen_idx] = 0.05
+
             dump_trace(['infection failed, current host state:',
                         host_idx_2_pathogens_carried[current_host_idx],
                         arena.discriminator_instance.gen_error_map,
                         current_host_idx,
                         arena.discriminator_instance.current_fitness])
-
 
     encountered_pathogens = []
     for (host_no, host), (pathogen_no, pathogen) in product(enumerate(hosts_list),
