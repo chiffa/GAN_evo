@@ -4,6 +4,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 from scipy.stats import ttest_ind
 import csv
+from datetime import datetime
+from collections import defaultdict
 
 trace_dump_file = 'run_trace.csv'
 
@@ -54,97 +56,100 @@ def parse_past_runs(trace_dump_locations):
     return master_table
 
 
-def extract_bruteforce_fids(bruteforce_run):
+def extract_bruteforce_data(bruteforce_run):
+    duration = (datetime.fromisoformat(bruteforce_run[-1][2]) -
+                datetime.fromisoformat(bruteforce_run[0][4])).total_seconds()/60.
     fid_collector = []
+    tag_collector = []
     for data_dump_row in bruteforce_run[1]:
         if data_dump_row[0] == 'sampled images from':
             fid_collector.append(float(data_dump_row[-1]))
-    return fid_collector
+            tag_collector.append(data_dump_row[2])
+    return fid_collector, tag_collector, duration
 
 
-def extract_final_evo_fids(chain_evolve_run):
+def extract_evo_data(chain_evolve_run):
+    duration = (datetime.fromisoformat(chain_evolve_run[-1][2]) -
+                datetime.fromisoformat(chain_evolve_run[0][4])).total_seconds()/60.
     final_pathogens_list = chain_evolve_run[-2][0][3]
     final_pathogens_list = final_pathogens_list[1:-1].split(', ')
     fid_collector = [-1]*len(final_pathogens_list)
+    tag_collector = ["None"]*len(final_pathogens_list)
     for entry in chain_evolve_run[-2][1:-1]:
         if entry[0] == 'sampled images from':
             # print(entry)
             fid_collector[int(entry[1])] = float(entry[-1])
-    return fid_collector
+            tag_collector[int(entry[1])] = entry[2]
+
+    return fid_collector, tag_collector, duration
 
 
-# fid_map, real_comparison = pickle.load(open('fid_scores.dmp', 'rb'))
-#
-# pprint(fid_map)
-# pprint(real_comparison)
-#
-# host_map, pathogen_map = pickle.load(open('evolved_hosts_pathogen_map.dmp', 'rb'))
-#
-# evolution_trace = {}
-#
-# for pathogen_tag, (_, evo_list) in pathogen_map.items():
-#     evolution_trace[pathogen_tag] = [fid_map.get(tag, -1) for tag in evo_list[1:]]
-#
-# pprint(host_map)
-# pprint(real_comparison)
-#
-# pathogen_map2 = pickle.load(open('brute_force_pathogen_map.dmp', 'rb'))
-#
-# pprint(pathogen_map2)
-#
-# bruteforce_stats = []
-# for pathogen in pathogen_map2.keys():
-#     bruteforce_stats.append(fid_map[pathogen])
-#
-# evo_stats = []
-# for pathogen in pathogen_map.keys():
-#     evo_stats.append(fid_map[pathogen])
-#
-# # bruteforce_stats = np.array(bruteforce_stats)
-# # evo_stats = np.array(evo_stats)
-# plt.scatter([1]*len(bruteforce_stats), bruteforce_stats, c='k', marker='o', label='bruteforce')
-# plt.scatter([2]*len(evo_stats),  evo_stats, c='r', marker='o', label='evolutionary')
-# plt.legend()
-#
-# bruteforce_stats = np.array(bruteforce_stats)
-# evo_stats = np.array(evo_stats)
-# print('brutefroce: %.2f %.2f' % (np.mean(bruteforce_stats), np.std(bruteforce_stats)))
-# print('evo: %.2f %.2f' % (np.mean(evo_stats), np.std(evo_stats)))
-# print('t-test: %.2f p-val: %f' % ttest_ind(bruteforce_stats, evo_stats))
-# plt.show()
-#
-# for key, trace in evolution_trace.items():
-#     plt.plot(range(0, len(trace)), trace, label=key)
-# plt.legend()
-# plt.show()
+def render_fid_performances(attribution_map):
+    title_pad = []
+    data_pad = []
+    full_data_pad = []
+    exec_times = []
+
+    for i, (key, value) in enumerate(attribution_map.items()):
+        title_pad.append([' '.join(key)])
+        data_pad.append([])
+        exec_times.append([])
+        full_data_pad.append([])
+        for sub_key, (exec_time, fids, tags) in value.items():
+            data_pad[i].append(min(fids))
+            exec_times[i].append(exec_time)
+            full_data_pad[i] += fids
+
+    plt.title('minimum fids achieved')
+    plt.boxplot(data_pad)
+    locs, labels = plt.xticks()
+    plt.xticks(locs, title_pad)
+    plt.xticks(rotation=45)
+
+    plt.show()
+
+    plt.title('standard fids achieved')
+    plt.boxplot(full_data_pad)
+    locs, labels = plt.xticks()
+    plt.xticks(locs, title_pad)
+    plt.xticks(rotation=45)
+
+    plt.show()
+
+    plt.title('execution_times')
+    plt.boxplot(data_pad)
+    locs, labels = plt.xticks()
+    plt.xticks(locs, title_pad)
+    plt.xticks(rotation=45)
+
+    plt.show()
 
 
 if __name__ == "__main__":
     master_table = parse_past_runs(trace_dump_file)
+    attribution_map = defaultdict(dict)
     for i_1, entry in enumerate(master_table):
         print(i_1, entry[0])
         for i_2, sub_entry in enumerate(entry[1:-1]):
+            if sub_entry[0][1] == 'brute-force':
+                extracted_fids, final_random_tags, duration = extract_bruteforce_data(sub_entry)
+            elif sub_entry[0][1] == 'chain evolve' or sub_entry[0][1] == 'chain progression':
+                extracted_fids, final_random_tags, duration = extract_evo_data(sub_entry)
+            else:
+                print(sub_entry[0])
+                raise Exception('unknown selection structure: %s' % sub_entry[0][1])
+            attribution_map[(sub_entry[0][1], sub_entry[0][2], sub_entry[0][3])][sub_entry[0][-1]] =\
+                [duration, extracted_fids, final_random_tags]
+
             print('\t', i_1, i_2 + 1, sub_entry[0])
-            for i_3, sub_sub_entry in enumerate(sub_entry[1:-1]):
-                print('\t\t', i_1, i_2 + 1, i_3 + 1, sub_sub_entry[0])
-                print('\t\t', i_1, i_2 + 1, i_3 + 1, sub_sub_entry[-1])
+            # for i_3, sub_sub_entry in enumerate(sub_entry[1:-1]):
+            #     print('\t\t', i_1, i_2 + 1, i_3 + 1, sub_sub_entry[0])
+            #     print('\t\t', i_1, i_2 + 1, i_3 + 1, sub_sub_entry[-1])
             print('\t', i_1, i_2 + 1, sub_entry[-1])
         print(i_1, entry[-1])
 
-    bruteforce = master_table[0][1]
-    # print(bruteforce)
-    brute_fids = extract_bruteforce_fids(bruteforce)
-    pprint(brute_fids)
 
-    bruteforce = master_table[2][2]
-    # print(bruteforce)
-    brute_fids = extract_bruteforce_fids(bruteforce)
-    pprint(brute_fids)
+    pprint(dict(attribution_map))
 
-    evo_1 = master_table[1][1]
-    evo_1_fids = extract_final_evo_fids(evo_1)
-    pprint(evo_1_fids)
+    render_fid_performances(attribution_map)
 
-    evo_2 = master_table[2][1]
-    evo_2_fids = extract_final_evo_fids(evo_2)
-    pprint(evo_2_fids)

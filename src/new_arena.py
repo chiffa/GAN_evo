@@ -166,7 +166,10 @@ def cross_train_iteration(hosts, pathogens, host_type_selector, epochs=1):
                 datetime.now().isoformat()])
 
 def chain_progression(individuals_per_species, starting_cluster):
-        # by default we will be starting with the weaker pathogens, at least for now
+
+    dump_trace(['>>', 'chain progression', individuals_per_species, starting_cluster,
+                datetime.now().isoformat()])
+
     hosts = spawn_host_population(individuals_per_species)
     pathogens = spawn_pathogen_population(starting_cluster)
     cross_train_iteration(hosts, pathogens, 'light', 1)
@@ -185,6 +188,7 @@ def chain_progression(individuals_per_species, starting_cluster):
     dump_with_backup((host_map, pathogen_map), evo_trace_dump_location)
     # pickle.dump((host_map, pathogen_map), open('evolved_hosts_pathogen_map.dmp', 'wb'))
 
+    dump_trace(['<<', 'chain progression', datetime.now().isoformat()])
 
 def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget):
 
@@ -205,6 +209,7 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget):
 
     pathogens_index = list(range(0, len(pathogens_list)))
     pathogens_fitnesses = [pathogen_fitness_retriever(_pathogen) for _pathogen in pathogens_list]
+    # TODO: looks like that leads to FID getting stuck: check and correct
 
 
     hosts_index = list(range(0, len(hosts_list)))
@@ -220,6 +225,7 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget):
                     [host.random_tag for host in hosts_list],
                     [pathogen.random_tag for pathogen in pathogens_list],
                     hosts_fitnesses, pathogens_fitnesses])
+
         # TODO: add a restart from a static state
 
         # TODO: realistically, we need to look in the carrying tables and then attempt to cross
@@ -487,14 +493,18 @@ if __name__ == "__main__":
     disc_opt_part = lambda x: optim.Adam(x, lr=learning_rate, betas=(beta1, 0.999))
 
     dump_trace(['>', 'run started', datetime.now().isoformat()])
-    # chain_progression(5, 5)
-    chain_evolve(3, 4)
-    chain_evolve(3, 4)
-    chain_evolve(3, 4)
-    chain_evolve(3, 4)
-    brute_force_training(5, 15)
-    brute_force_training(5, 15)
-    brute_force_training(5, 15)
+    chain_progression(5, 5)
+    chain_progression(5, 5)
+    chain_progression(5, 5)
+    chain_progression(5, 5)
+    chain_progression(5, 5)
+    chain_evolve(3, 3)
+    chain_evolve(3, 3)
+    chain_evolve(3, 3)
+    chain_evolve(3, 3)
+    # brute_force_training(5, 15)
+    # brute_force_training(5, 15)
+    # brute_force_training(5, 15)
     dump_trace(['<', 'run completed', datetime.now().isoformat()])
 
     # gen = Generator(ngpu=environment.ngpu,
