@@ -101,8 +101,12 @@ def render_fid_performances(attribution_map):
             exec_times[i].append(exec_time)
             full_data_pad[i] += fids
 
+    flatten = lambda l: [item for sublist in l for item in sublist]
+
     plt.title('minimum fids achieved')
     plt.boxplot(data_pad)
+    x_pad = [[i+1]*len(_data) for i, _data in enumerate(data_pad)]
+    plt.scatter(flatten(x_pad), flatten(data_pad), c='k')
     locs, labels = plt.xticks()
     plt.xticks(locs, title_pad)
     plt.xticks(rotation=45)
@@ -111,6 +115,8 @@ def render_fid_performances(attribution_map):
 
     plt.title('standard fids achieved')
     plt.boxplot(full_data_pad)
+    x_pad = [[i+1]*len(_data) for i, _data in enumerate(full_data_pad)]
+    plt.scatter(flatten(x_pad), flatten(full_data_pad), c='k')
     locs, labels = plt.xticks()
     plt.xticks(locs, title_pad)
     plt.xticks(rotation=45)
@@ -118,7 +124,9 @@ def render_fid_performances(attribution_map):
     plt.show()
 
     plt.title('execution_times')
-    plt.boxplot(data_pad)
+    plt.boxplot(exec_times)
+    x_pad = [[i+1]*len(_data) for i, _data in enumerate(exec_times)]
+    plt.scatter(flatten(x_pad), flatten(exec_times), c='k')
     locs, labels = plt.xticks()
     plt.xticks(locs, title_pad)
     plt.xticks(rotation=45)
