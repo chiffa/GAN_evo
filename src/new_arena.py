@@ -168,6 +168,162 @@ def cross_train_iteration(hosts, pathogens, host_type_selector, epochs=1):
     dump_trace(['<<<', 'cross-train',
                 datetime.now().isoformat()])
 
+
+def round_robin_iteration(hosts, pathogens, host_type_selector, epochs=1,
+                          rounds=None, randomized=False):
+
+    dump_trace(['>>>', 'round-robin',
+                [host.random_tag for host in hosts[host_type_selector]],
+                [pathogen.random_tag for pathogen in pathogens],
+                host_type_selector, epochs,
+                datetime.now().isoformat()])
+
+    if rounds is None:
+        rounds = len(hosts) * len(pathogens)
+
+    print('round-robin round with host type: %s' % host_type_selector)
+
+    if randomized:
+        hosts_no = random.choices(range(len(hosts[host_type_selector])), k=rounds)
+        pathogens_no = random.choices(range(len(pathogens)), k=rounds)
+
+        generator = zip(hosts_no, pathogens_no)
+
+    else:
+        generator = product(range(len(hosts[host_type_selector])), range(len(pathogens)))
+
+    for host_no, pathogen_no in generator:
+        host = hosts[host_type_selector][host_no]
+        pathogen = pathogens[pathogen_no]
+
+        arena = Arena(environment=environment,
+                  generator_instance=pathogen,
+                  discriminator_instance=host,
+                  generator_optimizer_partial=gen_opt_part,
+                  discriminator_optimizer_partial=disc_opt_part)
+
+        dump_trace(['pre-train:',
+                    host_no, pathogen_no,
+                    arena.discriminator_instance.random_tag,
+                    arena.generator_instance.random_tag, ])
+
+        arena.cross_train(epochs)
+        arena.sample_images()
+
+        current_fid = calc_single_fid(arena.generator_instance.random_tag)
+        dump_trace(['sampled images from',
+                    pathogen_no,
+                    arena.generator_instance.random_tag, current_fid])
+
+        arena_match_results = arena.match()
+
+        dump_trace(['post-cross-train and match:',
+                    host_no, pathogen_no,
+                    arena.discriminator_instance.random_tag,
+                    arena.generator_instance.random_tag,
+                    arena_match_results[0], arena_match_results[1],
+                    arena.discriminator_instance.current_fitness,
+                    arena.generator_instance.fitness_map.get(
+                        arena.discriminator_instance.random_tag, 0.05)])
+
+        print("%s: real_err: %s, gen_err: %s" % (
+            arena.generator_instance.random_tag,
+            arena_match_results[0], arena_match_results[1]))
+
+    for (host_no, host), (pathogen_no, pathogen) in product(enumerate(hosts[host_type_selector]),
+                                                            enumerate(pathogens)):
+
+        arena = Arena(environment=environment,
+                  generator_instance=pathogen,
+                  discriminator_instance=host,
+                  generator_optimizer_partial=gen_opt_part,
+                  discriminator_optimizer_partial=disc_opt_part)
+
+        arena_match_results = arena.match()
+
+        dump_trace(['final cross-match:',
+                    host_no, pathogen_no,
+                    arena.discriminator_instance.random_tag,
+                    arena.generator_instance.random_tag,
+                    arena_match_results[0], arena_match_results[1],
+                    arena.discriminator_instance.current_fitness,
+                    arena.generator_instance.fitness_map.get(
+                        arena.discriminator_instance.random_tag, 0.05)])
+
+        print("%s vs %s: real_err: %s, gen_err: %s" % (
+            arena.generator_instance.random_tag,
+            arena.discriminator_instance.random_tag,
+            arena_match_results[0], arena_match_results[1]))
+
+    for host in hosts[host_type_selector]:
+        print('host', host.random_tag, host.current_fitness, host.gen_error_map)
+
+    for pathogen in pathogens:
+        print('pathogen', pathogen.random_tag, pathogen.fitness_map)
+        render_evolution(pathogen.tag_trace)
+
+    dump_trace(['<<<', 'round-robin',
+                datetime.now().isoformat()])
+
+
+def round_robin_deterministic(individuals_per_species, starting_cluster):
+
+    dump_trace(['>>', 'deterministic base round robin', individuals_per_species, starting_cluster,
+                datetime.now().isoformat()])
+
+    hosts = spawn_host_population(individuals_per_species)
+    pathogens = spawn_pathogen_population(starting_cluster)
+
+
+    round_robin_iteration(hosts, pathogens, 'base',
+                          1,
+                          rounds=3*individuals_per_species*starting_cluster,
+                          randomized=False)
+
+    host_map = {}
+    pathogen_map = {}
+    for host in hosts['base']:
+        host_map[host.random_tag] = [host.gen_error_map, host.current_fitness, host.real_error,
+                                     host.tag_trace]
+
+    for pathogen in pathogens:
+        pathogen_map[pathogen.random_tag] = [pathogen.fitness_map, pathogen.tag_trace]
+
+    dump_with_backup((host_map, pathogen_map), evo_trace_dump_location)
+    # pickle.dump((host_map, pathogen_map), open('evolved_hosts_pathogen_map.dmp', 'wb'))
+
+    dump_trace(['<<', 'deterministic base round robin', datetime.now().isoformat()])
+
+
+def round_robin_randomized(individuals_per_species, starting_cluster):
+
+    dump_trace(['>>', 'stochastic base round robin', individuals_per_species, starting_cluster,
+                datetime.now().isoformat()])
+
+    hosts = spawn_host_population(individuals_per_species)
+    pathogens = spawn_pathogen_population(starting_cluster)
+
+    cross_train_iteration(hosts, pathogens, 'base', 1)
+    round_robin_iteration(hosts, pathogens, 'base',
+                          1,
+                          rounds=2*individuals_per_species*starting_cluster,
+                          randomized=True)
+
+    host_map = {}
+    pathogen_map = {}
+    for host in hosts['base']:
+        host_map[host.random_tag] = [host.gen_error_map, host.current_fitness, host.real_error,
+                                     host.tag_trace]
+
+    for pathogen in pathogens:
+        pathogen_map[pathogen.random_tag] = [pathogen.fitness_map, pathogen.tag_trace]
+
+    dump_with_backup((host_map, pathogen_map), evo_trace_dump_location)
+    # pickle.dump((host_map, pathogen_map), open('evolved_hosts_pathogen_map.dmp', 'wb'))
+
+    dump_trace(['<<', 'stochastic base round robin', datetime.now().isoformat()])
+
+
 def chain_progression(individuals_per_species, starting_cluster):
 
     dump_trace(['>>', 'chain progression', individuals_per_species, starting_cluster,
@@ -561,6 +717,19 @@ if __name__ == "__main__":
     chain_evolve_with_fitness_reset(3, 3)
     chain_evolve_with_fitness_reset(3, 3)
     chain_evolve_with_fitness_reset(3, 3)
+
+    round_robin_randomized(5, 5)
+    round_robin_randomized(5, 5)
+    round_robin_randomized(5, 5)
+    round_robin_randomized(5, 5)
+    round_robin_randomized(5, 5)
+
+    round_robin_deterministic(5, 5)
+    round_robin_deterministic(5, 5)
+    round_robin_deterministic(5, 5)
+    round_robin_deterministic(5, 5)
+    round_robin_deterministic(5, 5)
+
     # brute_force_training(5, 15)
     # brute_force_training(5, 15)
     # brute_force_training(5, 15)
