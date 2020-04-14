@@ -6,8 +6,9 @@ mongo-container:
       - MONGO_INITDB_ROOT_PASSWORD=${MONGOROOTPASS}
   ports:
     - "27017:27017"
-  volumes:
+#  volumes:
       # if you wish to setup additional user accounts specific per DB or with different roles you can use following entry point
-    - "$PWD/mongo-entrypoint/:/docker-entrypoint-initdb.d/"
+#    - "$PWD/mongo-entrypoint/:/docker-entrypoint-initdb.d/"
+#    - "./mongo-volume:/data/db"
   # no --auth is needed here as presence of username and password add this option automatically
   command: mongod
