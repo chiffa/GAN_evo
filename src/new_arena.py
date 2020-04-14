@@ -22,6 +22,9 @@ brute_force_trace_dump_location = 'brute_force_pathogen_map.dmp'
 trace_dump_file = 'run_trace.csv'
 
 
+# TODO: save only the final states of the evolutionary elements to make sure not too much space
+#  is taken up.
+
 def dump_trace(payload_list):
     if not os.path.isfile(trace_dump_file):
         open(trace_dump_file, 'w')
@@ -190,7 +193,8 @@ def chain_progression(individuals_per_species, starting_cluster):
 
     dump_trace(['<<', 'chain progression', datetime.now().isoformat()])
 
-def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget):
+
+def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit_reset=False):
 
     def pathogen_fitness_retriever(pathogen):
         fitness = 0.05
@@ -207,19 +211,28 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget):
                 pathogen_epochs_budget,
                 datetime.now().isoformat()])
 
+    iterations_limiter = pathogen_epochs_budget * 5
+
     pathogens_index = list(range(0, len(pathogens_list)))
-    pathogens_fitnesses = [pathogen_fitness_retriever(_pathogen) for _pathogen in pathogens_list]
-    # TODO: looks like that leads to FID getting stuck: check and correct
-
-
     hosts_index = list(range(0, len(hosts_list)))
-    hosts_fitnesses = [_host.current_fitness for _host in hosts_list]
+
+    if fit_reset:
+        pathogens_fitnesses = [20.]*len(pathogens_list)
+        hosts_fitnesses = [1.]*len(hosts_list)
+    else:
+        pathogens_fitnesses = [pathogen_fitness_retriever(_pathogen) for _pathogen in pathogens_list]
+        hosts_fitnesses = [_host.current_fitness for _host in hosts_list]
 
     host_idx_2_pathogens_carried = defaultdict(list)
 
     i = 0
 
     while i < pathogen_epochs_budget:
+        if pathogen_epochs_budget < 0:
+            dump_trace(['iterations budget overflow break'])
+            break
+        pathogen_epochs_budget -= 1
+
         print('current fitness tables: %s; %s' % (hosts_fitnesses, pathogens_fitnesses))
         dump_trace(['current tag/fitness tables',
                     [host.random_tag for host in hosts_list],
@@ -322,7 +335,6 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget):
 
             hosts_fitnesses[current_host_idx] = arena.discriminator_instance.current_fitness
 
-
             try:
                 pathogens_fitnesses[current_pathogen_idx] = max(
                     arena.generator_instance.fitness_map.values())
@@ -406,6 +418,44 @@ def chain_evolve(individuals_per_species, starting_cluster):
     dump_trace(['<<', 'chain evolve', datetime.now().isoformat(),
                 (datetime.now() - start).total_seconds() / 60.0])
 
+
+def chain_evolve_with_fitness_reset(individuals_per_species, starting_cluster):
+    # by default we will be starting with the weaker pathogens, at least for now
+    dump_trace(['>>', 'chain evolve fit reset', individuals_per_species, starting_cluster,
+                datetime.now().isoformat()])
+    start = datetime.now()
+    hosts = spawn_host_population(individuals_per_species)
+    pathogens = spawn_pathogen_population(starting_cluster)
+    default_budget = individuals_per_species*starting_cluster
+
+    # TODO: add a restart from a random tags state
+
+    cross_train_iteration(hosts, pathogens, 'light', 1)
+    evolve_in_population(hosts['light'], pathogens, default_budget, fit_reset=True)
+    cross_train_iteration(hosts, pathogens, 'PreLU', 1)
+    evolve_in_population(hosts['PreLU'], pathogens, default_budget, fit_reset=True)
+    cross_train_iteration(hosts, pathogens, 'base', 1)
+    evolve_in_population(hosts['base'], pathogens, default_budget, fit_reset=True)
+
+    host_map = {}
+    pathogen_map = {}
+
+    #TODO: sample all the images, perform a massive cross-match
+
+    for host in hosts['base']:
+        host_map[host.random_tag] = [host.gen_error_map, host.current_fitness, host.real_error,
+                                     host.tag_trace]
+
+    for pathogen in pathogens:
+        pathogen_map[pathogen.random_tag] = [pathogen.fitness_map, pathogen.tag_trace]
+
+    dump_with_backup((host_map, pathogen_map), evo2_trace_dump_location)
+    # pickle.dump((host_map, pathogen_map), open('evolved_2_hosts_pathogen_map.dmp', 'wb'))
+    dump_trace(['<<', 'chain evolve fit reset', datetime.now().isoformat(),
+                (datetime.now() - start).total_seconds() / 60.0])
+
+
+
 def brute_force_training(restarts, epochs):
     dump_trace(['>>', 'brute-force',
                 restarts, epochs,
@@ -472,6 +522,14 @@ def brute_force_training(restarts, epochs):
                 (datetime.now() - start).total_seconds() / 60.0])
 
 
+def match_from_tags(gen_tag_set, disc_tag_set):
+
+
+    for (gen_no, gen), (disc_no, disc) in zip(enumerate(gen_tag_set),
+                                                   enumerate(disc_tag_set)):
+        pass
+
+
 if __name__ == "__main__":
     image_folder = "./image"
     image_size = 64
@@ -493,15 +551,16 @@ if __name__ == "__main__":
     disc_opt_part = lambda x: optim.Adam(x, lr=learning_rate, betas=(beta1, 0.999))
 
     dump_trace(['>', 'run started', datetime.now().isoformat()])
-    chain_progression(5, 5)
-    chain_progression(5, 5)
-    chain_progression(5, 5)
-    chain_progression(5, 5)
-    chain_progression(5, 5)
-    chain_evolve(3, 3)
-    chain_evolve(3, 3)
-    chain_evolve(3, 3)
-    chain_evolve(3, 3)
+    # chain_progression(5, 5)
+    # chain_progression(5, 5)
+    # chain_progression(5, 5)
+    # chain_progression(5, 5)
+    # chain_progression(5, 5)
+    chain_evolve_with_fitness_reset(3, 3)
+    chain_evolve_with_fitness_reset(3, 3)
+    chain_evolve_with_fitness_reset(3, 3)
+    chain_evolve_with_fitness_reset(3, 3)
+    chain_evolve_with_fitness_reset(3, 3)
     # brute_force_training(5, 15)
     # brute_force_training(5, 15)
     # brute_force_training(5, 15)

@@ -91,14 +91,14 @@ def purge_pure_db(match_filter={}, train_filter={}, gen_filter={}, disc_filter={
 
 if __name__ == "__main__":
 
-    purge_pure_db()
+    # purge_pure_db()
 
     for item in filter_pure_gen({}):
-        pprint.pprint(item['random_tag'], item['gen_type'])
+        print(item['random_tag'], item['gen_type'])
     pass
 
     for item in filter_pure_disc({}):
-        pprint.pprint(item['random_tag'], item['disc_type'])
+        print(item['random_tag'], item['disc_type'])
     pass
 
 

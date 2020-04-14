@@ -7,6 +7,7 @@ import csv
 from datetime import datetime
 from collections import defaultdict
 
+
 trace_dump_file = 'run_trace.csv'
 
 def parse_past_runs(trace_dump_locations):
@@ -131,6 +132,7 @@ if __name__ == "__main__":
     for i_1, entry in enumerate(master_table):
         print(i_1, entry[0])
         for i_2, sub_entry in enumerate(entry[1:-1]):
+            print(sub_entry[0])
             if sub_entry[0][1] == 'brute-force':
                 extracted_fids, final_random_tags, duration = extract_bruteforce_data(sub_entry)
             elif sub_entry[0][1] == 'chain evolve' or sub_entry[0][1] == 'chain progression':
@@ -146,10 +148,12 @@ if __name__ == "__main__":
             #     print('\t\t', i_1, i_2 + 1, i_3 + 1, sub_sub_entry[0])
             #     print('\t\t', i_1, i_2 + 1, i_3 + 1, sub_sub_entry[-1])
             print('\t', i_1, i_2 + 1, sub_entry[-1])
+
         print(i_1, entry[-1])
 
-
-    pprint(dict(attribution_map))
+    # pprint(dict(attribution_map))
 
     render_fid_performances(attribution_map)
+    # TODO: export the most interesting matches from different sources to a separate folder,
+    #  then pull from new_arena the tags and make them compete there.
 

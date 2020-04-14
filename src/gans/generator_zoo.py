@@ -115,6 +115,8 @@ class Generator(nn.Module):
     def save_instance_state(self):
         return save(self)
 
+    # TODO: load instance from tag
+
     def bump_random_tag(self):
         self.random_tag = ''.join(sample(char_set * 10, 10))
         self.tag_trace += [self.random_tag]

@@ -29,6 +29,9 @@ def storage_representation(_self):
     return key
 
 
+# TODO: generate methods to build from random_tag
+
+
 class GaussianNoise(nn.Module):
 
     def __init__(self, sigma=0.1, device="cuda:1"):
