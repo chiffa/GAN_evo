@@ -65,6 +65,16 @@ def update_pure_disc(key, update_payload):
     return update_result
 
 
+def pure_gen_from_random_tag(random_tag):
+    existing_gen = pure_gen_collection.find_one({'random_tag': random_tag})
+    return existing_gen
+
+
+def pure_disc_from_random_tag(random_tag):
+    existing_disc = pure_disc_collection.find_one({'random_tag': random_tag})
+    return existing_disc
+
+
 def filter_pure_gen(filter):
 
     for payload in pure_gen_collection.find(filter):

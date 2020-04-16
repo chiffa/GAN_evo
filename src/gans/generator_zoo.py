@@ -4,6 +4,7 @@ from random import sample
 import string
 import pickle
 import torchvision.utils as vutils
+from src.new_mongo_interface import pure_gen_from_random_tag
 
 char_set = string.ascii_uppercase + string.digits
 
@@ -24,6 +25,18 @@ def save(_self):
     key.update(payload)
 
     return key
+
+
+def resurrect(_self, random_tag):
+    stored_gen = pure_gen_from_random_tag(random_tag)
+    if stored_gen['gen_type'] != type(_self).__name__:
+        raise Exception('Wrong class: expected %s, got %s' % (type(_self).__name__,
+                                                              stored_gen['gen_type']))
+    _self.random_tag = random_tag
+    _self.generator_latent_maps = stored_gen['gen_latent_params']
+    _self.encounter_trace = stored_gen['encounter_trace']
+    _self.load_state_dict(pickle.loads(stored_gen['gen_state']))
+    _self.fitness_map = stored_gen['fitness_map']
 
 
 def count_parameters(model):
@@ -115,7 +128,8 @@ class Generator(nn.Module):
     def save_instance_state(self):
         return save(self)
 
-    # TODO: load instance from tag
+    def resurrect(self, random_tag):
+        return resurrect(self, random_tag)
 
     def bump_random_tag(self):
         self.random_tag = ''.join(sample(char_set * 10, 10))

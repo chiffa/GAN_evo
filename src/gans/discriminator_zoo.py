@@ -4,6 +4,7 @@ from src.gans.nn_structure import NetworkStructure
 from random import sample
 import string
 import pickle
+from src.new_mongo_interface import pure_disc_from_random_tag
 
 char_set = string.ascii_uppercase + string.digits
 
@@ -21,7 +22,7 @@ def storage_representation(_self):
                 'disc_state': pickle.dumps(_self.state_dict()),
                 'self_error': _self.real_error,
                 'gen_error_map': _self.gen_error_map,
-                # Map needs to include both the generator errors and virulence factors.
+                # TODO: Map needs to include both the generator errors and virulence factors.
                 'current_fitness': _self.current_fitness}
 
     key.update(payload)
@@ -29,7 +30,18 @@ def storage_representation(_self):
     return key
 
 
-# TODO: generate methods to build from random_tag
+def resurrect(_self, random_tag):
+    stored_gen = pure_disc_from_random_tag(random_tag)
+    if stored_gen['disc_type'] != type(_self).__name__:
+        raise Exception('Wrong class: expected %s, got %s' % (type(_self).__name__,
+                                                              stored_gen['gen_type']))
+    _self.random_tag = random_tag
+    _self.generator_latent_maps = stored_gen['gen_latent_params']
+    _self.encounter_trace = stored_gen['encounter_trace']
+    _self.load_state_dict(pickle.loads(stored_gen['disc_state']))
+    _self.real_error = stored_gen['self_error']
+    _self.gen_error_map = stored_gen['gen_error_map']
+    _self.current_fitness = stored_gen['current_fitness']
 
 
 class GaussianNoise(nn.Module):
@@ -128,6 +140,9 @@ class Discriminator(nn.Module):
         self.random_tag = ''.join(sample(char_set * 10, 10))
         self.tag_trace += [self.random_tag]
 
+    def resurrect(self, random_tag):
+        resurrect(self, random_tag)
+
 
 class Discriminator_light(nn.Module):
 
@@ -210,6 +225,9 @@ class Discriminator_light(nn.Module):
         self.random_tag = ''.join(sample(char_set * 10, 10))
         self.tag_trace += [self.random_tag]
 
+    def resurrect(self, random_tag):
+        resurrect(self, random_tag)
+
 
 class Discriminator_PReLU(nn.Module):
 
@@ -289,3 +307,6 @@ class Discriminator_PReLU(nn.Module):
     def bump_random_tag(self):
         self.random_tag = ''.join(sample(char_set * 10, 10))
         self.tag_trace += [self.random_tag]
+
+    def resurrect(self, random_tag):
+        resurrect(self, random_tag)

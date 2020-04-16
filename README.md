@@ -39,3 +39,7 @@ We would like to explore the following modalities of evolution:
 ## Potential future expansion:
  - co-linearity of the viral infection estimated by the random keys from which they were generated
  (Host-pathogen gans angle)
+ 
+ 
+## Evolutionary adaptative bursts:
+ - large changes in parameters upon environment change?
