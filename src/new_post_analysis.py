@@ -123,7 +123,7 @@ def render_fid_performances(attribution_map):
 
     plt.show()
 
-    plt.title('execution_times')
+    plt.title('execution times')
     plt.boxplot(exec_times)
     x_pad = [[i+1]*len(_data) for i, _data in enumerate(exec_times)]
     plt.scatter(flatten(x_pad), flatten(exec_times), c='k')
@@ -131,6 +131,15 @@ def render_fid_performances(attribution_map):
     plt.xticks(locs, title_pad)
     plt.xticks(rotation=45)
 
+    plt.show()
+
+    plt.title('fids vs execution time')
+    # c_pad = [[i/len(exec_times)]*len(_data) for i, _data in enumerate(exec_times)]
+    for i, lab in enumerate(title_pad):
+        plt.scatter(exec_times[i], data_pad[i], label=lab[0])
+    plt.legend()
+    plt.xlabel('execution time (mins)')
+    plt.ylabel('minimal fid achieved')
     plt.show()
 
 
@@ -143,7 +152,11 @@ if __name__ == "__main__":
             print(sub_entry[0])
             if sub_entry[0][1] == 'brute-force':
                 extracted_fids, final_random_tags, duration = extract_bruteforce_data(sub_entry)
-            elif sub_entry[0][1] == 'chain evolve' or sub_entry[0][1] == 'chain progression':
+            elif sub_entry[0][1] == 'chain evolve' \
+                or sub_entry[0][1] == 'chain progression' \
+                or sub_entry[0][1] == 'chain evolve fit reset' \
+                or sub_entry[0][1] == 'deterministic base round robin' \
+                or sub_entry[0][1] == 'stochastic base round robin':
                 extracted_fids, final_random_tags, duration = extract_evo_data(sub_entry)
             else:
                 print(sub_entry[0])
