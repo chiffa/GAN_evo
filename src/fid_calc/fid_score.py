@@ -43,6 +43,9 @@ from torch.nn.functional import adaptive_avg_pool2d
 
 from PIL import Image
 
+current_cuda = "cuda:1"
+
+
 # try:
 #     from tqdm import tqdm
 # except ImportError:
@@ -118,8 +121,9 @@ def get_activations(files, model, batch_size=50, dims=2048,
         images /= 255
 
         batch = torch.from_numpy(images).type(torch.FloatTensor)
+
         if cuda:
-            batch = batch.cuda()
+            batch = batch.cuda(current_cuda)
 
         pred = model(batch)[0]
 
@@ -242,7 +246,7 @@ def calculate_fid_given_paths(paths, batch_size, cuda, dims):
 
     model = InceptionV3([block_idx])
     if cuda:
-        model.cuda()
+        model.cuda(current_cuda)
 
     m1, s1 = _compute_statistics_of_path(paths[0], model, batch_size,
                                          dims, cuda)

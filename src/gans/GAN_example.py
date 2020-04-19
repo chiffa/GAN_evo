@@ -110,7 +110,7 @@ assert dataset
 dataloader = torch.utils.data.DataLoader(dataset, batch_size=opt.batchSize,
                                          shuffle=True, num_workers=int(opt.workers))
 
-device = torch.device("cuda:0" if opt.cuda else "cpu")
+device = torch.device("cuda:1" if opt.cuda else "cpu")
 ngpu = int(opt.ngpu)
 latent_vector_size = int(opt.nz)
 generator_latent_maps = int(opt.ngf)

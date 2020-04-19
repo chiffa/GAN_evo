@@ -26,12 +26,13 @@ trace_dump_file = 'run_trace.csv'
 # TODO: save only the final states of the evolutionary elements to make sure not too much space
 #  is taken up.
 
+
 def dump_trace(payload_list):
     if not os.path.isfile(trace_dump_file):
         open(trace_dump_file, 'w')
 
     with open(trace_dump_file, 'a') as destination:
-        writer = csv.writer(destination, delimiter = '\t')
+        writer = csv.writer(destination, delimiter='\t')
         writer.writerow(payload_list)
 
 
@@ -67,6 +68,7 @@ class StopWatch(object):
             return self._t.total_seconds() / 60.
         else:
             return 0
+
 
 def spawn_host_population(individuals_per_species):
     hosts = {
@@ -713,6 +715,7 @@ def brute_force_training(restarts, epochs):
     dump_trace(['>>>', 'brute-force',
                 restarts, epochs,
                 datetime.now().isoformat()])
+
     print('bruteforcing starts')
     hosts = spawn_host_population(restarts)['base']
     pathogens = spawn_pathogen_population(restarts)
@@ -781,12 +784,47 @@ def brute_force_training(restarts, epochs):
                 timer.get_total_time()])
 
 
-def match_from_tags(gen_tag_set, disc_tag_set):
+def match_from_tags(tag_pair_set):
 
+    dump_trace(['>>', 'matching from tags',
+                datetime.now().isoformat()])
 
-    for (gen_no, gen), (disc_no, disc) in zip(enumerate(gen_tag_set),
-                                                   enumerate(disc_tag_set)):
-        pass
+    dump_trace(['>>>', 'matching from tags',
+                datetime.now().isoformat()])
+
+    for gen_tag, disc_tag in tag_pair_set:
+
+        host = Discriminator(ngpu=environment.ngpu,
+                         latent_vector_size=environment.latent_vector_size,
+                         discriminator_latent_maps=64,
+                         number_of_colors=environment.number_of_colors).to(environment.device)
+
+        host.ressurect(disc_tag)
+
+        pathogen = Generator(ngpu=environment.ngpu,
+                            latent_vector_size=environment.latent_vector_size,
+                            generator_latent_maps=64,
+                            number_of_colors=environment.number_of_colors).to(environment.device)
+
+        pathogen.ressurect(gen_tag)
+
+        arena = Arena(environment=environment,
+                  generator_instance=pathogen,
+                  discriminator_instance=host,
+                  generator_optimizer_partial=gen_opt_part,
+                  discriminator_optimizer_partial=disc_opt_part)
+
+        arena_match_results = arena.match()
+
+        dump_trace(['post-cross-train and match:',
+                    disc_tag, gen_tag,
+                    arena_match_results[0], arena_match_results[1]])
+
+    dump_trace(['>>>', 'matching from tags',
+                datetime.now().isoformat()])
+
+    dump_trace(['<<', 'matching from tags',
+                   datetime.now().isoformat()])
 
 
 if __name__ == "__main__":
@@ -801,7 +839,7 @@ if __name__ == "__main__":
                                    transforms.ToTensor(),
                                    transforms.Normalize((0.5,), (0.5,)),]))
 
-    environment = GANEnvironment(mnist_dataset, device="cuda:0")
+    environment = GANEnvironment(mnist_dataset, device="cuda:1")
 
     learning_rate = 0.0002
     beta1 = 0.5
@@ -810,35 +848,53 @@ if __name__ == "__main__":
     disc_opt_part = lambda x: optim.Adam(x, lr=learning_rate, betas=(beta1, 0.999))
 
     dump_trace(['>', 'run started', datetime.now().isoformat()])
+
     chain_progression(5, 5)
-    # chain_progression(5, 5)
-    # chain_progression(5, 5)
-    # chain_progression(5, 5)
-    # chain_progression(5, 5)
+    chain_progression(5, 5)
+    chain_progression(5, 5)
+    chain_progression(5, 5)
+    chain_progression(5, 5)
 
-    chain_evolve_with_fitness_reset(3, 3)
+    # chain_evolve_with_fitness_reset(3, 3)
     # chain_evolve_with_fitness_reset(3, 3)
     # chain_evolve_with_fitness_reset(3, 3)
     # chain_evolve_with_fitness_reset(3, 3)
     # chain_evolve_with_fitness_reset(3, 3)
 
-    chain_evolve(3, 3)
+    # chain_evolve(3, 3)
 
-    round_robin_randomized(5, 5)
+    # round_robin_randomized(5, 5)
     # round_robin_randomized(5, 5)
     # round_robin_randomized(5, 5)
     # round_robin_randomized(5, 5)
     # round_robin_randomized(5, 5)
 
     round_robin_deterministic(5, 5)
-    # round_robin_deterministic(5, 5)
-    # round_robin_deterministic(5, 5)
-    # round_robin_deterministic(5, 5)
-    # round_robin_deterministic(5, 5)
+    round_robin_deterministic(5, 5)
+    round_robin_deterministic(5, 5)
+    round_robin_deterministic(5, 5)
+    round_robin_deterministic(5, 5)
 
-    brute_force_training(5, 15)
-    # brute_force_training(5, 15)
-    # brute_force_training(5, 15)
+    brute_force_training(10, 15)
+    brute_force_training(10, 15)
+    brute_force_training(10, 15)
+    brute_force_training(10, 15)
+    brute_force_training(10, 15)
+
+    brute_force_training(5, 30)
+    brute_force_training(5, 30)
+    brute_force_training(5, 30)
+    brute_force_training(5, 30)
+    brute_force_training(5, 30)
+
+    tag_pair_accumulator = []
+    with open('backflow.csv', 'r') as read_file:
+        reader = csv.reader(read_file, delimiter='\t')
+        for row in reader:
+            tag_pair_accumulator.append(row)
+
+    match_from_tags(tag_pair_accumulator)
+
     dump_trace(['<', 'run completed', datetime.now().isoformat()])
 
     # gen = Generator(ngpu=environment.ngpu,
