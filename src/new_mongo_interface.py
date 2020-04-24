@@ -67,11 +67,13 @@ def update_pure_disc(key, update_payload):
 
 def pure_gen_from_random_tag(random_tag):
     existing_gen = pure_gen_collection.find_one({'random_tag': random_tag})
+    existing_gen['encounter_trace'] = separate_trace_retrieve(existing_gen['encounter_trace'])
     return existing_gen
 
 
 def pure_disc_from_random_tag(random_tag):
     existing_disc = pure_disc_collection.find_one({'random_tag': random_tag})
+    existing_disc['encounter_trace'] = separate_trace_retrieve(existing_disc['encounter_trace'])
     return existing_disc
 
 

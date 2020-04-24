@@ -4,10 +4,13 @@ from src.gans.nn_structure import NetworkStructure
 from random import sample
 import string
 import pickle
+import sys
 from src.new_mongo_interface import pure_disc_from_random_tag
+import io
 
 char_set = string.ascii_uppercase + string.digits
 
+torch.cuda.set_device('cuda:1')
 
 def generate_hyperparameter_key(_self):
     key = {'random_tag': _self.random_tag,
@@ -31,17 +34,27 @@ def storage_representation(_self):
 
 
 def resurrect(_self, random_tag):
-    stored_gen = pure_disc_from_random_tag(random_tag)
-    if stored_gen['disc_type'] != type(_self).__name__:
+    stored_disc = pure_disc_from_random_tag(random_tag)
+
+    # print(sys.getsizeof(stored_disc))
+
+    if stored_disc['disc_type'] != type(_self).__name__:
         raise Exception('Wrong class: expected %s, got %s' % (type(_self).__name__,
-                                                              stored_gen['gen_type']))
+                                                              stored_disc['disc_type']))
     _self.random_tag = random_tag
-    _self.generator_latent_maps = stored_gen['gen_latent_params']
-    _self.encounter_trace = stored_gen['encounter_trace']
-    _self.load_state_dict(pickle.loads(stored_gen['disc_state']))
-    _self.real_error = stored_gen['self_error']
-    _self.gen_error_map = stored_gen['gen_error_map']
-    _self.current_fitness = stored_gen['current_fitness']
+    _self.generator_latent_maps = stored_disc['disc_latent_params']
+    _self.encounter_trace = stored_disc['encounter_trace']
+    # print(torch.cuda.current_device())
+
+    # print(sys.getsizeof(stored_disc['disc_state']) / 1024. / 1024.)
+    # with torch.device('cpu'):
+    _self.load_state_dict(pickle.loads(stored_disc['disc_state']))
+    # fake_file = io.BytesIO(stored_disc['disc_state'])
+    # _self.load_state_dict(torch.load(fake_file, map_location=torch.device('cpu')))
+    # print('encounter_trace:', _self.encounter_trace)
+    _self.real_error = stored_disc['self_error']
+    _self.gen_error_map = stored_disc['gen_error_map']
+    _self.current_fitness = stored_disc['current_fitness']
 
 
 class GaussianNoise(nn.Module):

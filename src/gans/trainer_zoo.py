@@ -96,7 +96,8 @@ def match_training_round(generator_instance, discriminator_instance,
                          disc_optimizer, gen_optimizer, criterion,
                          dataloader, device, latent_vector_size, mode="match",
                          real_label=1, fake_label=0, training_epochs=1,
-                         noise_floor=0.01, fitness_biases=(1, 1)):
+                         noise_floor=0.01, fitness_biases=(1, 1),
+                         timer=None):
 
     training_trace = []
     match_trace = []
@@ -124,12 +125,14 @@ def match_training_round(generator_instance, discriminator_instance,
         dataloader_limiter = int(len(dataloader)*training_epochs)
         training_epochs = 1
 
-
     for epoch in range(training_epochs):
         for i, data in enumerate(dataloader, 0):
 
             if dataloader_limiter is not None and i > dataloader_limiter:
                 break
+
+            if timer is not None:
+                timer.start()
 
             # train with real
             discriminator_instance.zero_grad()
@@ -173,6 +176,9 @@ def match_training_round(generator_instance, discriminator_instance,
                 total_generator_error.backward()
                 average_disc_error_on_gan_post_update = output.mean().item()
                 gen_optimizer.step()
+
+            if timer is not None:
+                timer.stop()
 
             if train_g or train_d:
 
@@ -240,7 +246,7 @@ class Arena(object):
 
         pass
 
-    def match(self):
+    def match(self, timer=None):
         trace = match_training_round(self.generator_instance, self.discriminator_instance,
                                      self.discriminator_optimizer, self.generator_optimizer,
                                      self.criterion,
@@ -249,7 +255,8 @@ class Arena(object):
                                      mode="match",
                                      real_label=self.env.true_label,
                                      fake_label=self.env.fake_label,
-                                     training_epochs=1)
+                                     training_epochs=1,
+                                     timer=timer)
 
         d_encounter_trace = [type(self.generator_instance).__name__, self.generator_instance.tag,
                            [], trace]
@@ -298,7 +305,7 @@ class Arena(object):
 
         return trace
 
-    def cross_train(self, epochs=1, gan_only=False, disc_only=False):
+    def cross_train(self, epochs=1, gan_only=False, disc_only=False, timer=None):
 
         mode = "train"
 
@@ -317,7 +324,8 @@ class Arena(object):
                                      mode=mode,
                                      real_label=self.env.true_label,
                                      fake_label=self.env.fake_label,
-                                     training_epochs=epochs)
+                                     training_epochs=epochs,
+                                     timer=timer)
 
         d_encounter_trace = [type(self.generator_instance).__name__,
                              self.generator_instance.tag,

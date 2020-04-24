@@ -120,8 +120,6 @@ def cross_train_iteration(hosts, pathogens, host_type_selector, epochs=1, timer=
 
     for (host_no, host), (pathogen_no, pathogen) in product(enumerate(hosts[host_type_selector]),
                                                             enumerate(pathogens)):
-        if timer is not None:
-            timer.start()
 
         arena = Arena(environment=environment,
                   generator_instance=pathogen,
@@ -134,10 +132,7 @@ def cross_train_iteration(hosts, pathogens, host_type_selector, epochs=1, timer=
                     arena.discriminator_instance.random_tag,
                     arena.generator_instance.random_tag, ])
 
-        arena.cross_train(epochs)
-
-        if timer is not None:
-            timer.stop()
+        arena.cross_train(epochs, timer=timer)
 
         arena.sample_images()
 
@@ -165,19 +160,13 @@ def cross_train_iteration(hosts, pathogens, host_type_selector, epochs=1, timer=
     for (host_no, host), (pathogen_no, pathogen) in product(enumerate(hosts[host_type_selector]),
                                                             enumerate(pathogens)):
 
-        if timer is not None:
-            timer.start()
-
         arena = Arena(environment=environment,
                   generator_instance=pathogen,
                   discriminator_instance=host,
                   generator_optimizer_partial=gen_opt_part,
                   discriminator_optimizer_partial=disc_opt_part)
 
-        arena_match_results = arena.match()
-
-        if timer is not None:
-            timer.stop()
+        arena_match_results = arena.match(timer=timer)
 
         dump_trace(['final cross-match:',
                     host_no, pathogen_no,
@@ -229,9 +218,6 @@ def round_robin_iteration(hosts, pathogens, host_type_selector, epochs=1,
 
     for host_no, pathogen_no in generator:
 
-        if timer is not None:
-            timer.start()
-
         host = hosts[host_type_selector][host_no]
         pathogen = pathogens[pathogen_no]
 
@@ -246,10 +232,7 @@ def round_robin_iteration(hosts, pathogens, host_type_selector, epochs=1,
                     arena.discriminator_instance.random_tag,
                     arena.generator_instance.random_tag, ])
 
-        arena.cross_train(epochs)
-
-        if timer is not None:
-            timer.stop()
+        arena.cross_train(epochs, timer=timer)
 
         arena.sample_images()
 
@@ -258,13 +241,7 @@ def round_robin_iteration(hosts, pathogens, host_type_selector, epochs=1,
                     pathogen_no,
                     arena.generator_instance.random_tag, current_fid])
 
-        if timer is not None:
-            timer.start()
-
-        arena_match_results = arena.match()
-
-        if timer is not None:
-            timer.stop()
+        arena_match_results = arena.match(timer=timer)
 
         dump_trace(['post-cross-train and match:',
                     host_no, pathogen_no,
@@ -282,19 +259,13 @@ def round_robin_iteration(hosts, pathogens, host_type_selector, epochs=1,
     for (host_no, host), (pathogen_no, pathogen) in product(enumerate(hosts[host_type_selector]),
                                                             enumerate(pathogens)):
 
-        if timer is not None:
-            timer.start()
-
         arena = Arena(environment=environment,
                   generator_instance=pathogen,
                   discriminator_instance=host,
                   generator_optimizer_partial=gen_opt_part,
                   discriminator_optimizer_partial=disc_opt_part)
 
-        arena_match_results = arena.match()
-
-        if timer is not None:
-            timer.stop()
+        arena_match_results = arena.match(timer=timer)
 
         dump_trace(['final cross-match:',
                     host_no, pathogen_no,
@@ -415,6 +386,36 @@ def chain_progression(individuals_per_species, starting_cluster):
                 timer.get_total_time()])
 
 
+def homohenus_chain_progression(individuals_per_species, starting_cluster):
+
+    dump_trace(['>>', 'homogenous chain progression', individuals_per_species, starting_cluster,
+                datetime.now().isoformat()])
+
+    hosts = spawn_host_population(individuals_per_species)
+    pathogens = spawn_pathogen_population(starting_cluster)
+
+    timer = StopWatch()
+
+    cross_train_iteration(hosts, pathogens, 'base', 1, timer=timer)
+    cross_train_iteration(hosts, pathogens, 'base', 1, timer=timer)
+    cross_train_iteration(hosts, pathogens, 'base', 3, timer=timer)
+
+    host_map = {}
+    pathogen_map = {}
+    for host in hosts['base']:
+        host_map[host.random_tag] = [host.gen_error_map, host.current_fitness, host.real_error,
+                                     host.tag_trace]
+
+    for pathogen in pathogens:
+        pathogen_map[pathogen.random_tag] = [pathogen.fitness_map, pathogen.tag_trace]
+
+    dump_with_backup((host_map, pathogen_map), evo_trace_dump_location)
+    # pickle.dump((host_map, pathogen_map), open('evolved_hosts_pathogen_map.dmp', 'wb'))
+
+    dump_trace(['<<', 'homogenous chain progression', datetime.now().isoformat(),
+                timer.get_total_time()])
+
+
 def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit_reset=False,
                          timer=None):
 
@@ -466,9 +467,6 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit
         # TODO: realistically, we need to look in the carrying tables and then attempt to cross
         #  the infections to other, more efficient hosts.
 
-        if timer is not None:
-            timer.start()
-
         current_host_idx = random.choices(hosts_index, weights=hosts_fitnesses)[0]
         current_pathogen_idx = random.choices(pathogens_index, weights=pathogens_fitnesses)[0]
 
@@ -478,10 +476,7 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit
                   generator_optimizer_partial=gen_opt_part,
                   discriminator_optimizer_partial=disc_opt_part)
 
-        arena_match_results = arena.match()
-
-        if timer is not None:
-            timer.stop()
+        arena_match_results = arena.match(timer=timer)
 
         print("%s: real_err: %s, gen_err: %s; updated fitnesses: host: %s path: %s" % (
             arena.generator_instance.random_tag,
@@ -518,22 +513,14 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit
                 #immune system is not bothered
                 # print('debug: pop evolve: silent infection')
                 dump_trace(['silent infection'])
-                if timer is not None:
-                    timer.start()
-                arena.cross_train(gan_only=True)
+                arena.cross_train(gan_only=True, timer=timer)
                 i += 0.5
-                if timer is not None:
-                    timer.stop()
             else:
                 #immune sytem is active and competitive evolution happens:
                 # print('debug: pop evolve: full infection')
                 dump_trace(['full infection'])
-                if timer is not None:
-                    timer.start()
-                arena.cross_train()
+                arena.cross_train(timer=timer)
                 i += 1
-                if timer is not None:
-                    timer.stop()
 
             arena.sample_images()
             current_fid = calc_single_fid(arena.generator_instance.random_tag)
@@ -541,13 +528,7 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit
             dump_trace(['sampled images from', current_pathogen_idx,
                         arena.generator_instance.random_tag, current_fid])
 
-            if timer is not None:
-                timer.start()
-
-            arena_match_results = arena.match()
-
-            if timer is not None:
-                timer.stop()
+            arena_match_results = arena.match(timer=timer)
 
             dump_trace(['post-infection',
                         current_host_idx, current_pathogen_idx,
@@ -594,19 +575,13 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit
     for (host_no, host), (pathogen_no, pathogen) in product(enumerate(hosts_list),
                                                             enumerate(pathogens_list)):
 
-        if timer is not None:
-            timer.start()
-
         arena = Arena(environment=environment,
                   generator_instance=pathogen,
                   discriminator_instance=host,
                   generator_optimizer_partial=gen_opt_part,
                   discriminator_optimizer_partial=disc_opt_part)
 
-        arena_match_results = arena.match()
-
-        if timer is not None:
-            timer.stop()
+        arena_match_results = arena.match(timer=timer)
 
         if pathogen not in encountered_pathogens:
 
@@ -704,6 +679,8 @@ def chain_evolve_with_fitness_reset(individuals_per_species, starting_cluster):
                 timer.get_total_time()])
 
 
+# TODO: Square evolution.
+
 
 def brute_force_training(restarts, epochs):
     dump_trace(['>>', 'brute-force',
@@ -792,33 +769,43 @@ def match_from_tags(tag_pair_set):
     dump_trace(['>>>', 'matching from tags',
                 datetime.now().isoformat()])
 
+    tag_pair_set.reverse()
+
     for gen_tag, disc_tag in tag_pair_set:
 
-        host = Discriminator(ngpu=environment.ngpu,
-                         latent_vector_size=environment.latent_vector_size,
-                         discriminator_latent_maps=64,
-                         number_of_colors=environment.number_of_colors).to(environment.device)
+        try:
 
-        host.ressurect(disc_tag)
+            host = Discriminator(ngpu=environment.ngpu,
+                             latent_vector_size=environment.latent_vector_size,
+                             discriminator_latent_maps=64,
+                             number_of_colors=environment.number_of_colors).to(environment.device)
 
-        pathogen = Generator(ngpu=environment.ngpu,
-                            latent_vector_size=environment.latent_vector_size,
-                            generator_latent_maps=64,
-                            number_of_colors=environment.number_of_colors).to(environment.device)
+            host.resurrect(disc_tag)
 
-        pathogen.ressurect(gen_tag)
+            pathogen = Generator(ngpu=environment.ngpu,
+                                latent_vector_size=environment.latent_vector_size,
+                                generator_latent_maps=64,
+                                number_of_colors=environment.number_of_colors).to(environment.device)
 
-        arena = Arena(environment=environment,
-                  generator_instance=pathogen,
-                  discriminator_instance=host,
-                  generator_optimizer_partial=gen_opt_part,
-                  discriminator_optimizer_partial=disc_opt_part)
+            pathogen.resurrect(gen_tag)
 
-        arena_match_results = arena.match()
+            host.to(environment.device)
+            pathogen.to(environment.device)
 
-        dump_trace(['post-cross-train and match:',
-                    disc_tag, gen_tag,
-                    arena_match_results[0], arena_match_results[1]])
+            arena = Arena(environment=environment,
+                      generator_instance=pathogen,
+                      discriminator_instance=host,
+                      generator_optimizer_partial=gen_opt_part,
+                      discriminator_optimizer_partial=disc_opt_part)
+
+            arena_match_results = arena.match()
+
+            dump_trace(['post-cross-train and match:',
+                        disc_tag, gen_tag,
+                        arena_match_results[0], arena_match_results[1]])
+
+        except RuntimeError:
+            pass
 
     dump_trace(['>>>', 'matching from tags',
                 datetime.now().isoformat()])
@@ -849,11 +836,17 @@ if __name__ == "__main__":
 
     dump_trace(['>', 'run started', datetime.now().isoformat()])
 
-    chain_progression(5, 5)
-    chain_progression(5, 5)
-    chain_progression(5, 5)
-    chain_progression(5, 5)
-    chain_progression(5, 5)
+    homohenus_chain_progression(5, 5)
+    homohenus_chain_progression(5, 5)
+    homohenus_chain_progression(5, 5)
+    homohenus_chain_progression(5, 5)
+    homohenus_chain_progression(5, 5)
+
+    # chain_progression(5, 5)
+    # chain_progression(5, 5)
+    # chain_progression(5, 5)
+    # chain_progression(5, 5)
+    # chain_progression(5, 5)
 
     # chain_evolve_with_fitness_reset(3, 3)
     # chain_evolve_with_fitness_reset(3, 3)
@@ -869,31 +862,32 @@ if __name__ == "__main__":
     # round_robin_randomized(5, 5)
     # round_robin_randomized(5, 5)
 
-    round_robin_deterministic(5, 5)
-    round_robin_deterministic(5, 5)
-    round_robin_deterministic(5, 5)
-    round_robin_deterministic(5, 5)
-    round_robin_deterministic(5, 5)
+    # round_robin_deterministic(5, 5)
+    # round_robin_deterministic(5, 5)
+    # round_robin_deterministic(5, 5)
+    # round_robin_deterministic(5, 5)
+    # round_robin_deterministic(5, 5)
 
-    brute_force_training(10, 15)
-    brute_force_training(10, 15)
-    brute_force_training(10, 15)
-    brute_force_training(10, 15)
-    brute_force_training(10, 15)
+    # brute_force_training(10, 15)
+    # brute_force_training(10, 15)
+    # brute_force_training(10, 15)
+    # brute_force_training(10, 15)
+    # brute_force_training(10, 15)
 
-    brute_force_training(5, 30)
-    brute_force_training(5, 30)
-    brute_force_training(5, 30)
-    brute_force_training(5, 30)
-    brute_force_training(5, 30)
+    # brute_force_training(5, 30)
+    # brute_force_training(5, 30)
+    # brute_force_training(5, 30)
+    # brute_force_training(5, 30)
+    # brute_force_training(5, 30)
 
-    tag_pair_accumulator = []
-    with open('backflow.csv', 'r') as read_file:
-        reader = csv.reader(read_file, delimiter='\t')
-        for row in reader:
-            tag_pair_accumulator.append(row)
-
-    match_from_tags(tag_pair_accumulator)
+    # tag_pair_accumulator = []
+    # with open('backflow.csv', 'r') as read_file:
+    #     reader = csv.reader(read_file, delimiter='\t')
+    #     for row in reader:
+    #         if len(row) > 0:
+    #             tag_pair_accumulator.append(row)
+    #
+    # match_from_tags(tag_pair_accumulator)
 
     dump_trace(['<', 'run completed', datetime.now().isoformat()])
 
