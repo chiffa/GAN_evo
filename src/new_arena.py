@@ -214,7 +214,11 @@ def round_robin_iteration(hosts, pathogens, host_type_selector, epochs=1,
         generator = zip(hosts_no, pathogens_no)
 
     else:
-        generator = product(range(len(hosts[host_type_selector])), range(len(pathogens)))
+        generator_list = [(host_no, pathogen_no) for host_no, pathogen_no in
+                          product(range(len(hosts[host_type_selector])), range(len(pathogens)))]
+        # generator = product(range(len(hosts[host_type_selector])), range(len(pathogens)))
+        repeats = int(rounds/len(generator_list))
+        generator = generator_list*repeats
 
     for host_no, pathogen_no in generator:
 
@@ -294,7 +298,7 @@ def round_robin_iteration(hosts, pathogens, host_type_selector, epochs=1,
 
 def round_robin_deterministic(individuals_per_species, starting_cluster):
 
-    dump_trace(['>>', 'deterministic base round robin', individuals_per_species, starting_cluster,
+    dump_trace(['>>', 'deterministic base round robin 2', individuals_per_species, starting_cluster,
                 datetime.now().isoformat()])
 
     hosts = spawn_host_population(individuals_per_species)
@@ -319,7 +323,7 @@ def round_robin_deterministic(individuals_per_species, starting_cluster):
     dump_with_backup((host_map, pathogen_map), evo_trace_dump_location)
     # pickle.dump((host_map, pathogen_map), open('evolved_hosts_pathogen_map.dmp', 'wb'))
 
-    dump_trace(['<<', 'deterministic base round robin', datetime.now().isoformat(),
+    dump_trace(['<<', 'deterministic base round robin 2', datetime.now().isoformat(),
                 timer.get_total_time()])
 
 
@@ -386,7 +390,7 @@ def chain_progression(individuals_per_species, starting_cluster):
                 timer.get_total_time()])
 
 
-def homohenus_chain_progression(individuals_per_species, starting_cluster):
+def homogenus_chain_progression(individuals_per_species, starting_cluster):
 
     dump_trace(['>>', 'homogenous chain progression', individuals_per_species, starting_cluster,
                 datetime.now().isoformat()])
@@ -836,13 +840,13 @@ if __name__ == "__main__":
 
     dump_trace(['>', 'run started', datetime.now().isoformat()])
 
-    homohenus_chain_progression(5, 5)
-    homohenus_chain_progression(5, 5)
-    homohenus_chain_progression(5, 5)
-    homohenus_chain_progression(5, 5)
-    homohenus_chain_progression(5, 5)
+    # homogenus_chain_progression(5, 5)
+    # homogenus_chain_progression(5, 5)
+    homogenus_chain_progression(5, 5)
+    # homogenus_chain_progression(5, 5)
+    # homogenus_chain_progression(5, 5)
 
-    # chain_progression(5, 5)
+    chain_progression(5, 5)
     # chain_progression(5, 5)
     # chain_progression(5, 5)
     # chain_progression(5, 5)
@@ -856,17 +860,17 @@ if __name__ == "__main__":
 
     # chain_evolve(3, 3)
 
-    # round_robin_randomized(5, 5)
+    round_robin_randomized(5, 5)
     # round_robin_randomized(5, 5)
     # round_robin_randomized(5, 5)
     # round_robin_randomized(5, 5)
     # round_robin_randomized(5, 5)
 
-    # round_robin_deterministic(5, 5)
-    # round_robin_deterministic(5, 5)
-    # round_robin_deterministic(5, 5)
-    # round_robin_deterministic(5, 5)
-    # round_robin_deterministic(5, 5)
+    round_robin_deterministic(5, 5)
+    round_robin_deterministic(5, 5)
+    round_robin_deterministic(5, 5)
+    round_robin_deterministic(5, 5)
+    round_robin_deterministic(5, 5)
 
     # brute_force_training(10, 15)
     # brute_force_training(10, 15)
