@@ -100,3 +100,16 @@ We will need to manage a cluster of containers on the proper cloud with the help
  we are to deploy. right now we synchronize on the genetic_algo. Ideally, once finished training,
  every new algo will pull all available opponnents and decide from whom he will be inheriting next.
  => Asynchronius fight
+
+
+Critical modifications to the architecture:
+===========================================
+- Restarts of training - on-the-local filesystem storage (minimize the latency)
+- Commit to DB only the last generation pair
+- Generate separate run dump csv files, then stitch them before analysis.
+
+Pulled from the LaTeX:
+======================
+- Coninfection?
+- Vaccination/re-infection?
+- Two-phase training - generator starts, gets an epoch and then gets chased by the discriminator.

@@ -215,6 +215,14 @@ def render_fid_performances(attribution_map):
 
     def draw_box_plot(_dataset):
         flatten = lambda l: [item for sublist in l for item in sublist]
+
+        for name, data in zip(method_names, _dataset):
+            load = [name_remap[name], '&',
+                    '%.2f' % np.median(data), '&',
+                    '%.2f' % np.mean(data), '&',
+                    '%.2f' % np.std(data), '\\']
+            print(' '.join(load))
+
         plt.boxplot(_dataset)
         x_pad = [[_i+1  # +random.random()/10.
                   for _ in range(len(_data))]
@@ -482,7 +490,9 @@ def render_training_history(method_names, best_fid_gen_tags):
             xs = range(len(fids))
             plt.plot(xs, fids,
                      # label=root,
-                     c=l_color)
+                     c=l_color,
+                     # linewidth=3
+                     )
 
             disc_state = [disc_phases[disc_tag] for _, disc_tag, _, _, _ in gen_line]
             # print(disc_state)
@@ -490,12 +500,17 @@ def render_training_history(method_names, best_fid_gen_tags):
             type_list = []
             t = 0
             c_mem = ''
+            cross_train_counter = 0
             print('new train')
 
             for state in reversed(disc_state):
                 print('\ts', state)
-                if state[1] is not None and c_mem != state[1]:
-                    print('x', c_mem, '->', state[1], ':', t)
+                if state[0] == 'cross-train':
+                    cross_train_counter += 1
+                if state[1] is not None and c_mem != state[1] \
+                        or cross_train_counter % 6 == 0:  # temporary
+                    cross_train_counter = 1
+                    print('xt', c_mem, '->', state[1], ':', t)
                     t += 1
                     c_mem = state[1]
                     c_t_annotation_map[type_map[t]] = c_mem
@@ -503,7 +518,7 @@ def render_training_history(method_names, best_fid_gen_tags):
                 type_list.append(type_map[t])
 
                 if state[0] not in type_idx_map.keys():
-                    print('x', state[0], '! in', type_idx_map.keys())
+                    print('xc', state[0], '! in', type_idx_map.keys())
                     c += 1
                     type_idx_map[state[0]] = c
                     c_t_annotation_map[colors_map[type_idx_map[state[0]]]] = state[0]
@@ -519,7 +534,8 @@ def render_training_history(method_names, best_fid_gen_tags):
                     shown_c.append(_c)
 
                     # secondary_label_buffer.append(
-                    plt.plot(_x, _f, marker=_t, c=_c, markersize=8,
+                    plt.plot(_x, _f, marker=_t, c=_c,
+                             markersize=8,
                          # label='%s, %s' % (c_t_annotation_map[_t], c_t_annotation_map[_c])
                          )
                     # )
@@ -561,19 +577,17 @@ def render_training_history(method_names, best_fid_gen_tags):
                                   markerfacecolor='k',
                                   markersize=10))
 
-        # for elt in colors_map.values():
-        #     if elt in c_t_annotation_map.keys():
-        #         print('color legend elt:', elt)
-        #         legend_elements.append(Line2D([0], [0],
-        #                           marker='s',
-        #                           color='w',
-        #                           label=c_t_annotation_map[elt],
-        #                           markerfacecolor=elt,
-        #                           markersize=10))
+        for elt in colors_map.values():
+            if elt in c_t_annotation_map.keys():
+                print('color legend elt:', elt)
+                legend_elements.append(Line2D([0], [0],
+                                  marker='s',
+                                  color='w',
+                                  label=c_t_annotation_map[elt],
+                                  markerfacecolor=elt,
+                                  markersize=10))
 
         plt.legend(handles=legend_elements)
-        # leg2 = plt.legend(secondary_label_buffer, secondary_label_buffer_2)
-        # plt.add_artist(leg1)
         plt.show()
 
         # raise Exception('debug')
@@ -705,16 +719,18 @@ if __name__ == "__main__":
         ('brute-force', '5', '15'),
         ('chain evolve', '3', '3'),
         ('chain evolve', '3', '4'),
-        # ('chain progression', '5', '5'),
+        ('chain progression', '5', '5'),
         ('chain evolve fit reset', '3', '3'),
-        ('stochastic base round robin', '5', '5'),
-        # ('deterministic base round robin', '5', '5'),
+        # ('stochastic base round robin', '5', '5'),
+        ('deterministic base round robin', '5', '5'),
         # ('brute-force', '10', '15'),
         ('brute-force', '5', '30'),
-        # ('homogenous chain progression', '5', '5')
+        ('homogenous chain progression', '5', '5')
     ]
 
     name_remap = {
+        ('stochastic base round robin 5 5'): 'stochastic round robin',
+        ('chain evolve 3 4'): 'evolution with\nheterogeneous\npopulation jumps',
         ('brute-force 10 15'): 'reference',
         ('chain progression 5 5'): 'round-robin with\nheterogeneous\npopulation jumps',
         ('deterministic base round robin 5 5'): 'standard round robin',
