@@ -1,16 +1,13 @@
 import torch
 import torch.nn as nn
-from src.gans.nn_structure import NetworkStructure
 from random import sample
 import string
 import pickle
 import torchvision.utils as vutils
-from src.new_mongo_interface import pure_gen_from_random_tag
+from src.mongo_interface import gen_from_random_tag
 import io
 
 char_set = string.ascii_uppercase + string.digits
-
-torch.cuda.set_device('cuda:1')
 
 def generate_hyperparameter_key(_self):
     key = {'random_tag': _self.random_tag,
@@ -31,16 +28,13 @@ def save(_self):
 
 
 def resurrect(_self, random_tag):
-    stored_gen = pure_gen_from_random_tag(random_tag)
+    stored_gen = gen_from_random_tag(random_tag)
     if stored_gen['gen_type'] != type(_self).__name__:
         raise Exception('Wrong class: expected %s, got %s' % (type(_self).__name__,
                                                               stored_gen['gen_type']))
     _self.random_tag = random_tag
     _self.generator_latent_maps = stored_gen['gen_latent_params']
     _self.encounter_trace = stored_gen['encounter_trace']
-    # print('encounter_trace:', _self.encounter_trace)
-    # fake_file = io.BytesIO(stored_gen)
-    # _self.load_state_dict(torch.load(fake_file, map_location=torch.device('cpu')))
     _self.load_state_dict(pickle.loads(stored_gen['gen_state']))
     _self.fitness_map = stored_gen['fitness_map']
 
@@ -112,10 +106,6 @@ class Generator(nn.Module):
             nn.Tanh()
             # state size. (nc) x 64 x 64
         )
-
-    def bind_nn_structure(self, network: NetworkStructure):
-        # TODO: check that the in/out dimensions are consistent
-        self.main = nn.Sequential(network.compile())
 
     def forward(self, input):
         if input.is_cuda and self.ngpu > 1:

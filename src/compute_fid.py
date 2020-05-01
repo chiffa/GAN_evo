@@ -1,3 +1,7 @@
+"""
+Uses and existing library in order to compute the FID of the image pairs.
+Code used here comes from https://github.com/mseitzer/pytorch-fid
+"""
 import os
 import sys
 from random import shuffle
@@ -7,12 +11,17 @@ import pickle
 import datetime
 
 
-balancing_folders_location = '/home/kucharav/FID_samples'
-fid_command = '/home/kucharav/Documents/pytorch-fid-master/fid_score.py'
-after_datetime = datetime.datetime.now() - datetime.timedelta(days=1)
+balancing_folders_location = '/home/kucharav/FID_samples'  # location where FID samples are stored
+after_datetime = datetime.datetime.now() - datetime.timedelta(days=10)
 
 
 def calc_single_fid(random_tag):
+    """
+    Calculates the FID for a single generator samples based on the generator's random tag
+
+    :param random_tag: the random tag for which FID needs to b
+    :return: FID
+    """
     total_path = os.path.join(balancing_folders_location, random_tag)
 
     if os.path.isdir(total_path):
@@ -31,6 +40,10 @@ def calc_single_fid(random_tag):
 
 
 def calc_gen_fids():
+    """
+    Calculates FIDs between samples of GANs and real images
+    :return: dict random_tag -> FID, list of covered random tags
+    """
     random_tag_list = []
     fid_map = {}
     for random_tag in os.listdir(balancing_folders_location):
@@ -50,6 +63,12 @@ def calc_gen_fids():
 
 
 def calc_reals_fid(random_tag_list):
+    """
+    Calculates FIDs between samples of real images for reference FID values
+
+    :param random_tag_list:
+    :return:
+    """
     real_comparison = []
     shuffle(random_tag_list)
     blocker = 20
@@ -67,6 +86,7 @@ def calc_reals_fid(random_tag_list):
             print("Unexpected error:", sys.exc_info()[0])
 
     return real_comparison
+
 
 if __name__ == "__main__":
     fid_map, random_tag_list = calc_gen_fids()

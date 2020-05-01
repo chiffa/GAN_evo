@@ -1,7 +1,6 @@
-from src.gans.discriminator_zoo import Discriminator, Discriminator_PReLU, Discriminator_light
-from src.gans.generator_zoo import Generator
-from src.gans.trainer_zoo import Arena, GANEnvironment
-# from src.new_mongo_interface import save_pure_disc, save_pure_gen, filter_pure_disc, filter_pure_gen
+from src.gans.discriminators import Discriminator, Discriminator_PReLU, Discriminator_light
+from src.gans.generators import Generator
+from src.gans.train_and_match import Arena, GANEnvironment
 import pickle
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
@@ -12,7 +11,7 @@ from collections import defaultdict
 import os
 from datetime import datetime, timedelta
 import csv
-from src.fid_analyser import calc_single_fid
+from src.compute_fid import calc_single_fid
 
 
 evo_trace_dump_location = "evolved_hosts_pathogen_map.dmp"
@@ -21,13 +20,14 @@ brute_force_trace_dump_location = 'brute_force_pathogen_map.dmp'
 
 trace_dump_file = 'run_trace.csv'
 
-# TODO: timing is currently fucked up due to sampling and selection instead of sampling.
-
-# TODO: save only the final states of the evolutionary elements to make sure not too much space
-#  is taken up.
-
 
 def dump_trace(payload_list):
+    """
+    Wrapper for writing execution trace to a master storage file for the analyisis/
+
+    :param payload_list:
+    :return:
+    """
     if not os.path.isfile(trace_dump_file):
         open(trace_dump_file, 'w')
 
@@ -44,12 +44,22 @@ def dump_with_backup(object, location):
 
 
 def render_evolution(random_tags_list):
+    """
+    Helper functiton, to showo the tag change with training encounters for generators and
+    discriminators
+
+    :param random_tags_list: tag list for which to show the evolution
+    :return:
+    """
     for random_tag in random_tags_list:
         print(random_tag, ' <- ', end='')
     print()
 
 
 class StopWatch(object):
+    """
+    Helper object to measure code execution time.
+    """
 
     def __init__(self):
         self._t = timedelta(microseconds=0)
@@ -71,11 +81,18 @@ class StopWatch(object):
 
 
 def spawn_host_population(individuals_per_species):
+    """
+    Generates three populations of hosts/discriminators, based on the supplied population size
+
+
+    :param individuals_per_species: population size
+    :return: dict: host_type -> [hosts], with host_type in ['base', 'PreLu', 'light']
+    """
     hosts = {
         'base': [],
         'PreLU': [],
         'light': []
-    }  # Type: list
+    }
     for _ in range(0, individuals_per_species):
         hosts['base'].append(Discriminator(ngpu=environment.ngpu,
                          latent_vector_size=environment.latent_vector_size,
@@ -85,7 +102,7 @@ def spawn_host_population(individuals_per_species):
                          latent_vector_size=environment.latent_vector_size,
                          discriminator_latent_maps=64,
                          number_of_colors=environment.number_of_colors).to(environment.device))
-        hosts['light'].append(Discriminator(ngpu=environment.ngpu,
+        hosts['light'].append(Discriminator_light(ngpu=environment.ngpu,
                                          latent_vector_size=environment.latent_vector_size,
                                          discriminator_latent_maps=32,
                                          number_of_colors=environment.number_of_colors).to(environment.device))
@@ -97,6 +114,12 @@ def spawn_host_population(individuals_per_species):
 
 
 def spawn_pathogen_population(starting_cluster):
+    """
+    Generate a population of pathogens/generators of size supplied by the parameter
+
+    :param starting_cluster: pathogen population size
+    :return: list of pathogens
+    """
     pathogens = []
     for _ in range(0, starting_cluster):
         pathogens.append(Generator(ngpu=environment.ngpu,
@@ -109,6 +132,15 @@ def spawn_pathogen_population(starting_cluster):
 
 
 def cross_train_iteration(hosts, pathogens, host_type_selector, epochs=1, timer=None):
+    """
+    Specialized, single iteration of round-robin in the population
+
+    :param hosts: host population dict
+    :param pathogens: list of pathogens
+    :param host_type_selector: type of hosts to propagate in
+    :param epochs: epochs - training epochs per infection / training round
+    :param timer: optional StopWatch timer instance for run timing
+    """
 
     dump_trace(['>>>', 'cross-train',
                 [host.random_tag for host in hosts[host_type_selector]],
@@ -195,6 +227,17 @@ def cross_train_iteration(hosts, pathogens, host_type_selector, epochs=1, timer=
 
 def round_robin_iteration(hosts, pathogens, host_type_selector, epochs=1,
                           rounds=None, randomized=False, timer=None):
+    """
+    Generalized round-robin round
+
+    :param hosts: dict of hosts
+    :param pathogens: list of pathogens
+    :param host_type_selector: host type to propagate in
+    :param epochs: epochs to train each encounter for
+    :param rounds: total budget of encounters
+    :param randomized: if round robin is randomized or deterministic
+    :param timer: optional StopWatch instance to time the execution
+    """
 
     dump_trace(['>>>', 'round-robin',
                 [host.random_tag for host in hosts[host_type_selector]],
@@ -216,7 +259,6 @@ def round_robin_iteration(hosts, pathogens, host_type_selector, epochs=1,
     else:
         generator_list = [(host_no, pathogen_no) for host_no, pathogen_no in
                           product(range(len(hosts[host_type_selector])), range(len(pathogens)))]
-        # generator = product(range(len(hosts[host_type_selector])), range(len(pathogens)))
         repeats = int(rounds/len(generator_list))
         generator = generator_list*repeats
 
@@ -297,8 +339,14 @@ def round_robin_iteration(hosts, pathogens, host_type_selector, epochs=1,
 
 
 def round_robin_deterministic(individuals_per_species, starting_cluster):
+    """
+    Deterministic round-robin wrapper
 
-    dump_trace(['>>', 'deterministic base round robin 2', individuals_per_species, starting_cluster,
+    :param individuals_per_species: host population size
+    :param starting_cluster: pathogen population size
+    """
+
+    dump_trace(['>>', 'deterministic base round robin', individuals_per_species, starting_cluster,
                 datetime.now().isoformat()])
 
     hosts = spawn_host_population(individuals_per_species)
@@ -321,13 +369,18 @@ def round_robin_deterministic(individuals_per_species, starting_cluster):
         pathogen_map[pathogen.random_tag] = [pathogen.fitness_map, pathogen.tag_trace]
 
     dump_with_backup((host_map, pathogen_map), evo_trace_dump_location)
-    # pickle.dump((host_map, pathogen_map), open('evolved_hosts_pathogen_map.dmp', 'wb'))
 
-    dump_trace(['<<', 'deterministic base round robin 2', datetime.now().isoformat(),
+    dump_trace(['<<', 'deterministic base round robin', datetime.now().isoformat(),
                 timer.get_total_time()])
 
 
 def round_robin_randomized(individuals_per_species, starting_cluster):
+    """
+    Randomized round-robin wrapper
+
+    :param individuals_per_species: host population size
+    :param starting_cluster: pathogen population size
+    """
 
     dump_trace(['>>', 'stochastic base round robin', individuals_per_species, starting_cluster,
                 datetime.now().isoformat()])
@@ -354,13 +407,18 @@ def round_robin_randomized(individuals_per_species, starting_cluster):
         pathogen_map[pathogen.random_tag] = [pathogen.fitness_map, pathogen.tag_trace]
 
     dump_with_backup((host_map, pathogen_map), evo_trace_dump_location)
-    # pickle.dump((host_map, pathogen_map), open('evolved_hosts_pathogen_map.dmp', 'wb'))
 
     dump_trace(['<<', 'stochastic base round robin', datetime.now().isoformat(),
                 timer.get_total_time()])
 
 
 def chain_progression(individuals_per_species, starting_cluster):
+    """
+    Deterministic round-robin with heterogenous naive populations transitions
+
+    :param individuals_per_species: host population size
+    :param starting_cluster: pathogen population size
+    """
 
     dump_trace(['>>', 'chain progression', individuals_per_species, starting_cluster,
                 datetime.now().isoformat()])
@@ -384,13 +442,19 @@ def chain_progression(individuals_per_species, starting_cluster):
         pathogen_map[pathogen.random_tag] = [pathogen.fitness_map, pathogen.tag_trace]
 
     dump_with_backup((host_map, pathogen_map), evo_trace_dump_location)
-    # pickle.dump((host_map, pathogen_map), open('evolved_hosts_pathogen_map.dmp', 'wb'))
 
     dump_trace(['<<', 'chain progression', datetime.now().isoformat(),
                 timer.get_total_time()])
 
 
-def homogenus_chain_progression(individuals_per_species, starting_cluster):
+def homogenous_chain_progression(individuals_per_species, starting_cluster):
+    """
+    Deterministic round-robin with homogenous naive populations transition
+
+    :param individuals_per_species:
+    :param starting_cluster:
+    :return:
+    """
 
     dump_trace(['>>', 'homogenous chain progression', individuals_per_species, starting_cluster,
                 datetime.now().isoformat()])
@@ -414,7 +478,6 @@ def homogenus_chain_progression(individuals_per_species, starting_cluster):
         pathogen_map[pathogen.random_tag] = [pathogen.fitness_map, pathogen.tag_trace]
 
     dump_with_backup((host_map, pathogen_map), evo_trace_dump_location)
-    # pickle.dump((host_map, pathogen_map), open('evolved_hosts_pathogen_map.dmp', 'wb'))
 
     dump_trace(['<<', 'homogenous chain progression', datetime.now().isoformat(),
                 timer.get_total_time()])
@@ -422,6 +485,15 @@ def homogenus_chain_progression(individuals_per_species, starting_cluster):
 
 def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit_reset=False,
                          timer=None):
+    """
+    Evolution in population round
+
+    :param hosts_list: list of hosts in the population
+    :param pathogens_list: list of pathogens in the population
+    :param pathogen_epochs_budget: budget for training by evolution, in epochs
+    :param fit_reset: whether fitness is assumed to be reset upon the start of the evolution
+    :param timer: optional StopWatch timer instance for execution duration timing
+    """
 
     def pathogen_fitness_retriever(pathogen):
         fitness = 0.05
@@ -437,8 +509,6 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit
                 [pathogen.random_tag for pathogen in pathogens_list],
                 pathogen_epochs_budget,
                 datetime.now().isoformat()])
-
-    iterations_limiter = pathogen_epochs_budget * 5
 
     pathogens_index = list(range(0, len(pathogens_list)))
     hosts_index = list(range(0, len(hosts_list)))
@@ -465,11 +535,6 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit
                     [host.random_tag for host in hosts_list],
                     [pathogen.random_tag for pathogen in pathogens_list],
                     hosts_fitnesses, pathogens_fitnesses])
-
-        # TODO: add a restart from a static state
-
-        # TODO: realistically, we need to look in the carrying tables and then attempt to cross
-        #  the infections to other, more efficient hosts.
 
         current_host_idx = random.choices(hosts_index, weights=hosts_fitnesses)[0]
         current_pathogen_idx = random.choices(pathogens_index, weights=pathogens_fitnesses)[0]
@@ -515,13 +580,11 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit
             if arena.discriminator_instance.current_fitness > 0.95 or \
                     arena.discriminator_instance.real_error > 0.1:
                 #immune system is not bothered
-                # print('debug: pop evolve: silent infection')
                 dump_trace(['silent infection'])
                 arena.cross_train(gan_only=True, timer=timer)
                 i += 0.5
             else:
                 #immune sytem is active and competitive evolution happens:
-                # print('debug: pop evolve: full infection')
                 dump_trace(['full infection'])
                 arena.cross_train(timer=timer)
                 i += 1
@@ -543,21 +606,11 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit
                         arena.generator_instance.fitness_map.get(
                             arena.discriminator_instance.random_tag, 0.05)])
 
-            # print("debug: pop evolve: post-train: real_err: %s, gen_err: %s" % (
-                # arena_match_results[0], arena_match_results[1]))
-            # print("debug: pop evolve: fitness map", arena.generator_instance.fitness_map)
-            # print("debug: pop evolve: updated fitnesses: host: %s path: %s" % (
-            #     arena.discriminator_instance.current_fitness,
-            #     arena.generator_instance.fitness_map.get(
-            #     arena.discriminator_instance.random_tag, 0.05)))
-
             hosts_fitnesses[current_host_idx] = arena.discriminator_instance.current_fitness
             pathogens_fitnesses[current_pathogen_idx] = arena.generator_instance.fitness_map.get(
                 arena.discriminator_instance.random_tag, 0.05)
 
         else:
-            # print('debug: pop evolve: infection fails')
-
             if current_pathogen_idx in host_idx_2_pathogens_carried[current_host_idx]:
                 host_idx_2_pathogens_carried[current_host_idx].remove(current_pathogen_idx)
 
@@ -612,10 +665,16 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit
 
 
 def chain_evolve(individuals_per_species, starting_cluster):
+    """
+    Wrapper function for the evolution run
+
+    :param individuals_per_species: host population size
+    :param starting_cluster: pathogen population size
+    """
+
     # by default we will be starting with the weaker pathogens, at least for now
     dump_trace(['>>', 'chain evolve', individuals_per_species, starting_cluster,
                 datetime.now().isoformat()])
-    start = datetime.now()
     hosts = spawn_host_population(individuals_per_species)
     pathogens = spawn_pathogen_population(starting_cluster)
     default_budget = individuals_per_species*starting_cluster
@@ -648,10 +707,15 @@ def chain_evolve(individuals_per_species, starting_cluster):
 
 
 def chain_evolve_with_fitness_reset(individuals_per_species, starting_cluster):
-    # by default we will be starting with the weaker pathogens, at least for now
+    """
+    Wrapper function for the evolution run with fitness reset upon evolution start
+
+    :param individuals_per_species: host population size
+    :param starting_cluster: pathogen population size
+    """
+
     dump_trace(['>>', 'chain evolve fit reset', individuals_per_species, starting_cluster,
                 datetime.now().isoformat()])
-    start = datetime.now()
     hosts = spawn_host_population(individuals_per_species)
     pathogens = spawn_pathogen_population(starting_cluster)
     default_budget = individuals_per_species*starting_cluster
@@ -668,8 +732,6 @@ def chain_evolve_with_fitness_reset(individuals_per_species, starting_cluster):
     host_map = {}
     pathogen_map = {}
 
-    #TODO: sample all the images, perform a massive cross-match
-
     for host in hosts['base']:
         host_map[host.random_tag] = [host.gen_error_map, host.current_fitness, host.real_error,
                                      host.tag_trace]
@@ -678,15 +740,17 @@ def chain_evolve_with_fitness_reset(individuals_per_species, starting_cluster):
         pathogen_map[pathogen.random_tag] = [pathogen.fitness_map, pathogen.tag_trace]
 
     dump_with_backup((host_map, pathogen_map), evo2_trace_dump_location)
-    # pickle.dump((host_map, pathogen_map), open('evolved_2_hosts_pathogen_map.dmp', 'wb'))
     dump_trace(['<<', 'chain evolve fit reset', datetime.now().isoformat(),
                 timer.get_total_time()])
 
 
-# TODO: Square evolution.
-
-
 def brute_force_training(restarts, epochs):
+    """
+    Reference training method
+
+    :param restarts: number of restarts
+    :param epochs:  number of epochs
+    """
     dump_trace(['>>', 'brute-force',
                 restarts, epochs,
                 datetime.now().isoformat()])
@@ -765,59 +829,6 @@ def brute_force_training(restarts, epochs):
                 timer.get_total_time()])
 
 
-def match_from_tags(tag_pair_set):
-
-    dump_trace(['>>', 'matching from tags',
-                datetime.now().isoformat()])
-
-    dump_trace(['>>>', 'matching from tags',
-                datetime.now().isoformat()])
-
-    tag_pair_set.reverse()
-
-    for gen_tag, disc_tag in tag_pair_set:
-
-        try:
-
-            host = Discriminator(ngpu=environment.ngpu,
-                             latent_vector_size=environment.latent_vector_size,
-                             discriminator_latent_maps=64,
-                             number_of_colors=environment.number_of_colors).to(environment.device)
-
-            host.resurrect(disc_tag)
-
-            pathogen = Generator(ngpu=environment.ngpu,
-                                latent_vector_size=environment.latent_vector_size,
-                                generator_latent_maps=64,
-                                number_of_colors=environment.number_of_colors).to(environment.device)
-
-            pathogen.resurrect(gen_tag)
-
-            host.to(environment.device)
-            pathogen.to(environment.device)
-
-            arena = Arena(environment=environment,
-                      generator_instance=pathogen,
-                      discriminator_instance=host,
-                      generator_optimizer_partial=gen_opt_part,
-                      discriminator_optimizer_partial=disc_opt_part)
-
-            arena_match_results = arena.match()
-
-            dump_trace(['post-cross-train and match:',
-                        disc_tag, gen_tag,
-                        arena_match_results[0], arena_match_results[1]])
-
-        except RuntimeError:
-            pass
-
-    dump_trace(['>>>', 'matching from tags',
-                datetime.now().isoformat()])
-
-    dump_trace(['<<', 'matching from tags',
-                   datetime.now().isoformat()])
-
-
 if __name__ == "__main__":
     image_folder = "./image"
     image_size = 64
@@ -840,80 +851,46 @@ if __name__ == "__main__":
 
     dump_trace(['>', 'run started', datetime.now().isoformat()])
 
-    # homogenus_chain_progression(5, 5)
-    # homogenus_chain_progression(5, 5)
-    homogenus_chain_progression(5, 5)
-    # homogenus_chain_progression(5, 5)
-    # homogenus_chain_progression(5, 5)
+    round_robin_randomized(5, 5)
+    round_robin_randomized(5, 5)
+    round_robin_randomized(5, 5)
+    round_robin_randomized(5, 5)
+    round_robin_randomized(5, 5)
+
+    round_robin_deterministic(5, 5)
+    round_robin_deterministic(5, 5)
+    round_robin_deterministic(5, 5)
+    round_robin_deterministic(5, 5)
+    round_robin_deterministic(5, 5)
+
+    homogenous_chain_progression(5, 5)
+    homogenous_chain_progression(5, 5)
+    homogenous_chain_progression(5, 5)
+    homogenous_chain_progression(5, 5)
+    homogenous_chain_progression(5, 5)
 
     chain_progression(5, 5)
-    # chain_progression(5, 5)
-    # chain_progression(5, 5)
-    # chain_progression(5, 5)
-    # chain_progression(5, 5)
+    chain_progression(5, 5)
+    chain_progression(5, 5)
+    chain_progression(5, 5)
+    chain_progression(5, 5)
 
-    # chain_evolve_with_fitness_reset(3, 3)
-    # chain_evolve_with_fitness_reset(3, 3)
-    # chain_evolve_with_fitness_reset(3, 3)
-    # chain_evolve_with_fitness_reset(3, 3)
-    # chain_evolve_with_fitness_reset(3, 3)
+    chain_evolve_with_fitness_reset(3, 4)
+    chain_evolve_with_fitness_reset(3, 4)
+    chain_evolve_with_fitness_reset(3, 4)
+    chain_evolve_with_fitness_reset(3, 4)
+    chain_evolve_with_fitness_reset(3, 4)
 
-    # chain_evolve(3, 3)
+    chain_evolve(3, 4)
+    chain_evolve(3, 4)
+    chain_evolve(3, 4)
+    chain_evolve(3, 4)
+    chain_evolve(3, 4)
 
-    round_robin_randomized(5, 5)
-    # round_robin_randomized(5, 5)
-    # round_robin_randomized(5, 5)
-    # round_robin_randomized(5, 5)
-    # round_robin_randomized(5, 5)
-
-    round_robin_deterministic(5, 5)
-    round_robin_deterministic(5, 5)
-    round_robin_deterministic(5, 5)
-    round_robin_deterministic(5, 5)
-    round_robin_deterministic(5, 5)
-
-    # brute_force_training(10, 15)
-    # brute_force_training(10, 15)
-    # brute_force_training(10, 15)
-    # brute_force_training(10, 15)
-    # brute_force_training(10, 15)
-
-    # brute_force_training(5, 30)
-    # brute_force_training(5, 30)
-    # brute_force_training(5, 30)
-    # brute_force_training(5, 30)
-    # brute_force_training(5, 30)
-
-    # tag_pair_accumulator = []
-    # with open('backflow.csv', 'r') as read_file:
-    #     reader = csv.reader(read_file, delimiter='\t')
-    #     for row in reader:
-    #         if len(row) > 0:
-    #             tag_pair_accumulator.append(row)
-    #
-    # match_from_tags(tag_pair_accumulator)
+    brute_force_training(10, 15)
+    brute_force_training(10, 15)
+    brute_force_training(10, 15)
+    brute_force_training(10, 15)
+    brute_force_training(10, 15)
 
     dump_trace(['<', 'run completed', datetime.now().isoformat()])
-
-    # gen = Generator(ngpu=environment.ngpu,
-    #                 latent_vector_size=environment.latent_vector_size,
-    #                 generator_latent_maps=64,
-    #                 number_of_colors=environment.number_of_colors).to(environment.device)
-    #
-    # disc = Discriminator(ngpu=environment.ngpu,
-    #                      latent_vector_size=environment.latent_vector_size,
-    #                      discriminator_latent_maps=64,
-    #                      number_of_colors=environment.number_of_colors).to(environment.device)
-    #
-    #
-    # arena = Arena(environment=environment,
-    #               generator_instance=gen,
-    #               discriminator_instance=disc,
-    #               generator_optimizer_partial=gen_opt_part,
-    #               discriminator_optimizer_partial=disc_opt_part,
-    #               )
-    #
-    # arena.cross_train(5)
-    # arena.sample_images()
-    # print(arena.generator_instance.random_tag)
-    # print(arena.match())

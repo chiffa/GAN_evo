@@ -31,53 +31,48 @@ disc_phases = {}
 
 
 def parse_past_runs(trace_dump_locations):
+    """
+    Parses run records files into the master dictionary
+
+    :param trace_dump_locations: location where the run records file is located
+    :return: an embedded dictionary of the run records
+    """
 
     master_table = []
 
-    # debug_counter = -1
     with open(trace_dump_locations, 'r') as trace_dump_file:
         reader = csv.reader(trace_dump_file, delimiter='\t')
         for row in reader:
-            # debug_counter -= 1
-            # print(row)
-            # if row[-1] == '2020-04-01T00:55:58.583021':
-                # debug_counter = 5
-            # if debug_counter == 0:
-            #     raise Exception('debug')
             if row[0] == '>':  # enter master run
                 master_table.append([row, ])
-                # print('lvl1 enter')
                 continue
             if row[0] == '>>':  # enter run sub-section
                 master_table[-1].append([row, ])  # in the latest master run add a function
-                # print('lvl2 enter')
                 continue
             if row[0] == '>>>':  # enter run sub-sub-section
-                master_table[-1][-1].append([row, ])  # and a sub-function
-                # print('lvl3 enter')
-                # print(master_table[-1][-1][-1])
+                master_table[-1][-1].append([row, ])  # and a sub-function=
                 continue
             if row[0] == '<<<':  # exit run sub-sub-section
                 master_table[-1][-1][-1].append(row)
-                # print('lvl3 exit')
-                # print(master_table[-1][-1][-1])
                 continue
             if row[0] == '<<':  # exist sub-section
                 master_table[-1][-1].append(row)
-                # print('lvl2 exit')
                 continue
             if row[0] == '<':  # exit master run
                 master_table[-1].append(row)
-                # print('lvl1 exit')
                 continue
-            # print('default add')
             master_table[-1][-1][-1].append(row)
-            # print(master_table[-1][-1][-1])
 
     return master_table
 
 
 def extract_bruteforce_data(bruteforce_run):
+    """
+    Extracts the data from a reference run
+
+    :param bruteforce_run: the embedded lists of run records for a reference run
+    :return: final FIDs, final generators random tags, run duration
+    """
     duration = (datetime.fromisoformat(bruteforce_run[-1][2]) -
                 datetime.fromisoformat(bruteforce_run[0][4])).total_seconds()/60.
     try:
@@ -91,7 +86,6 @@ def extract_bruteforce_data(bruteforce_run):
             fid_collector.append(float(data_dump_row[-1]))
             tag_collector.append(data_dump_row[2])
         if data_dump_row[0] == 'post-cross-train and match:':
-            # print('parsing bruteforce')
             bruteforce_gen2disc[data_dump_row[4]] = data_dump_row[3]
             bruteforce_disc2addchars[data_dump_row[3]] = bruteforce_run[0][2:4]
 
@@ -99,15 +93,20 @@ def extract_bruteforce_data(bruteforce_run):
 
 
 def extract_evo_data(chain_evolve_run):
+    """
+    Extracts the data from the evolutionary-structured run
+
+    :param chain_evolve_run: the embedded lists of run records for an evolutionary-inspired run
+    :return: final FIDs, final generators random tags, run duration
+    """
+
     duration = (datetime.fromisoformat(chain_evolve_run[-1][2]) -
                 datetime.fromisoformat(chain_evolve_run[0][4])).total_seconds()/60.
-    # print('duration raw:', duration)
     try:
         duration = float(chain_evolve_run[-1][-1])
     except:
         print('old format timing')
 
-    # print('duration corrected:', duration)
     final_pathogens_list = chain_evolve_run[-2][0][3]
     final_pathogens_list = final_pathogens_list[1:-1].split(', ')
     fid_collector = [-1]*len(final_pathogens_list)
@@ -118,13 +117,8 @@ def extract_evo_data(chain_evolve_run):
     for entry in chain_evolve_run[-2][1:-1]:  # here we are pulling hte data from the last run alone
 
         if entry[0] == 'sampled images from':
-            # print(entry)
             fid_collector[int(entry[1])] = float(entry[-1])
             tag_collector[int(entry[1])] = entry[2]
-
-    # parameters =
-    # in cross-train: 4 / -3
-    # in evo:
 
     for sub_run in chain_evolve_run[1:-1]:
         for entry in sub_run[1:-1]:
@@ -136,8 +130,7 @@ def extract_evo_data(chain_evolve_run):
                 pre_train_buffer = entry
 
             if entry[0] in ['post-cross-train and match:', 'post-infection']:
-                # print('ptb', pre_train_buffer)
-                # print('entry', entry)
+
                 gen_tag_trace[entry[4]] = [pre_train_buffer[4], entry[3]]
                 disc_tag_trace[entry[3]] = [pre_train_buffer[3], entry[4]]
                 encounter_record[(entry[3], entry[4])] = (float(entry[5]), float(entry[6]))
@@ -146,44 +139,15 @@ def extract_evo_data(chain_evolve_run):
                 if sub_run[0][1] == 'cross-train':
                     disc_phases[entry[3]][1] = sub_run[0][4]
 
-    #         if 'PYXTR1B9CC' in entry:
-    #             print('dbg', entry)
-    #             print('dbg ptb', pre_train_buffer)
-    #
-    #             if entry[0] in ['post-cross-train and match:', 'post-infection']:
-    #                 raise Exception('debug')
-    #
-    # raise Exception('other debug')
-
     return fid_collector, tag_collector, duration
 
 
-def extract_battle_royale_data(battle_royale_run):
-    collector_list = []
-    gen_set = set()
-    disc_set = set()
-    # print(battle_royale_run[1])
-    # raise Exception('debugging')
-    for entry in battle_royale_run[1]:
-        if entry[0] == 'post-cross-train and match:':
-            collector_list.append(entry[1:])
-            gen_set.add(entry[2])
-            disc_set.add(entry[1])
-
-    gen_index = dict((name, _i) for _i, name in enumerate(list(gen_set)))
-    disc_index = dict((name, _i) for _i, name in enumerate(list(disc_set)))
-
-    real_error_matrix = np.ones((len(gen_set), len(disc_set))) * np.nan
-    gen_error_matrix = np.ones((len(gen_set), len(disc_set))) * np.nan
-
-    for disc, gen, real_err, gen_err in collector_list:
-        real_error_matrix[gen_index[gen], disc_index[disc]] = float(real_err)
-        gen_error_matrix[gen_index[gen], disc_index[disc]] = float(gen_err)
-
-    return gen_index, disc_index, real_error_matrix, gen_error_matrix
-
-
 def render_fid_performances(attribution_map):
+    """
+    Draws figures specifying performance per FID (boxplots and heatmaps)
+
+    :param attribtution_map: master method+parameters -> runs reccords
+    """
 
     def draw_p_vals_table(_dataset):
         p_matrix = np.ones((len(_dataset), len(_dataset)))
@@ -280,6 +244,14 @@ def render_fid_performances(attribution_map):
 
 
 def pull_best_fid_tags(attribtution_map):
+    """
+    Extracts the best performing fids and tags associatated to them for each method from the
+    attribution map
+
+    :param attribtution_map: master method+parameters -> runs reccords
+    :return: method names list, random tags of generators that achieved best fids, disc from
+    reference runs that trained the best-performing generators in each run.
+    """
     method_names = []
     best_fid_gen_tags = []
     select_disc_tags = []
@@ -302,147 +274,13 @@ def pull_best_fid_tags(attribtution_map):
     return method_names, best_fid_gen_tags, select_disc_tags
 
 
-def buffer_gen_disc_fid_tags(best_fid_gen_tags, select_disc_tags):
-
-    _best_gen_tags = [item for sublist in best_fid_gen_tags for item in sublist]
-
-    with open(backflow_log, 'w') as target:
-        writer = csv.writer(target, delimiter='\t')
-        for gen_tag, disc_tag in product(_best_gen_tags, select_disc_tags):
-            writer.writerow([gen_tag, disc_tag])
-
-
-def render_relative_performances(gen_index, disc_index,
-                                 real_error_matrix, gen_error_matrix,
-                                 method_names, best_fid_gen_tags):
-
-    disc_full_names = ['']*gen_error_matrix.shape[1]
-    keep_discs = np.zeros((gen_error_matrix.shape[1], )).astype(np.bool)
-    for key, value in disc_index.items():
-        if bruteforce_disc2addchars[key] != ['5', '30']:
-            disc_full_names[value] = ' '.join([key] + bruteforce_disc2addchars[key])
-            keep_discs[value] = True
-
-    disc_full_names = np.array(disc_full_names)[keep_discs].tolist()
-
-    per_method_performance = []
-
-    for method, gen_tag_set in zip(method_names, best_fid_gen_tags):
-        gen_tag_perf = []
-        disc_tag_base = []
-
-        for gen_tag in gen_tag_set:
-            # print(real_error_matrix[gen_index[gen_tag], :].shape)
-            disc_tag_base.append(real_error_matrix[gen_index[gen_tag], keep_discs])
-            gen_tag_perf.append(gen_error_matrix[gen_index[gen_tag], keep_discs])
-
-        disc_tag_base = np.vstack(disc_tag_base)
-        gen_tag_perf = np.vstack(gen_tag_perf)
-
-        # print(disc_tag_base.shape)
-        # print(gen_tag_perf.shape)
-
-        real_column = np.mean(disc_tag_base, axis=0)
-        average_disc_perf_on_gen = np.median(gen_tag_perf, axis=0)
-
-        total_perf = np.vstack([gen_tag_perf, real_column])
-
-        # total_perf = np.vstack([gen_tag_perf/average_disc_perf_on_gen[np.newaxis, :], real_column])
-
-        average_gen_perf = np.median(total_perf, axis=1)
-        # print(total_perf.shape)
-        # print(average_gen_perf[:, np.newaxis].shape)
-
-        total_perf = np.hstack([total_perf, average_gen_perf[:, np.newaxis]])
-
-        raw_perf = total_perf.copy()
-
-        # total_perf[total_perf < 1. / 60000.] = 1. / 600000.  # MNIST dataset size clipping
-
-        # print(((1-total_perf) / (1-total_perf[:, -1:]) - 1)*100)
-        # print(total_perf[:, -1:]/(1-total_perf))
-        # raise Exception('debug')
-
-        # total_perf = (1 - total_perf[:, -1:]) / total_perf - \
-        #               total_perf / (1 - total_perf[:, -1:])
-
-        # total_perf = - ((1-total_perf) / (1-total_perf[-1:, :]) - 1) * 100
-
-        per_method_performance.append(total_perf[:, -1].copy())
-
-        # print(real_column.shape)
-        # print(total_perf.shape)
-
-        # limit = np.max(np.abs(total_perf))
-
-        # plt.title(method)
-        # plt.imshow(total_perf, cmap='RdYlGn', interpolation=None,
-        #            # vmin=-limit,
-        #            # vmax=limit
-        #            )
-        #
-        # plt.yticks(np.arange(len(gen_tag_set) + 1), gen_tag_set + ['real perf'])
-        # plt.xticks(np.arange(len(disc_full_names) + 1), disc_full_names + ['average perf'],
-        #            rotation=90.)
-        #
-        # # Loop over data dimensions and create text annotations.
-        # for i in range(total_perf.shape[0]):
-        #     for j in range(total_perf.shape[1]):
-        #         text = plt.text(j, i, '%.2e' % total_perf[i, j],
-        #                        ha="center", va="center", color="w")
-        #
-        # #
-        # # ax.set_yticks(np.arange(len(gen_tag_set) + 1))
-        # # ax.set_yticklabels(gen_tag_set + ['real perf'])
-        # #
-        # # plt.setp(ax.get_xticklabels(),
-        # #          rotation=45, ha="right",
-        # #             rotation_mode="anchor")
-        #
-        # plt.colorbar()
-        #
-        # # ax.set_title(method)
-        # # fig.tight_layout()
-        #
-        # plt.show()
-        #
-        # plt.title(method)
-        # flatten = lambda l: [item for sublist in l for item in sublist]
-        # total_perf = total_perf[:, :-1]
-        # plt.boxplot(total_perf.tolist())
-        # x_pad = [[_i+1  # +random.random()/10.
-        #           for _ in range(len(_data))]
-        #          for _i, _data in enumerate(total_perf.tolist())]
-        # cmap = plt.get_cmap('RdYlGn')
-        # average_disc_perf_on_gen /= np.max(average_disc_perf_on_gen)
-        # disc_cs = [[cmap(val) for val in average_disc_perf_on_gen.tolist()]
-        #            for _ in total_perf.tolist()]
-        # # for _i, method_perf in enumerate(total_perf.tolist()):
-        # plt.scatter(flatten(x_pad), flatten(total_perf.tolist()), c=flatten(disc_cs))
-        #
-        # plt.xticks(np.arange(len(gen_tag_set) + 1)+1, gen_tag_set + ['real perf'])
-        #
-        # plt.yscale('log')
-        #
-        # plt.show()
-        #
-        # # raise Exception('debug')
-
-    flatten = lambda l: [item for sublist in l for item in sublist]
-    plt.boxplot(per_method_performance)
-    x_pad = [[_i+1  # +random.random()/10.
-              for _ in range(len(_data))]
-             for _i, _data in enumerate(per_method_performance)]
-    c = np.ones_like(np.array(x_pad)).astype(np.str)
-    plt.scatter(flatten(x_pad), flatten(per_method_performance), c='k')
-    locs, labels = plt.xticks()
-    plt.xticks(locs, method_names)
-    plt.yscale('log')
-    plt.xticks(rotation=90)
-    plt.show()
-
-
 def render_training_history(method_names, best_fid_gen_tags):
+    """
+    Renders training history for all the methods and best FID generator tags
+
+    :param method_names: names and specifications of runs for methods used to train the the FIDs
+    :param best_fid_gen_tags:
+    """
 
     type_map = {0: 'X',
                 1: '*',
@@ -533,22 +371,15 @@ def render_training_history(method_names, best_fid_gen_tags):
                     shown_t.append(_t)
                     shown_c.append(_c)
 
-                    # secondary_label_buffer.append(
                     plt.plot(_x, _f, marker=_t, c=_c,
-                             markersize=8,
-                         # label='%s, %s' % (c_t_annotation_map[_t], c_t_annotation_map[_c])
-                         )
-                    # )
-                    # secondary_label_buffer_2.append('%s, %s' % (c_t_annotation_map[_t],
-                    #                                                   c_t_annotation_map[_c]))
+                             markersize=8)
 
                 else:
                     plt.plot(_x, _f, marker=_t, c=_c, markersize=8)
 
-            # TODO: add the relative performance wrt competition as well as
-            # the lane of the  disc.
 
         pprint(c_t_annotation_map)
+
         if len(c_t_annotation_map.keys()) == 0:
             print('problem detected')
             pass
@@ -589,9 +420,6 @@ def render_training_history(method_names, best_fid_gen_tags):
 
         plt.legend(handles=legend_elements)
         plt.show()
-
-        # raise Exception('debug')
-
 
     method_names = []
     run_tags = []
@@ -693,9 +521,6 @@ if __name__ == "__main__":
                 or sub_entry[0][1] == 'stochastic base round robin' \
                 or sub_entry[0][1] == 'homogenous chain progression':
                 extracted_fids, final_random_tags, duration = extract_evo_data(sub_entry)
-            elif sub_entry[0][1] == 'matching from tags':
-                gen_index, disc_index, real_error_matrix, gen_error_matrix = \
-                    extract_battle_royale_data(sub_entry)
                 continue
             else:
                 print(sub_entry[0])
@@ -704,29 +529,14 @@ if __name__ == "__main__":
                 [duration, extracted_fids, final_random_tags]
 
             print('\t', i_1, i_2 + 1, sub_entry[0])
-            # for i_3, sub_sub_entry in enumerate(sub_entry[1:-1]):
-            #     print('\t\t', i_1, i_2 + 1, i_3 + 1, sub_sub_entry[0])
-            #     print('\t\t', i_1, i_2 + 1, i_3 + 1, sub_sub_entry[-1])
             print('\t', i_1, i_2 + 1, sub_entry[-1])
 
         print(i_1, entry[-1])
 
-    # pprint(collector_list)
 
-    # pprint(dict(attribution_map))
+    print(attribution_map.keys())
 
-    attribution_map_filter = [
-        ('brute-force', '5', '15'),
-        ('chain evolve', '3', '3'),
-        ('chain evolve', '3', '4'),
-        ('chain progression', '5', '5'),
-        ('chain evolve fit reset', '3', '3'),
-        # ('stochastic base round robin', '5', '5'),
-        ('deterministic base round robin', '5', '5'),
-        # ('brute-force', '10', '15'),
-        ('brute-force', '5', '30'),
-        ('homogenous chain progression', '5', '5')
-    ]
+    attribution_map_filter = []  # any keys for the attribution_map added to the list will be deleted
 
     name_remap = {
         ('stochastic base round robin 5 5'): 'stochastic round robin',
@@ -740,25 +550,8 @@ if __name__ == "__main__":
     for key in attribution_map_filter:
         del attribution_map[key]
 
-    # new_attribution_map = {}
-    #
-    # for old_name, new_name in name_remap.items():
-    #     new_attribution_map[new_name] = attribution_map[old_name]
-    #
-    # attribution_map = new_attribution_map
-
     render_fid_performances(attribution_map)
 
     method_names, best_fid_gen_tags, select_disc_tags = pull_best_fid_tags(attribution_map)
-    # print('select disc tags:', select_disc_tags)
-    # print('best fid gen tags:', best_fid_gen_tags)
-    # buffer_gen_disc_fid_tags(best_fid_gen_tags, select_disc_tags)
-
-    # pprint(gen_index)
-
-    # render_relative_performances(gen_index, disc_index, real_error_matrix, gen_error_matrix,
-    #                               method_names, best_fid_gen_tags)
-
-    # print(attribution_map.keys())
 
     render_training_history(method_names, best_fid_gen_tags)

@@ -1,16 +1,13 @@
 import torch
 import torch.nn as nn
-from src.gans.nn_structure import NetworkStructure
 from random import sample
 import string
 import pickle
 import sys
-from src.new_mongo_interface import pure_disc_from_random_tag
+from src.mongo_interface import disc_from_random_tag
 import io
 
 char_set = string.ascii_uppercase + string.digits
-
-torch.cuda.set_device('cuda:1')
 
 def generate_hyperparameter_key(_self):
     key = {'random_tag': _self.random_tag,
@@ -25,7 +22,6 @@ def storage_representation(_self):
                 'disc_state': pickle.dumps(_self.state_dict()),
                 'self_error': _self.real_error,
                 'gen_error_map': _self.gen_error_map,
-                # TODO: Map needs to include both the generator errors and virulence factors.
                 'current_fitness': _self.current_fitness}
 
     key.update(payload)
@@ -34,9 +30,7 @@ def storage_representation(_self):
 
 
 def resurrect(_self, random_tag):
-    stored_disc = pure_disc_from_random_tag(random_tag)
-
-    # print(sys.getsizeof(stored_disc))
+    stored_disc = disc_from_random_tag(random_tag)
 
     if stored_disc['disc_type'] != type(_self).__name__:
         raise Exception('Wrong class: expected %s, got %s' % (type(_self).__name__,
@@ -44,14 +38,7 @@ def resurrect(_self, random_tag):
     _self.random_tag = random_tag
     _self.generator_latent_maps = stored_disc['disc_latent_params']
     _self.encounter_trace = stored_disc['encounter_trace']
-    # print(torch.cuda.current_device())
-
-    # print(sys.getsizeof(stored_disc['disc_state']) / 1024. / 1024.)
-    # with torch.device('cpu'):
     _self.load_state_dict(pickle.loads(stored_disc['disc_state']))
-    # fake_file = io.BytesIO(stored_disc['disc_state'])
-    # _self.load_state_dict(torch.load(fake_file, map_location=torch.device('cpu')))
-    # print('encounter_trace:', _self.encounter_trace)
     _self.real_error = stored_disc['self_error']
     _self.gen_error_map = stored_disc['gen_error_map']
     _self.current_fitness = stored_disc['current_fitness']
@@ -94,8 +81,6 @@ class Discriminator(nn.Module):
         self.encounter_trace = []  # ((type, id, training_trace, match score))
         self.tag_trace = [self.random_tag]
         self.autoimmunity = autoimmunity
-        # TODO: Gaussian noise injection
-        # self.noise = GaussianNoise()
         self.main = nn.Sequential(
             # input is (nc) x 64 x 64
             nn.Conv2d(in_channels=self.number_of_colors,
@@ -125,10 +110,6 @@ class Discriminator(nn.Module):
             nn.Conv2d(self.discriminator_latent_maps * 8, 1, 4, 1, 0, bias=False),
             nn.Sigmoid()
         )
-
-    def bind_nn_structure(self, network: NetworkStructure):
-        #TODO: check if in/out dimensions are consistent
-        self.main = nn.Sequential(network.compile())
 
     def forward(self, input):
         if input.is_cuda and self.ngpu > 1:
@@ -174,8 +155,6 @@ class Discriminator_light(nn.Module):
         self.encounter_trace = []  # ((type, id, training_trace, match score))
         self.tag_trace = [self.random_tag]
         self.autoimmunity = autoimmunity
-        # TODO: Gaussian noise injection
-        # self.noise = GaussianNoise()
         self.main = nn.Sequential(
             # input is (nc) x 64 x 64
             nn.Conv2d(in_channels=self.number_of_colors,
@@ -210,10 +189,6 @@ class Discriminator_light(nn.Module):
             nn.Conv2d(self.discriminator_latent_maps * 8, 1, 4, 1, 0, bias=False),
             nn.Sigmoid()
         )
-
-    def bind_nn_structure(self, network: NetworkStructure):
-        #TODO: check if in/out dimensions are consistent
-        self.main = nn.Sequential(network.compile())
 
     def forward(self, input):
         if input.is_cuda and self.ngpu > 1:
@@ -259,8 +234,6 @@ class Discriminator_PReLU(nn.Module):
         self.encounter_trace = []  # ((type, id, training_trace, match score))
         self.tag_trace = [self.random_tag]
         self.autoimmunity = autoimmunity
-        # TODO: Gaussian noise injection
-        # self.noise = GaussianNoise()
         self.main = nn.Sequential(
             # input is (nc) x 64 x 64
             nn.Conv2d(in_channels=self.number_of_colors,
@@ -293,10 +266,6 @@ class Discriminator_PReLU(nn.Module):
             nn.Conv2d(self.discriminator_latent_maps * 8, 1, 4, 1, 0, bias=False),
             nn.Sigmoid()
         )
-
-    def bind_nn_structure(self, network: NetworkStructure):
-        # TODO: check if in/out dimensions are consistent
-        self.main = nn.Sequential(network.compile())
 
     def forward(self, input):
         if input.is_cuda and self.ngpu > 1:
