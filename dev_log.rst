@@ -44,7 +44,8 @@ Solution: perform a resize from the tensorflow toolkit.
 
 After some testing:
 ===================
-- GANs seem to overfit by "hacking" the reward of its discriminator.
+- GANs seem to overfit by "hacking" the reward of its discriminator
+=> Nope, that was the gradient zeroing-out
 - Which means that we are getting a competition from different architecture that would not overfit.
 - Once we did one-to-one training, we perform all GANs vs all discriminators round, training them
  once and then selecting Discriminators on the second round.
@@ -107,6 +108,9 @@ Critical modifications to the architecture:
 - Restarts of training - on-the-local filesystem storage (minimize the latency)
 - Commit to DB only the last generation pair
 - Generate separate run dump csv files, then stitch them before analysis.
+- make sure the CUDA is passed to the CPU before it is dumped and is put back on the specified
+GPU before it's restored
+- try a different fitness function
 
 Pulled from the LaTeX:
 ======================

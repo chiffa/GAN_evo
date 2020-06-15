@@ -5,7 +5,7 @@ from random import sample
 import string
 import pickle
 import sys
-from src.new_mongo_interface import pure_disc_from_random_tag
+from src.mongo_interface import pure_disc_from_random_tag
 import io
 
 char_set = string.ascii_uppercase + string.digits

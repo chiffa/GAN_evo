@@ -1,7 +1,6 @@
 import os
 from pymongo import MongoClient
 import pprint
-import pickle
 from bson.objectid import ObjectId
 
 
@@ -9,115 +8,109 @@ root_password = os.environ['MONGOROOTPASS']
 print(root_password)
 client = MongoClient(username='root', password=root_password)
 
+
 gan_pair_db = client['gen-disc']
-gan_trainer_collection = gan_pair_db['trainer']
-gen_collection = gan_pair_db['generator_instance']
-disc_collection = gan_pair_db['discriminator_instance']
+gan_trace = gan_pair_db['pure_trace']
+gan_match_trace = gan_pair_db['pure_match_trace']
+pure_gen_collection = gan_pair_db['pure_generator_instance']
+pure_disc_collection = gan_pair_db['pure_discriminator_instance']
 
 
-def gan_pair_push_to_db(payload):
-
-    def check_payload():
-        with open("mongo_debug_dump.txt", "w") as fout:
-            fout.write(pprint.pformat(payload))
-
-    check_payload()
-
-    gen_dump = payload['Generator_state']
-    disc_dump = payload['Discriminator_state']
-
-    gen_id = gen_collection.insert_one({'weights': pickle.dumps(gen_dump)}).inserted_id
-    disc_id = disc_collection.insert_one({'weights': pickle.dumps(disc_dump)}).inserted_id
-
-    payload['Generator_state'] = str(gen_id)
-    payload['Discriminator_state'] = str(disc_id)
-
-    insertion_id = gan_trainer_collection.insert_one(payload)
-
-    return insertion_id
+def separate_trace_save(trace):
+    trace_id = gan_trace.insert_one({'load': trace}).inserted_id
+    return str(trace_id)
 
 
-def gan_pair_get_from_db(key):
-
-    payload = gan_trainer_collection.find_one(key)
-
-    if payload is not None:
-        gen_id = payload['Generator_state']
-        disc_id = payload['Discriminator_state']
-        gen_dump = pickle.loads(gen_collection.find_one({"_id": ObjectId(gen_id)})['weights'])
-        disc_dump = pickle.loads(disc_collection.find_one({"_id": ObjectId(disc_id)})['weights'])
-        payload['Generator_state'] = gen_dump
-        payload['Discriminator_state'] = disc_dump
-
-    else:
-        return None
+def separate_trace_retrieve(trace_id):
+    trace = gan_trace.find_one({"_id": ObjectId(trace_id)})['load']
+    return trace
 
 
-def gan_pair_update_in_db(key, update_payload):
+def separate_trace_update(trace_id, new_trace):
+    gan_trace.find_one_and_update({"_id": ObjectId(trace_id)},
+                                  {'$set': {'load':new_trace}})
+    return trace_id
 
-    if 'Generator_state' in update_payload.keys() or 'Discriminator_state' in update_payload.keys():
-        existing_trainer_payload = gan_trainer_collection.find_one(key)
-        gen_id = existing_trainer_payload['Generator_state']
-        disc_id = existing_trainer_payload['Discriminator_state']
 
-        if 'Generator_state' in update_payload.keys():
-            gen_dump = update_payload['Generator_state']
-            gen_collection.find_one_and_update({"_id": ObjectId(gen_id)},
-                                               {"$set": {'weights': pickle.dumps(gen_dump)}})
-            del update_payload['Generator_state']
+def save_pure_gen(payload):
+    payload['encounter_trace'] = separate_trace_save(payload['encounter_trace'])
+    gen_id = pure_gen_collection.insert_one(payload).inserted_id
+    return gen_id
 
-        if 'Discriminator_state' in update_payload.keys():
-            disc_dump = update_payload['Discriminator_state']
-            disc_collection.find_one_and_update({"_id": ObjectId(disc_id)},
-                                                {"$set": {'weights': pickle.dumps(disc_dump)}})
-            del update_payload['Discriminator_state']
 
-    update_result = gan_trainer_collection.find_one_and_update(key,
-                                                               {"$set": update_payload})
+def save_pure_disc(payload):
+    payload['encounter_trace'] = separate_trace_save(payload['encounter_trace'])
+    disc_id = pure_disc_collection.insert_one(payload).inserted_id
+    return disc_id
 
+
+def update_pure_gen(key, update_payload):
+    existing_gen = pure_gen_collection.find_one({'random_tag': key})
+    trace_id = existing_gen['encounter_trace']
+    update_payload['encounter_trace'] = separate_trace_update(trace_id,
+                                                              update_payload['encounter_trace'])
+    update_result = pure_gen_collection.find_one_and_update({'random_tag': key},
+                                                            {'$set': update_payload})
     return update_result
 
 
-def gan_pair_list_by_filter(filter_dict):
+def update_pure_disc(key, update_payload):
+    existing_disc = pure_disc_collection.find_one({'random_tag': key})
+    trace_id = existing_disc['encounter_trace']
+    update_payload['encounter_trace'] = separate_trace_update(trace_id,
+                                                              update_payload['encounter_trace'])
 
-    for payload in gan_trainer_collection.find(filter_dict):
-        gen_id = payload['Generator_state']
-        disc_id = payload['Discriminator_state']
-        gen_dump = pickle.loads(gen_collection.find_one({"_id": ObjectId(gen_id)})['weights'])
-        disc_dump = pickle.loads(disc_collection.find_one({"_id": ObjectId(disc_id)})['weights'])
-        payload['Generator_state'] = gen_dump
-        payload['Discriminator_state'] = disc_dump
+    update_result = pure_disc_collection.find_one_and_update({'random_tag': key},
+                                                             {'$set': update_payload})
+    return update_result
 
+
+def pure_gen_from_random_tag(random_tag):
+    existing_gen = pure_gen_collection.find_one({'random_tag': random_tag})
+    existing_gen['encounter_trace'] = separate_trace_retrieve(existing_gen['encounter_trace'])
+    return existing_gen
+
+
+def pure_disc_from_random_tag(random_tag):
+    existing_disc = pure_disc_collection.find_one({'random_tag': random_tag})
+    existing_disc['encounter_trace'] = separate_trace_retrieve(existing_disc['encounter_trace'])
+    return existing_disc
+
+
+def filter_pure_gen(filter):
+
+    for payload in pure_gen_collection.find(filter):
+        payload['encounter_trace'] = separate_trace_retrieve(payload['encounter_trace'])
         yield payload
 
 
-def gan_pair_purge_db():
+def filter_pure_disc(filter):
 
-    r1 = gan_trainer_collection.delete_many({})
-    r1d = disc_collection.delete_many({})
-    r1g = gen_collection.delete_many({})
-    # r2 = client['image']['main'].delte_many({})
-
-    print("deletion results: train/gen/disc: %d/%d/%d" % (
-        r1.deleted_count, r1g.deleted_count, r1d.deleted_count))
+    for payload in pure_disc_collection.find(filter):
+        payload['encounter_trace'] = separate_trace_retrieve(payload['encounter_trace'])
+        yield payload
 
 
-def gan_pair_eliminate(filter_dict):
+def purge_pure_db(match_filter={}, train_filter={}, gen_filter={}, disc_filter={}):
+    # r1m = gan_match_trace.delete_many(match_filter)
+    r1t = gan_trace.delete_many(train_filter)
+    r1g = pure_gen_collection.delete_many(gen_filter)
+    r1d = pure_disc_collection.delete_many(disc_filter)
 
-    for payload in gan_trainer_collection.find(filter_dict):
-        gen_id = payload['Generator_state']
-        disc_id = payload['Discriminator_state']
-        gen_collection.delete_one({"_id": ObjectId(gen_id)})
-        disc_collection.delete_one({"_id": ObjectId(disc_id)})
-        gan_trainer_collection.delete_one({"_id": payload['_id']})
+    print("deletion results: train/match/gen/disc: %d/%d/%d/%d" % (
+        r1t.deleted_count, -1, r1g.deleted_count, r1d.deleted_count))
 
 
 if __name__ == "__main__":
 
-    gan_pair_purge_db()
+    # purge_pure_db()
 
-    for item in gan_pair_list_by_filter({}):
-        pprint.pprint(item['random_tag'])
+    for item in filter_pure_gen({}):
+        print(item['random_tag'], item['gen_type'])
+    pass
+
+    for item in filter_pure_disc({}):
+        print(item['random_tag'], item['disc_type'])
     pass
 
 
