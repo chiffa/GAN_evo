@@ -10,6 +10,8 @@ from collections import defaultdict
 from itertools import combinations, product
 import random
 from matplotlib.lines import Line2D
+from os import listdir
+from os.path import isfile, join
 
 
 trace_dump_file = 'run_trace.csv'
@@ -28,6 +30,20 @@ encounter_record = {}
 master_fid_map = {}
 
 disc_phases = {}
+
+
+def stitch_run_traces(run_trace_diretory):
+
+    files_to_stitch = [join(run_trace_diretory, f) for f in listdir(run_trace_diretory)
+                       if (isfile(join(run_trace_diretory, f))
+                           and f[:9] == 'run_trace'
+                           and f != trace_dump_file)]
+
+    with open(trace_dump_file, 'w') as outfile:
+        for fname in files_to_stitch:
+            with open(fname) as infile:
+                for line in infile:
+                    outfile.write(line)
 
 
 def parse_past_runs(trace_dump_locations):

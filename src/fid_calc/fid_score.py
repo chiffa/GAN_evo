@@ -42,8 +42,9 @@ from scipy import linalg
 from torch.nn.functional import adaptive_avg_pool2d
 
 from PIL import Image
+from configs import cuda_device
 
-current_cuda = "cuda:1"
+current_cuda = cuda_device
 
 
 # try:

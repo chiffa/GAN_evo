@@ -19,7 +19,7 @@ Crossover - basically appears in the segments of the neural networks where befor
 is taken and after NN2 is taken. Then mutation is applied, be it at a large scale or at a small
 scale.
     => Start with uniform distribution.
-    => mutation can either be addition/deletion of a layer
+    => mutation can either be an addition or deletion of a layer
         - which is preferably a duplication of an existing layer, if addition.
     => Or modification of a layer parameter.
 
@@ -41,6 +41,10 @@ TODO: the problem is that the convolutional levels perform a modificaiton of the
  trivial. It's basically dims_out = (dims_in + padding * 2 - kernel_size + stride) // stride
 
 Solution: perform a resize from the tensorflow toolkit.
+
+The solution (actually from ResNet) is to perform a convolution and then an 1x1 convolution (aka
+depth reduction).
+
 
 After some testing:
 ===================
@@ -70,7 +74,7 @@ fitness and perform a match round between them.
 DONE: - Add a numpy array to store various metrics, add it to the GAN pair graph and store in DB.
 EH Not needed now: -Plot it as well.
 
-- TODO: add saving of the discriminator/generator + training traces to the disk. Mongod should only
+- TEST: add saving of the discriminator/generator + training traces to the disk. Mongod should only
 contain the pointer to the path (that breaks containerization though)
 
 - TODO: add support for cross-training the discriminator/generator
@@ -83,6 +87,8 @@ disc_optimizer, criterion) => training trace + internal object modification/savi
 
 That would allow a single function, unifying the match, training and cross-training
 
+- TODO: Add a true switcheability for CUDA devices
+
 - TODO: Add a random noise layer properly
 
 
@@ -94,6 +100,8 @@ recoverable elements at later stages.
 
 - Similarly, traces now require enforced ordering, unless we start forking off aggressively. Which
 might be a plan actually.
+
+- TODO: MINOR - integrate a dataset type signal and processing in the analysis step.
 
 Containerization:
 =================

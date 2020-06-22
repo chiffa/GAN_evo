@@ -7,10 +7,12 @@ import pickle
 import torchvision.utils as vutils
 from src.mongo_interface import pure_gen_from_random_tag
 import io
+from configs import cuda_device
 
 char_set = string.ascii_uppercase + string.digits
 
-torch.cuda.set_device('cuda:1')
+# TODO: make sure that the saving and resurrection are done to CPU at first and then sent to CUDAs
+torch.cuda.set_device(cuda_device)
 
 def generate_hyperparameter_key(_self):
     key = {'random_tag': _self.random_tag,

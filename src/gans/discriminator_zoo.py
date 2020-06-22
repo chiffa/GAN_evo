@@ -7,10 +7,12 @@ import pickle
 import sys
 from src.mongo_interface import pure_disc_from_random_tag
 import io
+from configs import cuda_device
 
 char_set = string.ascii_uppercase + string.digits
 
-torch.cuda.set_device('cuda:1')
+# TODO: make sure that the saving and resurrection are done to CPU at first and then sent to CUDAs
+torch.cuda.set_device(cuda_device)
 
 def generate_hyperparameter_key(_self):
     key = {'random_tag': _self.random_tag,
@@ -59,7 +61,7 @@ def resurrect(_self, random_tag):
 
 class GaussianNoise(nn.Module):
 
-    def __init__(self, sigma=0.1, device="cuda:1"):
+    def __init__(self, sigma=0.1, device=cuda_device):
         super().__init__()
         self.sigma = sigma
         self.is_relative_detach = True
