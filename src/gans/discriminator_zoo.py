@@ -22,6 +22,7 @@ def generate_hyperparameter_key(_self):
 
 
 def storage_representation(_self):
+    _self.to_cpu()
     key = _self.generate_hyperparameter_key()
     payload = {'encounter_trace': _self.encounter_trace,
                 'disc_state': pickle.dumps(_self.state_dict()),
@@ -31,11 +32,13 @@ def storage_representation(_self):
                 'current_fitness': _self.current_fitness}
 
     key.update(payload)
+    _self.to_device(cuda_device)
 
     return key
 
 
 def resurrect(_self, random_tag):
+    _self.to_cpu()
     stored_disc = pure_disc_from_random_tag(random_tag)
 
     # print(sys.getsizeof(stored_disc))
@@ -57,6 +60,7 @@ def resurrect(_self, random_tag):
     _self.real_error = stored_disc['self_error']
     _self.gen_error_map = stored_disc['gen_error_map']
     _self.current_fitness = stored_disc['current_fitness']
+    _self.to_device(cuda_device)
 
 
 class GaussianNoise(nn.Module):
@@ -108,23 +112,33 @@ class Discriminator(nn.Module):
                       bias=False),
             nn.LeakyReLU(0.2, inplace=True),
             # state size. (ndf) x 32 x 32
-            nn.Conv2d(self.discriminator_latent_maps, self.discriminator_latent_maps * 2, 4, 2, 1,
+            nn.Conv2d(self.discriminator_latent_maps,
+                      self.discriminator_latent_maps * 2,
+                      4, 2, 1,
                       bias=False),
             nn.BatchNorm2d(self.discriminator_latent_maps * 2),
             nn.LeakyReLU(0.2, inplace=True),
             # state size. (ndf*2) x 16 x 16
-            nn.Conv2d(self.discriminator_latent_maps * 2, self.discriminator_latent_maps * 4, 4, 2,
-                      1,
+            nn.Conv2d(self.discriminator_latent_maps * 2,
+                      self.discriminator_latent_maps * 4,
+                      4, 2, 1,
                       bias=False),
             nn.BatchNorm2d(self.discriminator_latent_maps * 4),
             nn.LeakyReLU(0.2, inplace=True),
             # state size. (ndf*4) x 8 x 8
-            nn.Conv2d(self.discriminator_latent_maps * 4, self.discriminator_latent_maps * 8, 4, 2,
-                      1, bias=False),
+            nn.Conv2d(self.discriminator_latent_maps * 4,
+                      self.discriminator_latent_maps * 8,
+                      4, 2, 1,
+                      bias=False),
             nn.BatchNorm2d(self.discriminator_latent_maps * 8),
             nn.LeakyReLU(0.2, inplace=True),
             # state size. (ndf*8) x 4 x 4
-            nn.Conv2d(self.discriminator_latent_maps * 8, 1, 4, 1, 0, bias=False),
+            nn.Conv2d(self.discriminator_latent_maps * 8,
+                      out_channels=1,
+                      kernel_size=4,
+                      stride=1,
+                      padding=0,
+                      bias=False),
             nn.Sigmoid()
         )
 
