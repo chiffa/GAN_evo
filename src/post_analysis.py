@@ -14,7 +14,7 @@ from os import listdir
 from os.path import isfile, join
 
 
-trace_dump_file = 'run_trace.csv'
+trace_dump_file = 'run_trace_bis.csv'
 backflow_log = 'backflow.csv'
 
 bruteforce_gen2disc = {}

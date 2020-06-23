@@ -21,8 +21,9 @@ evo_trace_dump_location = "evolved_hosts_pathogen_map.dmp"
 evo2_trace_dump_location = "evolved_2_hosts_pathogen_map.dmp"
 brute_force_trace_dump_location = 'brute_force_pathogen_map.dmp'
 
-date_time = datetime.now.strftime("%d.%m.%Y-%H.%M.%S")
-trace_dump_file = 'run_trace' + date_time + '.csv'
+
+date_time = datetime.now().strftime("%d.%m.%Y-%H.%M.%S")
+trace_dump_file = 'run_trace_' + date_time + '.csv'
 
 
 def dump_trace(payload_list):
@@ -848,20 +849,42 @@ def match_from_tags(tag_pair_set):
 
 if __name__ == "__main__":
     image_folder = "./image"
-    image_size = 64
-    number_of_colors = 1
+    image_size = 64 # TODO: test how this parameter affects training stability
+    number_of_colors = 1 # TODO: remember to adjust that
     imtype = 'mnist'
 
 
     #TODO: here is where we are going for fashion-mnist; CIFAR-10 and CelebA datasets
 
+    # raw size: 218x178 @ 3c
+    celeb_a_dataset = dset.CelebA(root=image_folder, download=True,
+                                    transform=transforms.Compose([
+                                       transforms.Resize(image_size),
+                                       transforms.ToTensor(),
+                                       transforms.Normalize((0.5,), (0.5,)),]))
+    # raw size: 28x28 @ 1c
+    fashin_mnist_dataset = dset.FashionMNIST(root=image_folder, download=True,
+                                        transform=transforms.Compose([
+                                           transforms.Resize(image_size),
+                                           transforms.ToTensor(),
+                                           transforms.Normalize((0.5,), (0.5,)),]))
+
+    # raw size: 32x32 @ 3c
+    cifar10_dataset = dset.CIFAR10(root=image_folder, download=True,
+                                   transform=transforms.Compose([
+                                       transforms.Resize(image_size),
+                                       transforms.ToTensor(),
+                                       transforms.Normalize((0.5,), (0.5,)),]))
+    # raw size: 28x28 @ 1c
     mnist_dataset = dset.MNIST(root=image_folder, download=True,
                                transform=transforms.Compose([
                                    transforms.Resize(image_size),
                                    transforms.ToTensor(),
                                    transforms.Normalize((0.5,), (0.5,)),]))
 
-    environment = GANEnvironment(mnist_dataset, device=cuda_device)
+    current_dataset = mnist_dataset
+
+    environment = GANEnvironment(mnist_dataset, device=current_dataset)
 
     learning_rate = 0.0002
     beta1 = 0.5
@@ -870,6 +893,8 @@ if __name__ == "__main__":
     disc_opt_part = lambda x: optim.Adam(x, lr=learning_rate, betas=(beta1, 0.999))
 
     dump_trace(['>', 'run started', datetime.now().isoformat()])
+
+    # TODO: add try except logging wrapper for the smtp log
 
     # homogenus_chain_progression(5, 5)
     # homogenus_chain_progression(5, 5)

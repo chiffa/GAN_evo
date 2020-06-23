@@ -77,9 +77,9 @@ EH Not needed now: -Plot it as well.
 - TEST: add saving of the discriminator/generator + training traces to the disk. Mongod should only
 contain the pointer to the path (that breaks containerization though)
 
-- TODO: add support for cross-training the discriminator/generator
+- DONE: add support for cross-training the discriminator/generator
 
-- TODO: add support for the multi-generator pull in the individual trainer (lists)
+- DONE: add support for the multi-generator pull in the individual trainer (lists)
 
 - Done: move the training, matching and cross-training out of self into the arena level. replace
 self by an (generator_supplier_instance, descriminator_supplier_instance, gen_optimizer,
@@ -87,7 +87,9 @@ disc_optimizer, criterion) => training trace + internal object modification/savi
 
 That would allow a single function, unifying the match, training and cross-training
 
-- TODO: Add a true switcheability for CUDA devices
+- TEST: Add a true switcheability for CUDA devices
+
+- BLOCKED: add mail signalling for proper completion (cf mails with Fabian)
 
 - TODO: Add a random noise layer properly
 
