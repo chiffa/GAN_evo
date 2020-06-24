@@ -16,14 +16,11 @@ from src.fid_analyser import calc_single_fid
 from src.mongo_interface import save_pure_disc, save_pure_gen, update_pure_disc, update_pure_gen
 from datetime import datetime
 from configs import cuda_device
+from src.smtp_logger import logger, successfully_completed
 
 evo_trace_dump_location = "evolved_hosts_pathogen_map.dmp"
 evo2_trace_dump_location = "evolved_2_hosts_pathogen_map.dmp"
 brute_force_trace_dump_location = 'brute_force_pathogen_map.dmp'
-
-
-date_time = datetime.now().strftime("%d.%m.%Y-%H.%M.%S")
-trace_dump_file = 'run_trace_' + date_time + '.csv'
 
 
 def dump_trace(payload_list):
@@ -849,32 +846,37 @@ def match_from_tags(tag_pair_set):
 
 if __name__ == "__main__":
     image_folder = "./image"
-    image_size = 64 # TODO: test how this parameter affects training stability
-    number_of_colors = 1 # TODO: remember to adjust that
+    image_size = 64  # TODO: test how this parameter affects training stability
+    number_of_colors = 1  # TODO: remember to adjust that
     imtype = 'mnist'
+
+    date_time = datetime.now().strftime("%d.%m.%Y-%H.%M.%S")
+    trace_dump_file = 'run_trace_' + date_time + '_' + imtype + '.csv'
+
 
 
     #TODO: here is where we are going for fashion-mnist; CIFAR-10 and CelebA datasets
 
-    # raw size: 218x178 @ 3c
-    celeb_a_dataset = dset.CelebA(root=image_folder, download=True,
-                                    transform=transforms.Compose([
-                                       transforms.Resize(image_size),
-                                       transforms.ToTensor(),
-                                       transforms.Normalize((0.5,), (0.5,)),]))
-    # raw size: 28x28 @ 1c
-    fashin_mnist_dataset = dset.FashionMNIST(root=image_folder, download=True,
-                                        transform=transforms.Compose([
-                                           transforms.Resize(image_size),
-                                           transforms.ToTensor(),
-                                           transforms.Normalize((0.5,), (0.5,)),]))
+    # # raw size: 218x178 @ 3c
+    # celeb_a_dataset = dset.CelebA(root=image_folder, download=True,
+    #                                 transform=transforms.Compose([
+    #                                    transforms.Resize(image_size),
+    #                                    transforms.ToTensor(),
+    #                                    transforms.Normalize((0.5,), (0.5,)),]))
+    # # raw size: 28x28 @ 1c
+    # fashin_mnist_dataset = dset.FashionMNIST(root=image_folder, download=True,
+    #                                     transform=transforms.Compose([
+    #                                        transforms.Resize(image_size),
+    #                                        transforms.ToTensor(),
+    #                                        transforms.Normalize((0.5,), (0.5,)),]))
+    #
+    # # raw size: 32x32 @ 3c
+    # cifar10_dataset = dset.CIFAR10(root=image_folder, download=True,
+    #                                transform=transforms.Compose([
+    #                                    transforms.Resize(image_size),
+    #                                    transforms.ToTensor(),
+    #                                    transforms.Normalize((0.5,), (0.5,)),]))
 
-    # raw size: 32x32 @ 3c
-    cifar10_dataset = dset.CIFAR10(root=image_folder, download=True,
-                                   transform=transforms.Compose([
-                                       transforms.Resize(image_size),
-                                       transforms.ToTensor(),
-                                       transforms.Normalize((0.5,), (0.5,)),]))
     # raw size: 28x28 @ 1c
     mnist_dataset = dset.MNIST(root=image_folder, download=True,
                                transform=transforms.Compose([
@@ -884,7 +886,7 @@ if __name__ == "__main__":
 
     current_dataset = mnist_dataset
 
-    environment = GANEnvironment(mnist_dataset, device=current_dataset)
+    environment = GANEnvironment(current_dataset, device=cuda_device)
 
     learning_rate = 0.0002
     beta1 = 0.5
@@ -896,60 +898,71 @@ if __name__ == "__main__":
 
     # TODO: add try except logging wrapper for the smtp log
 
-    # homogenus_chain_progression(5, 5)
-    # homogenus_chain_progression(5, 5)
-    # homogenus_chain_progression(5, 5)
-    # homogenus_chain_progression(5, 5)
-    homogenus_chain_progression(5, 5)
+    run_start = datetime.now()
 
-    # chain_progression(5, 5)
-    # chain_progression(5, 5)
-    # chain_progression(5, 5)
-    # chain_progression(5, 5)
-    # chain_progression(5, 5)
+    try:
+        # homogenus_chain_progression(5, 5)
+        # homogenus_chain_progression(5, 5)
+        # homogenus_chain_progression(5, 5)
+        # homogenus_chain_progression(5, 5)
+        # homogenus_chain_progression(5, 5)
 
-    # chain_evolve_with_fitness_reset(3, 3)
-    # chain_evolve_with_fitness_reset(3, 3)
-    # chain_evolve_with_fitness_reset(3, 3)
-    # chain_evolve_with_fitness_reset(3, 3)
-    # chain_evolve_with_fitness_reset(3, 3)
+        # chain_progression(5, 5)
+        # chain_progression(5, 5)
+        # chain_progression(5, 5)
+        # chain_progression(5, 5)
+        # chain_progression(5, 5)
 
-    # chain_evolve(3, 3)
+        # chain_evolve_with_fitness_reset(3, 3)
+        # chain_evolve_with_fitness_reset(3, 3)
+        # chain_evolve_with_fitness_reset(3, 3)
+        # chain_evolve_with_fitness_reset(3, 3)
+        # chain_evolve_with_fitness_reset(3, 3)
 
-    # round_robin_randomized(5, 5)
-    # round_robin_randomized(5, 5)
-    # round_robin_randomized(5, 5)
-    # round_robin_randomized(5, 5)
-    # round_robin_randomized(5, 5)
+        # chain_evolve(3, 3)
 
-    # round_robin_deterministic(5, 5)
-    # round_robin_deterministic(5, 5)
-    # round_robin_deterministic(5, 5)
-    # round_robin_deterministic(5, 5)
-    round_robin_deterministic(5, 5)
+        # round_robin_randomized(5, 5)
+        # round_robin_randomized(5, 5)
+        # round_robin_randomized(5, 5)
+        # round_robin_randomized(5, 5)
+        # round_robin_randomized(5, 5)
 
-    # brute_force_training(10, 15)
-    # brute_force_training(10, 15)
-    # brute_force_training(10, 15)
-    # brute_force_training(10, 15)
-    # brute_force_training(10, 15)
+        # round_robin_deterministic(5, 5)
+        # round_robin_deterministic(5, 5)
+        # round_robin_deterministic(5, 5)
+        # round_robin_deterministic(5, 5)
+        # round_robin_deterministic(5, 5)
 
-    # brute_force_training(5, 30)
-    # brute_force_training(5, 30)
-    # brute_force_training(5, 30)
-    # brute_force_training(5, 30)
-    # brute_force_training(5, 30)
+        # brute_force_training(10, 15)
+        # brute_force_training(10, 15)
+        # brute_force_training(10, 15)
+        # brute_force_training(10, 15)
+        # brute_force_training(10, 15)
 
-    # tag_pair_accumulator = []
-    # with open('backflow.csv', 'r') as read_file:
-    #     reader = csv.reader(read_file, delimiter='\t')
-    #     for row in reader:
-    #         if len(row) > 0:
-    #             tag_pair_accumulator.append(row)
-    #
-    # match_from_tags(tag_pair_accumulator)
+        # brute_force_training(5, 30)
+        # brute_force_training(5, 30)
+        # brute_force_training(5, 30)
+        # brute_force_training(5, 30)
+        # brute_force_training(5, 30)
+
+        # tag_pair_accumulator = []
+        # with open('backflow.csv', 'r') as read_file:
+        #     reader = csv.reader(read_file, delimiter='\t')
+        #     for row in reader:
+        #         if len(row) > 0:
+        #             tag_pair_accumulator.append(row)
+        #
+        # match_from_tags(tag_pair_accumulator)
+
+        pass
+
+    except Exception as exc:
+        logger.error(exc, exc_info=True)
+        raise
 
     dump_trace(['<', 'run completed', datetime.now().isoformat()])
+
+    successfully_completed(start_date=run_start, start_device=cuda_device)
 
     # gen = Generator(ngpu=environment.ngpu,
     #                 latent_vector_size=environment.latent_vector_size,

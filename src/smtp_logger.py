@@ -2,12 +2,16 @@ from smtplib import SMTP
 from logging.handlers import SMTPHandler
 import logging
 from datetime import datetime
+from email.message import EmailMessage
 
 local_host = 'lpdpc28.epfl.ch'
 local_mail_account = 'andrei@lpdpc28.epfl.ch'
 reporting_target_mail = 'andrei.kucharavy@epfl.ch'
 
-message = ("From: %s\r\nTo: %s\r\n\r\n" % (local_mail_account, ", ".join(reporting_target_mail)))
+mime_message = EmailMessage()
+mime_message['From'] = local_mail_account
+mime_message['To'] = reporting_target_mail
+
 
 smtp_server = SMTP(host=local_host)
 
@@ -22,21 +26,21 @@ logger.addHandler(mail_handler)
 
 
 def successfully_completed(start_date, start_device):
-    global message
-    message += 'Subject: Run started on %s and %s has completed' % (start_date.isoformat(), start_device)
-    message += 'Run has completed successfully after %s total' % (datetime.now() -
-               start_date).total_seconds()/60.
-    smtp_server.sendmail(from_addr=local_mail_account,
-                         to_addrs=reporting_target_mail,
-                         msg=message)
+    global mime_message
+    mime_message['Subject'] = 'Run started on %s and %s has completed' % (start_date.isoformat(), start_device)
+    mime_message.set_content('Run has completed successfully after %s minutes' % ((datetime.now() -
+               start_date).total_seconds()/60.))
+
+    smtp_server.send_message(mime_message)
+
 
 if __name__ == "__main__":
 
-    message += 'Subject: test message from lpdpc28'
-    message += 'This is a test message for python email notification capabilities'
+    mime_message['Subject'] = 'Test message from lpdpc28'
+    mime_message.set_content('This is a test message')
 
     print(smtp_server.noop())
 
-    smtp_server.sendmail(from_addr=local_mail_account,
-                         to_addrs=reporting_target_mail,
-                         msg=message)
+    smtp_server.send_message(mime_message)
+
+    logger.error('This is a test error log')

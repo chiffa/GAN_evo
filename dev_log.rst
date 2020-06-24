@@ -81,7 +81,7 @@ contain the pointer to the path (that breaks containerization though)
 
 - DONE: add support for the multi-generator pull in the individual trainer (lists)
 
-- Done: move the training, matching and cross-training out of self into the arena level. replace
+- DONE: move the training, matching and cross-training out of self into the arena level. replace
 self by an (generator_supplier_instance, descriminator_supplier_instance, gen_optimizer,
 disc_optimizer, criterion) => training trace + internal object modification/saving
 
@@ -89,10 +89,13 @@ That would allow a single function, unifying the match, training and cross-train
 
 - TEST: Add a true switcheability for CUDA devices
 
-- BLOCKED: add mail signalling for proper completion (cf mails with Fabian)
+- DONE: add mail signalling for proper completion (cf mails with Fabian)
 
 - TODO: Add a random noise layer properly
 
+- TODO: clear up FID samples and dump samples after FID samples were calculated.
+
+- TODO: add imtype (mnist/...) selection in the parsing dictionary
 
 - Refactoring is proving to be a bit more challenging. Saving is direct, but with multi-type dicts,
 and the environment factored out, we need a high-level mixer to pull them all together into
@@ -116,9 +119,9 @@ We will need to manage a cluster of containers on the proper cloud with the help
 Critical modifications to the architecture:
 ===========================================
 - Restarts of training - on-the-local filesystem storage (minimize the latency)
-- Commit to DB only the last generation pair
-- Generate separate run dump csv files, then stitch them before analysis.
-- make sure the CUDA is passed to the CPU before it is dumped and is put back on the specified
+- DONE: Commit to DB only the last generation pair
+- DONE: Generate separate run dump csv files, then stitch them before analysis.
+- TEST: make sure the CUDA is passed to the CPU before it is dumped and is put back on the specified
 GPU before it's restored
 - try a different fitness function
 

@@ -103,7 +103,7 @@ def purge_pure_db(match_filter={}, train_filter={}, gen_filter={}, disc_filter={
 
 if __name__ == "__main__":
 
-    purge_pure_db()
+    # purge_pure_db()
 
     for item in filter_pure_gen({}):
         print(item['random_tag'], item['gen_type'])
