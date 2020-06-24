@@ -22,20 +22,20 @@ def generate_hyperparameter_key(_self):
 
 
 def save(_self):
-    _self.to_cpu()
+    _self.to(torch.device('cpu'))
     key = _self.generate_hyperparameter_key()
     payload = {'encounter_trace': _self.encounter_trace,
                'gen_state': pickle.dumps(_self.state_dict()),
                'fitness_map': _self.fitness_map}
 
     key.update(payload)
-    _self.to_device(cuda_device)
+    _self.to(torch.device(cuda_device))
 
     return key
 
 
 def resurrect(_self, random_tag):
-    _self.to_cpu()
+    _self.to(torch.device('cpu'))
 
     stored_gen = pure_gen_from_random_tag(random_tag)
     if stored_gen['gen_type'] != type(_self).__name__:
@@ -50,7 +50,7 @@ def resurrect(_self, random_tag):
     _self.load_state_dict(pickle.loads(stored_gen['gen_state']))
     _self.fitness_map = stored_gen['fitness_map']
 
-    _self.to_device(cuda_device)
+    _self.to(torch.device(cuda_device))
 
 
 def count_parameters(model):

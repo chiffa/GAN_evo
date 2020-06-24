@@ -87,7 +87,7 @@ disc_optimizer, criterion) => training trace + internal object modification/savi
 
 That would allow a single function, unifying the match, training and cross-training
 
-- TEST: Add a true switcheability for CUDA devices
+- DONE: Add a true switcheability for CUDA devices
 
 - DONE: add mail signalling for proper completion (cf mails with Fabian)
 

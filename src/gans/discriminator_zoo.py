@@ -22,7 +22,7 @@ def generate_hyperparameter_key(_self):
 
 
 def storage_representation(_self):
-    _self.to_cpu()
+    _self.to(torch.device('cpu'))
     key = _self.generate_hyperparameter_key()
     payload = {'encounter_trace': _self.encounter_trace,
                 'disc_state': pickle.dumps(_self.state_dict()),
@@ -32,13 +32,13 @@ def storage_representation(_self):
                 'current_fitness': _self.current_fitness}
 
     key.update(payload)
-    _self.to_device(cuda_device)
+    _self.to(torch.device(cuda_device))
 
     return key
 
 
 def resurrect(_self, random_tag):
-    _self.to_cpu()
+    _self.to(torch.device('cpu'))
     stored_disc = pure_disc_from_random_tag(random_tag)
 
     # print(sys.getsizeof(stored_disc))
@@ -60,7 +60,7 @@ def resurrect(_self, random_tag):
     _self.real_error = stored_disc['self_error']
     _self.gen_error_map = stored_disc['gen_error_map']
     _self.current_fitness = stored_disc['current_fitness']
-    _self.to_device(cuda_device)
+    _self.to(torch.device(cuda_device))
 
 
 class GaussianNoise(nn.Module):

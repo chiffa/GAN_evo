@@ -896,8 +896,6 @@ if __name__ == "__main__":
 
     dump_trace(['>', 'run started', datetime.now().isoformat()])
 
-    # TODO: add try except logging wrapper for the smtp log
-
     run_start = datetime.now()
 
     try:
@@ -953,6 +951,8 @@ if __name__ == "__main__":
         #             tag_pair_accumulator.append(row)
         #
         # match_from_tags(tag_pair_accumulator)
+
+        match_from_tags([('W0247GHVV4', '7TRW7286CW')])
 
         pass
 
