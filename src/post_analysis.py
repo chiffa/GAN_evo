@@ -39,11 +39,19 @@ def stitch_run_traces(run_trace_diretory):
                            and f[:9] == 'run_trace'
                            and f != trace_dump_file)]
 
+    # TODO: check if the run is completed in the file.
+
     with open(trace_dump_file, 'w') as outfile:
         for fname in files_to_stitch:
             with open(fname) as infile:
-                for line in infile:
-                    outfile.write(line)
+                lines = infile.read().splitlines()
+                last_line = lines[-2]
+                if last_line[0] == '<':
+                    print("integrated %s" % fname)
+                    for line in lines:
+                        line += '\n'
+                        outfile.write(line)
+
 
 
 def parse_past_runs(trace_dump_locations):
@@ -99,7 +107,8 @@ def extract_bruteforce_data(bruteforce_run):
     try:
         duration = float(bruteforce_run[-1][-1])
     except:
-        print('old format timing')
+        # print('old format timing')
+        pass
     fid_collector = []
     tag_collector = []
     for data_dump_row in bruteforce_run[1]:
@@ -121,8 +130,8 @@ def extract_evo_data(chain_evolve_run):
     try:
         duration = float(chain_evolve_run[-1][-1])
     except:
-        print('old format timing')
-
+        # print('old format timing')
+        pass
     # print('duration corrected:', duration)
     final_pathogens_list = chain_evolve_run[-2][0][3]
     final_pathogens_list = final_pathogens_list[1:-1].split(', ')
@@ -519,31 +528,31 @@ def render_training_history(method_names, best_fid_gen_tags):
             t = 0
             c_mem = ''
             cross_train_counter = 0
-            print('new train')
+            # print('new train')
 
             for state in reversed(disc_state):
-                print('\ts', state)
+                # print('\ts', state)
                 if state[0] == 'cross-train':
                     cross_train_counter += 1
                 if state[1] is not None and c_mem != state[1] \
                         or cross_train_counter % 6 == 0:  # temporary
                     cross_train_counter = 1
-                    print('xt', c_mem, '->', state[1], ':', t)
+                    # print('xt', c_mem, '->', state[1], ':', t)
                     t += 1
                     c_mem = state[1]
                     c_t_annotation_map[type_map[t]] = c_mem
-                print('\tt', c_mem, ':', t)
+                # print('\tt', c_mem, ':', t)
                 type_list.append(type_map[t])
 
                 if state[0] not in type_idx_map.keys():
-                    print('xc', state[0], '! in', type_idx_map.keys())
+                    # print('xc', state[0], '! in', type_idx_map.keys())
                     c += 1
                     type_idx_map[state[0]] = c
                     c_t_annotation_map[colors_map[type_idx_map[state[0]]]] = state[0]
-                print('\tc', state[0], ':', type_idx_map[state[0]])
+                # print('\tc', state[0], ':', type_idx_map[state[0]])
                 color_list.append(colors_map[type_idx_map[state[0]]])
 
-            print(xs, fids)
+            # print(xs, fids)
 
             for _x, _f, _t, _c in zip(xs, fids, type_list, color_list):
 
@@ -566,9 +575,9 @@ def render_training_history(method_names, best_fid_gen_tags):
             # TODO: add the relative performance wrt competition as well as
             # the lane of the  disc.
 
-        pprint(c_t_annotation_map)
+        # pprint(c_t_annotation_map)
         if len(c_t_annotation_map.keys()) == 0:
-            print('problem detected')
+            # print('problem detected')
             pass
         plt.ylabel('FID')
         plt.xlabel('encounter')
@@ -597,7 +606,7 @@ def render_training_history(method_names, best_fid_gen_tags):
 
         for elt in colors_map.values():
             if elt in c_t_annotation_map.keys():
-                print('color legend elt:', elt)
+                # print('color legend elt:', elt)
                 legend_elements.append(Line2D([0], [0],
                                   marker='s',
                                   color='w',
@@ -677,15 +686,16 @@ def render_training_history(method_names, best_fid_gen_tags):
                 disc_idx.update(dict((tag, i) for tag in disc_line))
 
             for gen_tag_line in gen_tags_trace:
-                print(gen_tag_line[0][0])
+                # print(gen_tag_line[0][0])
                 for entry in reversed(gen_tag_line):
                     # print(entry)
-                    print('\t%s - %s \t %.2e \t %.2e \t %.2f' % tuple(entry))
-
+                    # print('\t%s - %s \t %.2e \t %.2e \t %.2f' % tuple(entry))
+                    pass
             render_fid_progression(method, gen_tags_trace)
 
 
 if __name__ == "__main__":
+    stitch_run_traces('.')
 
     run_skip = []
 
