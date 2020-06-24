@@ -64,7 +64,7 @@ DONE - for that we can use the state dict of pytorch and move it in and out of m
 pulling in
      and out of the python instances with a model.state_dict() and model.load_state_dict()
      model.eval()
-? - Logistics to pipe some of the inputs into some of the outputs
+DONE - Logistics to pipe some of the inputs into some of the outputs
 DONE - The training pair should be done in the module, binding temporary parameters overall.
 DONE - In the current configuration, we can start parallel training of the pairs that are mapped
 with signature of training parameters + unique ID, then stored in a mongodb
@@ -74,7 +74,7 @@ fitness and perform a match round between them.
 DONE: - Add a numpy array to store various metrics, add it to the GAN pair graph and store in DB.
 EH Not needed now: -Plot it as well.
 
-- TEST: add saving of the discriminator/generator + training traces to the disk. Mongod should only
+- DONE: add saving of the discriminator/generator + training traces to the disk. Mongod should only
 contain the pointer to the path (that breaks containerization though)
 
 - DONE: add support for cross-training the discriminator/generator
@@ -121,7 +121,7 @@ Critical modifications to the architecture:
 - Restarts of training - on-the-local filesystem storage (minimize the latency)
 - DONE: Commit to DB only the last generation pair
 - DONE: Generate separate run dump csv files, then stitch them before analysis.
-- TEST: make sure the CUDA is passed to the CPU before it is dumped and is put back on the specified
+- DONE: make sure the CUDA is passed to the CPU before it is dumped and is put back on the specified
 GPU before it's restored
 - try a different fitness function
 

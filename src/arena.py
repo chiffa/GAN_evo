@@ -16,6 +16,7 @@ from src.fid_analyser import calc_single_fid
 from src.mongo_interface import save_pure_disc, save_pure_gen, update_pure_disc, update_pure_gen
 from datetime import datetime
 from configs import cuda_device
+from configs import current_dataset as _dataset
 from src.smtp_logger import logger, successfully_completed
 
 evo_trace_dump_location = "evolved_hosts_pathogen_map.dmp"
@@ -848,7 +849,7 @@ if __name__ == "__main__":
     image_folder = "./image"
     image_size = 64  # TODO: test how this parameter affects training stability
     number_of_colors = 1  # TODO: remember to adjust that
-    imtype = 'mnist'
+    imtype = 'fashion_mnist'
 
     date_time = datetime.now().strftime("%d.%m.%Y-%H.%M.%S")
     trace_dump_file = 'run_trace_' + date_time + '_' + imtype + '.csv'
@@ -863,13 +864,13 @@ if __name__ == "__main__":
     #                                    transforms.Resize(image_size),
     #                                    transforms.ToTensor(),
     #                                    transforms.Normalize((0.5,), (0.5,)),]))
-    # # raw size: 28x28 @ 1c
-    # fashin_mnist_dataset = dset.FashionMNIST(root=image_folder, download=True,
-    #                                     transform=transforms.Compose([
-    #                                        transforms.Resize(image_size),
-    #                                        transforms.ToTensor(),
-    #                                        transforms.Normalize((0.5,), (0.5,)),]))
-    #
+    # raw size: 28x28 @ 1c
+    fashion_mnist_dataset = dset.FashionMNIST(root=image_folder, download=True,
+                                              transform=transforms.Compose([
+                                           transforms.Resize(image_size),
+                                           transforms.ToTensor(),
+                                           transforms.Normalize((0.5,), (0.5,)),]))
+
     # # raw size: 32x32 @ 3c
     # cifar10_dataset = dset.CIFAR10(root=image_folder, download=True,
     #                                transform=transforms.Compose([
@@ -884,7 +885,12 @@ if __name__ == "__main__":
                                    transforms.ToTensor(),
                                    transforms.Normalize((0.5,), (0.5,)),]))
 
-    current_dataset = mnist_dataset
+    if _dataset == 'fashion_mnist':
+        current_dataset = fashion_mnist_dataset
+    elif _dataset == 'mnist':
+        current_dataset = mnist_dataset
+    else:
+        raise Exception('unrecognized dataset type: %s' % _dataset)
 
     environment = GANEnvironment(current_dataset, device=cuda_device)
 
@@ -919,11 +925,11 @@ if __name__ == "__main__":
 
         # chain_evolve(3, 3)
 
-        # round_robin_randomized(5, 5)
-        # round_robin_randomized(5, 5)
-        # round_robin_randomized(5, 5)
-        # round_robin_randomized(5, 5)
-        # round_robin_randomized(5, 5)
+        round_robin_randomized(5, 5)
+        round_robin_randomized(5, 5)
+        round_robin_randomized(5, 5)
+        round_robin_randomized(5, 5)
+        round_robin_randomized(5, 5)
 
         # round_robin_deterministic(5, 5)
         # round_robin_deterministic(5, 5)
@@ -931,11 +937,11 @@ if __name__ == "__main__":
         # round_robin_deterministic(5, 5)
         # round_robin_deterministic(5, 5)
 
-        # brute_force_training(10, 15)
-        # brute_force_training(10, 15)
-        # brute_force_training(10, 15)
-        # brute_force_training(10, 15)
-        # brute_force_training(10, 15)
+        brute_force_training(10, 15)
+        brute_force_training(10, 15)
+        brute_force_training(10, 15)
+        brute_force_training(10, 15)
+        brute_force_training(10, 15)
 
         # brute_force_training(5, 30)
         # brute_force_training(5, 30)
@@ -952,7 +958,7 @@ if __name__ == "__main__":
         #
         # match_from_tags(tag_pair_accumulator)
 
-        match_from_tags([('W0247GHVV4', '7TRW7286CW')])
+        # match_from_tags([('W0247GHVV4', '7TRW7286CW')])
 
         pass
 

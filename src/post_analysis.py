@@ -12,6 +12,7 @@ import random
 from matplotlib.lines import Line2D
 from os import listdir
 from os.path import isfile, join
+from configs import current_dataset as _dataset
 
 
 trace_dump_file = 'run_trace_bis.csv'
@@ -32,17 +33,17 @@ master_fid_map = {}
 disc_phases = {}
 
 
-def stitch_run_traces(run_trace_diretory):
+def stitch_run_traces(run_trace_diretory, filter):
 
     files_to_stitch = [join(run_trace_diretory, f) for f in listdir(run_trace_diretory)
                        if (isfile(join(run_trace_diretory, f))
                            and f[:9] == 'run_trace'
                            and f != trace_dump_file)]
 
-    # TODO: check if the run is completed in the file.
-
     with open(trace_dump_file, 'w') as outfile:
         for fname in files_to_stitch:
+            if filter not in fname:
+                continue
             with open(fname) as infile:
                 lines = infile.read().splitlines()
                 last_line = lines[-2]
@@ -695,7 +696,7 @@ def render_training_history(method_names, best_fid_gen_tags):
 
 
 if __name__ == "__main__":
-    stitch_run_traces('.')
+    stitch_run_traces('.', _dataset)
 
     run_skip = []
 
