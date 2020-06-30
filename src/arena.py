@@ -55,7 +55,14 @@ def save_pure_gen_helpler(generator_instance):
 
 
 def update_pure_disc_helper(discriminator_instance):
-    update_pure_disc(discriminator_instance.random_tag,
+    result = update_pure_disc(discriminator_instance.random_tag,
+                 {'encounter_trace': discriminator_instance.encounter_trace,
+                  'self_error': discriminator_instance.real_error,
+                  'gen_error_map': discriminator_instance.gen_error_map,
+                  'current_fitness': discriminator_instance.current_fitness})
+    if result is None:
+        save_pure_disc(discriminator_instance.save_instance_state())
+        update_pure_disc(discriminator_instance.random_tag,
                  {'encounter_trace': discriminator_instance.encounter_trace,
                   'self_error': discriminator_instance.real_error,
                   'gen_error_map': discriminator_instance.gen_error_map,
@@ -63,10 +70,14 @@ def update_pure_disc_helper(discriminator_instance):
 
 
 def update_pure_gen_helper(generator_instance):
-     update_pure_gen(generator_instance.random_tag,
+    result = update_pure_gen(generator_instance.random_tag,
                     {'encounter_trace': generator_instance.encounter_trace,
                      'fitness_map': generator_instance.fitness_map})
-
+    if result is None:
+        save_pure_gen(generator_instance.save_instance_state())
+        update_pure_gen(generator_instance.random_tag,
+                    {'encounter_trace': generator_instance.encounter_trace,
+                     'fitness_map': generator_instance.fitness_map})
 
 class StopWatch(object):
 
@@ -911,25 +922,25 @@ if __name__ == "__main__":
         # homogenus_chain_progression(5, 5)
         # homogenus_chain_progression(5, 5)
 
-        # chain_progression(5, 5)
-        # chain_progression(5, 5)
-        # chain_progression(5, 5)
-        # chain_progression(5, 5)
-        # chain_progression(5, 5)
+        chain_progression(5, 5)
+        chain_progression(5, 5)
+        chain_progression(5, 5)
+        chain_progression(5, 5)
+        chain_progression(5, 5)
 
-        # chain_evolve_with_fitness_reset(3, 3)
-        # chain_evolve_with_fitness_reset(3, 3)
-        # chain_evolve_with_fitness_reset(3, 3)
-        # chain_evolve_with_fitness_reset(3, 3)
-        # chain_evolve_with_fitness_reset(3, 3)
+        chain_evolve_with_fitness_reset(3, 3)
+        chain_evolve_with_fitness_reset(3, 3)
+        chain_evolve_with_fitness_reset(3, 3)
+        chain_evolve_with_fitness_reset(3, 3)
+        chain_evolve_with_fitness_reset(3, 3)
 
         # chain_evolve(3, 3)
 
-        round_robin_randomized(5, 5)
-        round_robin_randomized(5, 5)
-        round_robin_randomized(5, 5)
-        round_robin_randomized(5, 5)
-        round_robin_randomized(5, 5)
+        # round_robin_randomized(5, 5)
+        # round_robin_randomized(5, 5)
+        # round_robin_randomized(5, 5)
+        # round_robin_randomized(5, 5)
+        # round_robin_randomized(5, 5)
 
         # round_robin_deterministic(5, 5)
         # round_robin_deterministic(5, 5)
@@ -937,11 +948,11 @@ if __name__ == "__main__":
         # round_robin_deterministic(5, 5)
         # round_robin_deterministic(5, 5)
 
-        brute_force_training(10, 15)
-        brute_force_training(10, 15)
-        brute_force_training(10, 15)
-        brute_force_training(10, 15)
-        brute_force_training(10, 15)
+        # brute_force_training(10, 15)
+        # brute_force_training(10, 15)
+        # brute_force_training(10, 15)
+        # brute_force_training(10, 15)
+        # brute_force_training(10, 15)
 
         # brute_force_training(5, 30)
         # brute_force_training(5, 30)

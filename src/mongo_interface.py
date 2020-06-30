@@ -46,6 +46,8 @@ def save_pure_disc(payload):
 
 def update_pure_gen(key, update_payload):
     existing_gen = pure_gen_collection.find_one({'random_tag': key})
+    if existing_gen is None:
+        return None
     trace_id = existing_gen['encounter_trace']
     update_payload['encounter_trace'] = separate_trace_update(trace_id,
                                                               update_payload['encounter_trace'])
@@ -56,6 +58,8 @@ def update_pure_gen(key, update_payload):
 
 def update_pure_disc(key, update_payload):
     existing_disc = pure_disc_collection.find_one({'random_tag': key})
+    if existing_disc is None:
+        return None
     trace_id = existing_disc['encounter_trace']
     update_payload['encounter_trace'] = separate_trace_update(trace_id,
                                                               update_payload['encounter_trace'])

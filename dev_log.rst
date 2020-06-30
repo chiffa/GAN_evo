@@ -124,6 +124,10 @@ Critical modifications to the architecture:
 - DONE: make sure the CUDA is passed to the CPU before it is dumped and is put back on the specified
 GPU before it's restored
 - try a different fitness function
+- Try actual implementation of the recombination (take two well-performing object and perform a
+partial elements swap of the weight matrices)
+- Try adding a noise to every single discriminator and generator after a run in order to add
+"error upon training" after a training round
 
 Pulled from the LaTeX:
 ======================
