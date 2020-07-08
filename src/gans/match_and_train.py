@@ -19,6 +19,8 @@ from src.mongo_interface import save_pure_disc, save_pure_gen, filter_pure_disc,
     filter_pure_gen, update_pure_disc, update_pure_gen
 from src.scoring_models import pathogen_host_fitness, cumulative_host_fitness
 from configs import cuda_device
+from configs import training_samples_location as _train_samples_dir
+from configs import fid_samples_location as _fid_samples_dir
 
 char_set = string.ascii_uppercase + string.digits
 
@@ -38,8 +40,8 @@ class GANEnvironment(object):
     def __init__(self, dataset,
                  number_of_colors=1, image_dimensions=64, batch_size=64,
                  ngpu=1, workers=2, device=cuda_device,
-                 sample_image_folder='/home/kucharav/trainer_samples',
-                 fid_image_folder='/home/kucharav/FID_samples',
+                 sample_image_folder=_train_samples_dir,
+                 fid_image_folder=_fid_samples_dir,
                  true_label=1, fake_label=0, latent_vector_size=64):
 
         self.number_of_colors = number_of_colors
@@ -368,11 +370,13 @@ class Arena(object):
             name_correction = name_correction + '.' + annotation
 
         vutils.save_image(real_cpu,
-                          '%s/%s.real_samples.png' % (self.env.sample_image_folder, name_correction),
+                          '%s/%s.real_samples.png' % (self.env.sample_image_folder,
+                                                      name_correction),
                           normalize=True)
 
         vutils.save_image(fake.detach(),
-                          '%s/%s.fake_samples.png' % (self.env.sample_image_folder, name_correction),
+                          '%s/%s.fake_samples.png' % (self.env.sample_image_folder,
+                                                      name_correction),
                           normalize=True)
 
         localized_fid_folder = os.path.join(self.env.fid_image_folder,
