@@ -5,10 +5,10 @@ from itertools import combinations
 from src.fid_calc.fid_score import calculate_fid_given_paths
 import pickle
 import datetime
+from configs import fid_samples_location
 
-
-balancing_folders_location = '/home/kucharav/FID_samples'
-fid_command = '/home/kucharav/Documents/pytorch-fid-master/fid_score.py'
+balancing_folders_location = fid_samples_location
+# fid_command = '/home/kucharav/Documents/pytorch-fid-master/fid_score.py'
 after_datetime = datetime.datetime.now() - datetime.timedelta(days=1)
 
 
@@ -68,12 +68,14 @@ def calc_reals_fid(random_tag_list):
 
     return real_comparison
 
+
 if __name__ == "__main__":
     fid_map, random_tag_list = calc_gen_fids()
     real_comparison = calc_reals_fid(random_tag_list)
 
     if os.path.isfile('fid_scores.dmp'):
-        old_fid_map, old_real_comparison = pickle.load((fid_map, real_comparison),
+        old_fid_map, old_real_comparison = pickle.load((fid_map,
+                                                        real_comparison),
                                                        open('fid_scores.dmp', 'rb'))
         fid_map.update(old_fid_map)
         real_comparison += old_real_comparison

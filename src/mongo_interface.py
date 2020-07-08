@@ -95,6 +95,11 @@ def filter_pure_disc(filter):
         yield payload
 
 
+def count_all_gens_and_discs():
+    print('disc no %d' % pure_disc_collection.count_documents({}))
+    print('gen no %d' % pure_gen_collection.count_documents({} ))
+
+
 def purge_pure_db(match_filter={}, train_filter={}, gen_filter={}, disc_filter={}):
     # r1m = gan_match_trace.delete_many(match_filter)
     r1t = gan_trace.delete_many(train_filter)
@@ -109,12 +114,14 @@ if __name__ == "__main__":
 
     # purge_pure_db()
 
-    for item in filter_pure_gen({}):
-        print(item['random_tag'], item['gen_type'])
-    pass
+    # for item in filter_pure_gen({}):
+    #     print(item['random_tag'], item['gen_type'])
+    # pass
+    #
+    # for item in filter_pure_disc({}):
+    #     print(item['random_tag'], item['disc_type'])
+    # pass
 
-    for item in filter_pure_disc({}):
-        print(item['random_tag'], item['disc_type'])
-    pass
-
+    # this is addedc to force an updaate on the HDD
+    count_all_gens_and_discs()
 
