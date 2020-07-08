@@ -17,7 +17,8 @@ from src.mongo_interface import save_pure_disc, save_pure_gen, update_pure_disc,
 from datetime import datetime
 from configs import cuda_device
 from configs import current_dataset as _dataset
-from src.smtp_logger import logger, successfully_completed
+from src.smtp_logger import logger, successfully_completed, smtp_error_bail_out
+import smtplib
 
 evo_trace_dump_location = "evolved_hosts_pathogen_map.dmp"
 evo2_trace_dump_location = "evolved_2_hosts_pathogen_map.dmp"
@@ -860,7 +861,9 @@ if __name__ == "__main__":
     image_folder = "./image"
     image_size = 64  # TODO: test how this parameter affects training stability
     number_of_colors = 1  # TODO: remember to adjust that
-    imtype = 'fashion_mnist'
+    if _dataset == 'cifar10':
+        number_of_colors = 3
+    imtype = _dataset
 
     date_time = datetime.now().strftime("%d.%m.%Y-%H.%M.%S")
     trace_dump_file = 'run_trace_' + date_time + '_' + imtype + '.csv'
@@ -883,11 +886,11 @@ if __name__ == "__main__":
                                            transforms.Normalize((0.5,), (0.5,)),]))
 
     # # raw size: 32x32 @ 3c
-    # cifar10_dataset = dset.CIFAR10(root=image_folder, download=True,
-    #                                transform=transforms.Compose([
-    #                                    transforms.Resize(image_size),
-    #                                    transforms.ToTensor(),
-    #                                    transforms.Normalize((0.5,), (0.5,)),]))
+    cifar10_dataset = dset.CIFAR10(root=image_folder, download=True,
+                                   transform=transforms.Compose([
+                                       transforms.Resize(image_size),
+                                       transforms.ToTensor(),
+                                       transforms.Normalize((0.5,), (0.5,)),]))
 
     # raw size: 28x28 @ 1c
     mnist_dataset = dset.MNIST(root=image_folder, download=True,
@@ -900,10 +903,14 @@ if __name__ == "__main__":
         current_dataset = fashion_mnist_dataset
     elif _dataset == 'mnist':
         current_dataset = mnist_dataset
+    elif _dataset == 'cifar10':
+        current_dataset = cifar10_dataset
     else:
         raise Exception('unrecognized dataset type: %s' % _dataset)
 
-    environment = GANEnvironment(current_dataset, device=cuda_device)
+    environment = GANEnvironment(current_dataset,
+                                 device=cuda_device,
+                                 number_of_colors=number_of_colors)
 
     learning_rate = 0.0002
     beta1 = 0.5
@@ -928,13 +935,17 @@ if __name__ == "__main__":
         chain_progression(5, 5)
         chain_progression(5, 5)
 
-        chain_evolve_with_fitness_reset(3, 3)
-        chain_evolve_with_fitness_reset(3, 3)
-        chain_evolve_with_fitness_reset(3, 3)
-        chain_evolve_with_fitness_reset(3, 3)
-        chain_evolve_with_fitness_reset(3, 3)
+        # chain_evolve_with_fitness_reset(3, 3)
+        # chain_evolve_with_fitness_reset(3, 3)
+        # chain_evolve_with_fitness_reset(3, 3)
+        # chain_evolve_with_fitness_reset(3, 3)
+        # chain_evolve_with_fitness_reset(3, 3)
 
-        # chain_evolve(3, 3)
+        chain_evolve(3, 3)
+        chain_evolve(3, 3)
+        chain_evolve(3, 3)
+        chain_evolve(3, 3)
+        chain_evolve(3, 3)
 
         # round_robin_randomized(5, 5)
         # round_robin_randomized(5, 5)
@@ -954,11 +965,11 @@ if __name__ == "__main__":
         # brute_force_training(10, 15)
         # brute_force_training(10, 15)
 
-        # brute_force_training(5, 30)
-        # brute_force_training(5, 30)
-        # brute_force_training(5, 30)
-        # brute_force_training(5, 30)
-        # brute_force_training(5, 30)
+        brute_force_training(5, 30)
+        brute_force_training(5, 30)
+        brute_force_training(5, 30)
+        brute_force_training(5, 30)
+        brute_force_training(5, 30)
 
         # tag_pair_accumulator = []
         # with open('backflow.csv', 'r') as read_file:
@@ -974,7 +985,10 @@ if __name__ == "__main__":
         pass
 
     except Exception as exc:
-        logger.error(exc, exc_info=True)
+        try:
+            logger.error(exc, exc_info=True)
+        except (AttributeError, smtplib.SMTPServerDisconnected):
+            smtp_error_bail_out()
         raise
 
     dump_trace(['<', 'run completed', datetime.now().isoformat()])

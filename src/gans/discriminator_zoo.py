@@ -139,6 +139,7 @@ class Discriminator(nn.Module):
                       stride=1,
                       padding=0,
                       bias=False),
+
             nn.Sigmoid()
         )
 

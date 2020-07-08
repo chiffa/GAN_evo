@@ -1,2 +1,2 @@
-cuda_device = "cuda:1"
-current_dataset = 'fashion_mnist'
+cuda_device = "cuda:0"
+current_dataset = 'cifar10'  # 'mnist' / 'fashion-mnist'

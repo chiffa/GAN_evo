@@ -39,7 +39,12 @@ class DCGAN_D(nn.Module):
 
         # state size. K x 4 x 4
         main.add_module('final:{0}-{1}:conv'.format(cndf, 1),
-                        nn.Conv2d(cndf, 1, 4, 1, 0, bias=False))
+                        nn.Conv2d(cndf,
+                                  1,
+                                  4,
+                                  1,
+                                  0,
+                                  bias=False))
         self.main = main
 
 
@@ -49,7 +54,7 @@ class DCGAN_D(nn.Module):
         else: 
             output = self.main(input)
             
-        output = output.mean(0)
+        output = output.mean(0)  # this where the difference is. It probably means
         return output.view(1)
 
 class DCGAN_G(nn.Module):

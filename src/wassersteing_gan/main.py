@@ -1,3 +1,4 @@
+
 from __future__ import print_function
 import argparse
 import random
@@ -181,7 +182,7 @@ if __name__=="__main__":
             while j < Diters and i < len(dataloader):
                 j += 1
 
-                # clamp parameters to a cube
+                # clamp parameters to a cube - here's the clamp
                 for p in netD.parameters():
                     p.data.clamp_(opt.clamp_lower, opt.clamp_upper)
 
@@ -198,13 +199,13 @@ if __name__=="__main__":
                 input.resize_as_(real_cpu).copy_(real_cpu)
                 inputv = Variable(input)
 
-                errD_real = netD(inputv)
+                errD_real = netD(inputv)  # That's the other difference - we don't use a criterion
                 errD_real.backward(one)
 
                 # train with fake
                 noise.resize_(opt.batchSize, nz, 1, 1).normal_(0, 1)
-                noisev = Variable(noise, volatile = True) # totally freeze netG
-                fake = Variable(netG(noisev).data)
+                noisev = Variable(noise, volatile=True)  # totally freeze netG
+                fake = Variable(netG(noisev).data)  # will stop the propagation through the data
                 inputv = fake
                 errD_fake = netD(inputv)
                 errD_fake.backward(mone)
@@ -215,7 +216,7 @@ if __name__=="__main__":
             # (2) Update G network
             ###########################
             for p in netD.parameters():
-                p.requires_grad = False # to avoid computation
+                p.requires_grad = False # to avoid computation  # basically clear the D gradients
             netG.zero_grad()
             # in case our last batch was the tail batch of the dataloader,
             # make sure we feed a full batch of noise
@@ -223,7 +224,7 @@ if __name__=="__main__":
             noisev = Variable(noise)
             fake = netG(noisev)
             errG = netD(fake)
-            errG.backward(one)
+            errG.backward(one)  # Herer is another difference - we don't use a criterion either
             optimizerG.step()
             gen_iterations += 1
 

@@ -106,6 +106,14 @@ recoverable elements at later stages.
 - Similarly, traces now require enforced ordering, unless we start forking off aggressively. Which
 might be a plan actually.
 
+- TODO: Compare to the state-of-art two-time update rule (5 D:1 G) + Spectral normalization layer
+    Spectral normalization is part of Pytorch:
+        torch.nn.utils.spectral_norm(module, name='weight', n_power_iterations=1, eps=1e-12,
+                                     dim=None);
+        m = spectral_norm(nn.Linear(20, 40))
+
+- TODO: add a self-attention mechanism for the 32/64 feature maps
+
 - TODO: MINOR - integrate a dataset type signal and processing in the analysis step.
 
 Containerization:

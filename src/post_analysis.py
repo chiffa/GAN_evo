@@ -40,6 +40,12 @@ def stitch_run_traces(run_trace_diretory, filter):
                            and f[:9] == 'run_trace'
                            and f != trace_dump_file)]
 
+    for f in listdir(run_trace_diretory):
+        print(f)
+        print(isfile(join(run_trace_diretory, f)))
+
+    print("stitching dataset %s. Found to stitch: %s" % (_dataset, files_to_stitch))
+
     with open(trace_dump_file, 'w') as outfile:
         for fname in files_to_stitch:
             if filter not in fname:
@@ -231,7 +237,7 @@ def render_fid_performances(attribution_map):
         stat_sig = np.argwhere(p_matrix < 0.05).T
         plt.scatter(stat_sig[0], stat_sig[1], marker='*', c='k')
 
-        _method_names = [name_remap[method] for method in method_names]
+        _method_names = [name_remap(method) for method in method_names]
 
         plt.xticks(range(len(_method_names)), _method_names)
         plt.yticks(range(len(_method_names)), _method_names)
@@ -243,7 +249,7 @@ def render_fid_performances(attribution_map):
         flatten = lambda l: [item for sublist in l for item in sublist]
 
         for name, data in zip(method_names, _dataset):
-            load = [name_remap[name], '&',
+            load = [name_remap(name), '&',
                     '%.2f' % np.median(data), '&',
                     '%.2f' % np.mean(data), '&',
                     '%.2f' % np.std(data), '&',
@@ -256,7 +262,7 @@ def render_fid_performances(attribution_map):
                  for _i, _data in enumerate(_dataset)]
         plt.scatter(flatten(x_pad), flatten(_dataset), c='k')
         locs, labels = plt.xticks()
-        _method_names = [name_remap[method] for method in method_names]
+        _method_names = [name_remap(method) for method in method_names]
         plt.xticks(locs, _method_names)
         plt.xticks(rotation=45, rotation_mode="anchor", ha="right")
         plt.ylabel('FID')
@@ -300,7 +306,7 @@ def render_fid_performances(attribution_map):
     plt.title('Best FID per run vs run time')
     # c_pad = [[i/len(exec_times)]*len(_data) for i, _data in enumerate(exec_times)]
     for i, lab in enumerate(method_names):
-        plt.scatter(exec_times[i], best_fids_achieved[i], label=name_remap[lab])
+        plt.scatter(exec_times[i], best_fids_achieved[i], label=name_remap(lab))
     plt.legend()
     plt.xlabel('run time (mins)')
     plt.ylabel('minimal FID achieved')
@@ -696,7 +702,8 @@ def render_training_history(method_names, best_fid_gen_tags):
 
 
 if __name__ == "__main__":
-    stitch_run_traces('.', _dataset)
+
+    stitch_run_traces('..', _dataset)
 
     run_skip = []
 
@@ -746,20 +753,20 @@ if __name__ == "__main__":
     # pprint(dict(attribution_map))
 
     attribution_map_filter = [
-        ('brute-force', '5', '15'),
-        ('chain evolve', '3', '3'),
+        # ('brute-force', '5', '15'),
+        # ('chain evolve', '3', '3'),
         # ('chain evolve', '3', '4'),
         # ('chain progression', '5', '5'),
-        ('chain evolve fit reset', '3', '3'),
+        # ('chain evolve fit reset', '3', '3'),
         # ('stochastic base round robin', '5', '5'),
-        ('deterministic base round robin', '5', '5'),
+        # ('deterministic base round robin', '5', '5'),
         # ('deterministic base round robin 2', '5', '5'),
         # ('brute-force', '10', '15'),
-        ('brute-force', '5', '30'),
+        # ('brute-force', '5', '30'),
         # ('homogenous chain progression', '5', '5')
     ]
 
-    name_remap = {
+    _name_remap = {
         ('stochastic base round robin 5 5'): 'stochastic round robin',
         ('chain evolve 3 4'): 'evolution with\nheterogeneous\npopulation jumps',
         ('brute-force 10 15'): 'reference',
@@ -768,8 +775,11 @@ if __name__ == "__main__":
         ('homogenous chain progression 5 5'): 'round-robin with\npopulation jumps'
     }
 
+    name_remap = lambda x: _name_remap[x] if x in _name_remap.keys() else x
+
     for key in attribution_map_filter:
-        del attribution_map[key]
+        if key in attribution_map.keys():
+            del attribution_map[key]
 
     # new_attribution_map = {}
     #
