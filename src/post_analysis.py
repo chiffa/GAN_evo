@@ -13,9 +13,10 @@ from matplotlib.lines import Line2D
 from os import listdir
 from os.path import isfile, join
 from configs import current_dataset as _dataset
+import os
 
 
-trace_dump_file = 'run_trace_bis.csv'
+trace_dump_file = '../run_trace_bis.csv'
 backflow_log = 'backflow.csv'
 
 bruteforce_gen2disc = {}
@@ -35,22 +36,25 @@ disc_phases = {}
 
 def stitch_run_traces(run_trace_diretory, filter):
 
-    files_to_stitch = [join(run_trace_diretory, f) for f in listdir(run_trace_diretory)
+    files_to_stitch = [os.path.abspath(join(run_trace_diretory, f)) for f in listdir(
+                       run_trace_diretory)
                        if (isfile(join(run_trace_diretory, f))
                            and f[:9] == 'run_trace'
                            and f != trace_dump_file)]
 
-    for f in listdir(run_trace_diretory):
-        print(f)
-        print(isfile(join(run_trace_diretory, f)))
+    # for f in listdir(run_trace_diretory):
+    #     print(f)
+    #     print(isfile(join(run_trace_diretory, f)))
 
     print("stitching dataset %s. Found to stitch: %s" % (_dataset, files_to_stitch))
+    print("stitching datasets into %s" % os.path.abspath(trace_dump_file))
 
     with open(trace_dump_file, 'w') as outfile:
         for fname in files_to_stitch:
             if filter not in fname:
                 continue
             with open(fname) as infile:
+                print('dumping %s' % fname)
                 lines = infile.read().splitlines()
                 last_line = lines[-2]
                 if last_line[0] == '<':
@@ -66,6 +70,9 @@ def parse_past_runs(trace_dump_locations):
     master_table = []
 
     # debug_counter = -1
+    # print(os.path.abspath(trace_dump_locations))
+    # print(os.path.getsize(trace_dump_locations))
+    # print('debug: opening %s as trace dump' % trace_dump_locations)
     with open(trace_dump_locations, 'r') as trace_dump_file:
         reader = csv.reader(trace_dump_file, delimiter='\t')
         for row in reader:
@@ -86,12 +93,12 @@ def parse_past_runs(trace_dump_locations):
             if row[0] == '>>>':  # enter run sub-sub-section
                 master_table[-1][-1].append([row, ])  # and a sub-function
                 # print('lvl3 enter')
-                # print(master_table[-1][-1][-1])
+                print(master_table[-1][-1][-1])
                 continue
             if row[0] == '<<<':  # exit run sub-sub-section
                 master_table[-1][-1][-1].append(row)
                 # print('lvl3 exit')
-                # print(master_table[-1][-1][-1])
+                print(master_table[-1][-1][-1])
                 continue
             if row[0] == '<<':  # exist sub-section
                 master_table[-1][-1].append(row)
@@ -713,13 +720,13 @@ if __name__ == "__main__":
     collector_list = []
 
     for i_1, entry in enumerate(master_table):
-        print(i_1, entry[0])
+        # print(i_1, entry[0])
         if i_1 in run_skip:
-            print('skipping')
+            # print('skipping')
             continue
-        print('not skipping')
+        # print('not skipping')
         for i_2, sub_entry in enumerate(entry[1:-1]):
-            print(sub_entry[0])
+            # print(sub_entry[0])
             if sub_entry[0][1] == 'brute-force':
                 extracted_fids, final_random_tags, duration = extract_bruteforce_data(sub_entry)
             elif sub_entry[0][1] == 'chain evolve' \
@@ -735,15 +742,15 @@ if __name__ == "__main__":
                     extract_battle_royale_data(sub_entry)
                 continue
             else:
-                print(sub_entry[0])
+                # print(sub_entry[0])
                 raise Exception('unknown selection structure: %s' % sub_entry[0][1])
             attribution_map[(sub_entry[0][1], sub_entry[0][2], sub_entry[0][3])][sub_entry[0][-1]] =\
                 [duration, extracted_fids, final_random_tags]
 
             print('\t', i_1, i_2 + 1, sub_entry[0])
-            # for i_3, sub_sub_entry in enumerate(sub_entry[1:-1]):
-            #     print('\t\t', i_1, i_2 + 1, i_3 + 1, sub_sub_entry[0])
-            #     print('\t\t', i_1, i_2 + 1, i_3 + 1, sub_sub_entry[-1])
+            for i_3, sub_sub_entry in enumerate(sub_entry[1:-1]):
+                print('\t\t', i_1, i_2 + 1, i_3 + 1, sub_sub_entry[0])
+                print('\t\t', i_1, i_2 + 1, i_3 + 1, sub_sub_entry[-1])
             print('\t', i_1, i_2 + 1, sub_entry[-1])
 
         print(i_1, entry[-1])
