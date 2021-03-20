@@ -20,6 +20,9 @@ from configs import current_dataset as _dataset
 from src.smtp_logger import logger, successfully_completed, smtp_error_bail_out
 import smtplib
 
+
+#Environment where evolutionary algorithm take place. 
+
 evo_trace_dump_location = "evolved_hosts_pathogen_map.dmp"
 evo2_trace_dump_location = "evolved_2_hosts_pathogen_map.dmp"
 brute_force_trace_dump_location = 'brute_force_pathogen_map.dmp'

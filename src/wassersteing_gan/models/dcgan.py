@@ -2,6 +2,13 @@ import torch
 import torch.nn as nn
 import torch.nn.parallel
 
+
+###Implementation of a deep convolutional GAN which generate images
+
+#discriminator structure, use conv2d to downsample and leakyReLU as activation function
+#Convolutions doesn't seem well suited when dealing with sequential data like text, how much will we be able to reuse of this GAN?
+# code: PyTorch nn.Sequential library seems to greatly simplify the construction of the nn 
+
 class DCGAN_D(nn.Module):
     def __init__(self, isize, nz, nc, ndf, ngpu, n_extra_layers=0):
         super(DCGAN_D, self).__init__()
@@ -47,7 +54,7 @@ class DCGAN_D(nn.Module):
                                   bias=False))
         self.main = main
 
-
+    # Define how to deal with input data. Mandatory for each implementation of the nn.Module class
     def forward(self, input):
         if isinstance(input.data, torch.cuda.FloatTensor) and self.ngpu > 1:
             output = nn.parallel.data_parallel(self.main, input, range(self.ngpu))
@@ -57,6 +64,7 @@ class DCGAN_D(nn.Module):
         output = output.mean(0)  # this where the difference is. It probably means
         return output.view(1)
 
+#Generator also inheritng from the nn.Module abstraction. Use ConvTranspose2d for upsampling the seed
 class DCGAN_G(nn.Module):
     def __init__(self, isize, nz, nc, ngf, ngpu, n_extra_layers=0):
         super(DCGAN_G, self).__init__()
@@ -110,6 +118,11 @@ class DCGAN_G(nn.Module):
             output = self.main(input)
         return output 
 ###############################################################################
+
+#Same as before but without the batch normalisation layers. 
+#I suppose for perfomance reasons since according to scratchGAN paper BN is an essential step to stablitze training
+
+
 class DCGAN_D_nobn(nn.Module):
     def __init__(self, isize, nz, nc, ndf, ngpu, n_extra_layers=0):
         super(DCGAN_D_nobn, self).__init__()

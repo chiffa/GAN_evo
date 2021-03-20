@@ -9,6 +9,10 @@ from src.mongo_interface import pure_disc_from_random_tag
 import io
 from configs import cuda_device
 
+
+#Collection of several implementation of discriminator, sll designed for images as input
+#Storage-ressuraction boilerplate
+
 char_set = string.ascii_uppercase + string.digits
 
 # TODO: make sure that the saving and resurrection are done to CPU at first and then sent to CUDAs
