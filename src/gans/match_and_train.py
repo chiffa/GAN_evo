@@ -22,6 +22,10 @@ from configs import cuda_device
 from configs import training_samples_location as _train_samples_dir
 from configs import fid_samples_location as _fid_samples_dir
 
+
+#main test environment where the training of GANs is performed
+
+
 char_set = string.ascii_uppercase + string.digits
 
 

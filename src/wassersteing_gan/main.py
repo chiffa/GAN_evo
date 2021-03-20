@@ -18,6 +18,10 @@ import json
 import models.dcgan as dcgan
 import models.mlp as mlp
 
+
+#Runs the expriment according to the given input (dataset, nn to be used, BN, optmizer, cuda ...)
+#Two step GAN training quite explicit thanks to the comments
+
 if __name__=="__main__":
 
     parser = argparse.ArgumentParser()

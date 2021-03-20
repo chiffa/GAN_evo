@@ -5,6 +5,9 @@ from __future__ import unicode_literals
 import torch
 import torch.nn as nn
 
+#Multi layer perceptron used for comparaison with the DCGAN in the original paper. 
+#I don't think is going to be useful for the rest of the project.
+
 class MLP_G(nn.Module):
     def __init__(self, isize, nz, nc, ngf, ngpu):
         super(MLP_G, self).__init__()

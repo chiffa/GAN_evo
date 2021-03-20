@@ -1,6 +1,7 @@
 import numpy as np
 import torch.nn as nn
 
+#Part of the project dedicated to genetic/evolutionary algorithms.
 
 def select_mating_pool(arena_fitness_array, selection_option=""):
     # compute the fitness penalty imposed by the model complexity
