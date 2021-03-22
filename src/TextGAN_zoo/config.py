@@ -15,7 +15,7 @@ import torch
 
 # ===Program===
 if_test = False
-CUDA = True
+CUDA = False
 multi_gpu = False
 if_save = True
 data_shuffle = False  # False

@@ -34,7 +34,7 @@ scriptname = 'main.py'
 # ===Program===
 if_test = int(False)
 run_model = 'leakgan'
-CUDA = int(True)
+CUDA = int(False)
 oracle_pretrain = int(True)
 gen_pretrain = int(False)
 dis_pretrain = int(False)

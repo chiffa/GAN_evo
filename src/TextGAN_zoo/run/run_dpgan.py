@@ -27,14 +27,14 @@ else:
     print('Missing argument: job_id and gpu_id. Use default job_id: {}, gpu_id: {}'.format(job_id, gpu_id))
 
 # Executables
-executable = '/home/zhiwei/.virtualenvs/zhiwei/bin/python'  # specify your own python interpreter path here
+executable = '/home/kevinblin/anaconda3/envs/pytorch_env/bin/python'  # specify your own python interpreter path here
 rootdir = '../'
 scriptname = 'main.py'
 
 # ===Program===
 if_test = int(False)
 run_model = 'dpgan'
-CUDA = int(True)
+CUDA = int(False)
 oracle_pretrain = int(True)
 gen_pretrain = int(False)
 dis_pretrain = int(False)
@@ -87,7 +87,7 @@ args = [
     '--if_test', if_test,
     '--run_model', run_model,
     '--cuda', CUDA,
-    '--device', gpu_id,  # comment for auto GPU
+    # '--device', gpu_id,  # comment for auto GPU
     '--ora_pretrain', oracle_pretrain,
     '--gen_pretrain', gen_pretrain,
     '--dis_pretrain', dis_pretrain,
