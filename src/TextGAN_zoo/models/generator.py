@@ -129,7 +129,7 @@ class TransformerEncoder(nn.Module):
         self.transformer_encoder = TransformerEncoder(encoder_layers, nlayers, )
         
         self.decoder = nn.Linear(embedding_dim, vocab_size)
-        self.softmax = nn.Softmax(dim=-1)
+        self.softmax = nn.LogSoftmax(dim=-1)
 
         self.init_weights()
 
@@ -138,12 +138,6 @@ class TransformerEncoder(nn.Module):
         mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
         return mask
 
-    def init_weights(self):
-        initrange = 0.1
-        self.encoder.weight.data.uniform_(-initrange, initrange)
-        self.decoder.bias.data.zero_()
-        self.decoder.weight.data.uniform_(-initrange, initrange)
-
     def forward(self, src, src_mask):
         src = self.encoder(src) * math.sqrt(self.embedding_dim)
         src = self.pos_encoder(src)
@@ -151,6 +145,51 @@ class TransformerEncoder(nn.Module):
         output = self.decoder(output)
         output = self.softmax(output)
         return output
+
+    def sample(self, num_samples, batch_size, start_letter=cfg.start_letter):
+        """
+        Samples the network and returns num_samples samples of length max_seq_len.
+        :return samples: num_samples * max_seq_length (a sampled sequence in each row)
+        """
+        num_batch = num_samples // batch_size + 1 if num_samples != batch_size else 1
+        samples = torch.zeros(num_batch * batch_size, self.max_seq_len).long()
+
+        # Generate sentences with multinomial sampling strategy
+        for b in range(num_batch):
+            inp = torch.LongTensor([start_letter] * batch_size)
+            if self.gpu:
+                inp = inp.cuda()
+
+            for i in range(self.max_seq_len):
+                out = self.forward(inp, self.generate_square_subsequent_mask(self.max_seq_len))  # out: batch_size * vocab_size
+                next_token = torch.multinomial(torch.exp(out), 1)  # batch_size * 1 (sampling from each row)
+                samples[b * batch_size:(b + 1) * batch_size, i] = next_token.view(-1)
+                inp = next_token.view(-1)
+        samples = samples[:num_samples]
+        return samples
+
+    def init_weights(self):
+        initrange = 0.1
+        self.encoder.weight.data.uniform_(-initrange, initrange)
+        self.decoder.bias.data.zero_()
+        self.decoder.weight.data.uniform_(-initrange, initrange)
+
+    def init_oracle(self):
+        for param in self.parameters():
+            if param.requires_grad:
+                torch.nn.init.normal_(param, mean=0, std=1)
+
+    def init_params(self):
+        for param in self.parameters():
+            if param.requires_grad and len(param.shape) > 0:
+                stddev = 1 / math.sqrt(param.shape[0])
+                if cfg.gen_init == 'uniform':
+                    torch.nn.init.uniform_(param, a=-0.05, b=0.05)
+                elif cfg.gen_init == 'normal':
+                    torch.nn.init.normal_(param, std=stddev)
+                elif cfg.gen_init == 'truncated_normal':
+                    truncated_normal_(param, std=stddev)
+    
 
 
 class PositionalEncoding(nn.Module):
