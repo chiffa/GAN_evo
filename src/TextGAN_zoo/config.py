@@ -106,6 +106,7 @@ num_heads = 2  # RelGAN-2  ,
 
 gen_num_heads = 2 #SA_xxxxGAN
 gen_nlayers = 3 #SA_xxxGAN
+dropout = 0.5 #SA_xxxGAN
 
 # ===Discriminator===
 d_step = 5  # SeqGAN-50, LeakGAN-5
@@ -197,8 +198,8 @@ def init_param(opt):
         MLE_train_epoch, ADV_train_epoch, inter_epoch, batch_size, max_seq_len, start_letter, padding_idx, \
         gen_lr, gen_adv_lr, dis_lr, clip_norm, pre_log_step, adv_log_step, train_data, test_data, temp_adpt, \
         temperature, oracle_pretrain, gen_pretrain, dis_pretrain, ADV_g_step, rollout_num, gen_embed_dim, \
-        gen_hidden_dim, goal_size, step_size, mem_slots, num_heads, head_size, d_step, d_epoch, \
-        ADV_d_step, ADV_d_epoch, dis_embed_dim, dis_hidden_dim, num_rep, log_filename, save_root, \
+        gen_hidden_dim, goal_size, step_size, mem_slots, num_heads, head_size, gen_num_heads, gen_nlayers d_step, dropout, d_epoch, \
+        ADV_d_step, ADV_d_epoch, dis_embed_dim, dis_hidden_dim, num_rep, dis_num_heads, dis_nlayers, log_filename, save_root, \
         signal_file, tips, save_samples_root, save_model_root, if_real_data, pretrained_gen_path, \
         pretrained_dis_path, pretrain_root, if_test, dataset, PRE_clas_epoch, oracle_samples_path, \
         pretrained_clas_path, n_parent, mu_type, eval_type, d_type, eval_b_num, lambda_fd, d_out_mean, \
@@ -265,6 +266,9 @@ def init_param(opt):
     mem_slots = opt.mem_slots
     num_heads = opt.num_heads
     head_size = opt.head_size
+    gen_num_heads = opt.gen_num_heads
+    gen_nlayers = opt.gen_nlayers
+    dropout = opt.dropout
 
     d_step = opt.d_step
     d_epoch = opt.d_epoch
@@ -273,6 +277,8 @@ def init_param(opt):
     dis_embed_dim = opt.dis_embed_dim
     dis_hidden_dim = opt.dis_hidden_dim
     num_rep = opt.num_rep
+    dis_num_heads = opt.dis_num_heads
+    dis_nlayers = opt.dis_nlayers
 
     use_nll_oracle = True if opt.use_nll_oracle == 1 else False
     use_nll_gen = True if opt.use_nll_gen == 1 else False

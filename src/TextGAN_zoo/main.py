@@ -135,6 +135,7 @@ if __name__ == '__main__':
         from instructor.real_data.maligan_instructor import MaliGANInstructor
         from instructor.real_data.jsdgan_instructor import JSDGANInstructor
         from instructor.real_data.dpgan_instructor import DPGANInstructor
+        from instructor.real_data.sa_dpgan_instructor import SADPGANInstructor
         from instructor.real_data.relgan_instructor import RelGANInstructor
         from instructor.real_data.sentigan_instructor import SentiGANInstructor
         from instructor.real_data.evogan_instructor import EvoGANInstructor
@@ -148,6 +149,7 @@ if __name__ == '__main__':
         from instructor.oracle_data.maligan_instructor import MaliGANInstructor
         from instructor.oracle_data.jsdgan_instructor import JSDGANInstructor
         from instructor.oracle_data.dpgan_instructor import DPGANInstructor
+        from instructor.oracle_data.sa_dpgan_instructor import SADPGANInstructor
         from instructor.oracle_data.relgan_instructor import RelGANInstructor
         from instructor.oracle_data.sentigan_instructor import SentiGANInstructor
         from instructor.oracle_data.evogan_instructor import EvoGANInstructor
@@ -161,6 +163,7 @@ if __name__ == '__main__':
         'maligan': MaliGANInstructor,
         'jsdgan': JSDGANInstructor,
         'dpgan': DPGANInstructor,
+        'sa_dpgan': SADPGANInstructor
         'relgan': RelGANInstructor,
         'sentigan': SentiGANInstructor,
         'evogan': EvoGANInstructor,
