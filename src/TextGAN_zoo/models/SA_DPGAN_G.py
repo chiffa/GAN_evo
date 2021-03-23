@@ -5,8 +5,8 @@ from models.generator import TransformerEncoder
 
 
 class SA_DPGAN_G(TransformerEncoder):
-    def __init__(self, embedding_dim, nhead, nhid, nlayers, dropout=0.5, vocab_size, max_seq_len, padding_idx, gpu=False):
-        super(SA_DPGAN_G, self).__init__(self, embedding_dim, nhead, nhid, nlayers, dropout, vocab_size, max_seq_len, padding_idx, gpu)
+    def __init__(self, embedding_dim, hidden_dim, num_heads=4, nlayers=3, dropout=0.5, vocab_size, max_seq_len, padding_idx, gpu=False):
+        super(SA_DPGAN_G, self).__init__(self, embedding_dim, num_heads, nhid, nlayers, dropout, vocab_size, max_seq_len, padding_idx, gpu)
         self.name = 'sa_dpgan_g'
 
     def sample_teacher_forcing(self, inp):

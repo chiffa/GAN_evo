@@ -101,8 +101,11 @@ goal_size = 16  # LeakGAN-16
 step_size = 4  # LeakGAN-4
 
 mem_slots = 1  # RelGAN-1
-num_heads = 2  # RelGAN-2
 head_size = 256  # RelGAN-256
+num_heads = 2  # RelGAN-2  , 
+
+gen_num_heads = 2 #SA_xxxxGAN
+gen_nlayers = 3 #SA_xxxGAN
 
 # ===Discriminator===
 d_step = 5  # SeqGAN-50, LeakGAN-5
@@ -113,6 +116,9 @@ ADV_d_epoch = 3  # SeqGAN,LeakGAN-3
 dis_embed_dim = 64
 dis_hidden_dim = 64
 num_rep = 64  # RelGAN
+
+dis_num_heads = 2 #SA_xxxxGAN
+dis_nlayers = 3 #SA_xxxGAN
 
 # ===log===
 log_time_str = strftime("%m%d_%H%M_%S", localtime())

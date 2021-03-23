@@ -20,7 +20,7 @@ class LSTMGenerator(nn.Module):
 
     def __init__(self, embedding_dim, hidden_dim, vocab_size, max_seq_len, padding_idx, gpu=False):
         super(LSTMGenerator, self).__init__()
-        self.name = 'vanilla'
+        self.name = 'pineapple'
 
         self.hidden_dim = hidden_dim
         self.embedding_dim = embedding_dim
@@ -112,10 +112,10 @@ class LSTMGenerator(nn.Module):
 
 class TransformerEncoder(nn.Module):
 
-    def __init__(self, embedding_dim, nhead, nhid, nlayers, dropout=0.5, vocab_size, max_seq_len, padding_idx, gpu=False):
+    def __init__(self, embedding_dim, hidden_dim, num_heads=4, nlayers=3, dropout=0.5, vocab_size, max_seq_len, padding_idx, gpu=False):
         super(TransformerEncoder, self).__init__()
         self.model_type = 'TransformerEncoder'
-        # Compared to pytorch transformer_tutorial: ntoken = vocab_size    and  ninp= embedding_dim
+        # Compared to pytorch transformer_tutorial: ntoken = vocab_size    and  ninp= embedding_dim  nhid=hidden_dim
 
         self.embedding_dim = embedding_dim
         self.max_seq_len = max_seq_len
@@ -125,8 +125,8 @@ class TransformerEncoder(nn.Module):
 
         self.encoder = nn.Embedding(vocab_size, embedding_dim, padding_idx=padding_idx)
         self.pos_encoder = PositionalEncoding(embedding_dim, dropout)
-        encoder_layers = TransformerEncoderLayer(embedding_dim, nhead, nhid, dropout)
-        self.transformer_encoder = TransformerEncoder(encoder_layers, nlayers, )
+        encoder_layers = TransformerEncoderLayer(embedding_dim, num_heads, hidden_dim, dropout)
+        self.transformer_encoder = TransformerEncoder(encoder_layers, nlayers)
         
         self.decoder = nn.Linear(embedding_dim, vocab_size)
         self.softmax = nn.LogSoftmax(dim=-1)

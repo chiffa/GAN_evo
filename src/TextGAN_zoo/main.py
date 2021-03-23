@@ -80,6 +80,8 @@ def program_config(parser):
     parser.add_argument('--mem_slots', default=cfg.mem_slots, type=int)
     parser.add_argument('--num_heads', default=cfg.num_heads, type=int)
     parser.add_argument('--head_size', default=cfg.head_size, type=int)
+    parser.add_argument('--gen_nlayers', default=cfg.nlayers, type=int)
+    parser.add_argument('--gen_num_heads', default=cfg.gen_num_heads, type=int)
 
     # Discriminator
     parser.add_argument('--d_step', default=cfg.d_step, type=int)
@@ -89,6 +91,9 @@ def program_config(parser):
     parser.add_argument('--dis_embed_dim', default=cfg.dis_embed_dim, type=int)
     parser.add_argument('--dis_hidden_dim', default=cfg.dis_hidden_dim, type=int)
     parser.add_argument('--num_rep', default=cfg.num_rep, type=int)
+    parser.add_argument('--dis_nlayers', default=cfg.dis_nlayers, type=int)
+    parser.add_argument('--dis_num_heads', default=cfg.gen_num_heads, type=int)
+
 
     # Metrics
     parser.add_argument('--use_nll_oracle', default=cfg.use_nll_oracle, type=int)

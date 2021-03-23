@@ -1,12 +1,3 @@
-# -*- coding: utf-8 -*-
-# @Author       : William
-# @Project      : TextGAN-william
-# @FileName     : run_seqgan.py
-# @Time         : Created at 2019-05-27
-# @Blog         : http://zhiweil.ml/
-# @Description  :
-# Copyrights (C) 2018. All Rights Reserved.
-
 import sys
 from subprocess import call
 
@@ -33,7 +24,7 @@ scriptname = 'main.py'
 
 # ===Program===
 if_test = int(False)
-run_model = 'dpgan'
+run_model = 'sa_dpgan'
 CUDA = int(False)
 oracle_pretrain = int(True)
 gen_pretrain = int(False)
@@ -49,7 +40,7 @@ vocab_size = [5000, 0, 0]
 
 # ===Basic Param===
 data_shuffle = int(False)
-model_type = 'vanilla'
+model_type = 'pineapple'
 gen_init = 'normal'
 dis_init = 'uniform'
 samples_num = 10000
@@ -64,7 +55,8 @@ adv_log_step = 1
 ADV_g_step = 1
 rollout_num = 16
 gen_embed_dim = 32
-gen_hidden_dim = 32
+gen_num_heads = 2
+gen_nlayers = 3
 
 # ===Discriminator===
 d_step = 5
@@ -72,7 +64,8 @@ d_epoch = 3
 ADV_d_step = 4
 ADV_d_epoch = 2
 dis_embed_dim = 64
-dis_hidden_dim = 64
+dis_num_heads = 2
+dis_nlayers = 3
 
 # ===Metrics===
 use_nll_oracle = int(True)
@@ -118,6 +111,8 @@ args = [
     '--rollout_num', rollout_num,
     '--gen_embed_dim', gen_embed_dim,
     '--gen_hidden_dim', gen_hidden_dim,
+    '--gen_num_heads', gen_num_heads,
+    '--gen-nlayers', gen_nlayers,
 
     # Discriminator
     '--d_step', d_step,
@@ -126,8 +121,8 @@ args = [
     '--adv_d_epoch', ADV_d_epoch,
     '--dis_embed_dim', dis_embed_dim,
     '--dis_hidden_dim', dis_hidden_dim,
-
-    #
+    '--dis_num_heads', dis_num_heads,
+    '--dis-nlayers', dis_nlayers,
 
     # Metrics
     '--use_nll_oracle', use_nll_oracle,
