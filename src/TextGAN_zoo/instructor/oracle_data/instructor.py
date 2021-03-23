@@ -254,7 +254,7 @@ class BasicInstructor:
             else:
                 self.oracle_list[i].load_state_dict(torch.load(oracle_path, map_location=torch.device('cpu')))
 
-class BasicSAInstructor:
+class SelfAttentionInstructor:
     def __init__(self, opt):
         self.log = create_logger(__name__, silent=False, to_disk=True,
                                  log_file=cfg.log_filename if cfg.if_test

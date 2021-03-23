@@ -110,11 +110,11 @@ class LSTMGenerator(nn.Module):
             return h, c
 
 
-class TransformerEncoder(nn.Module):
+class TransformerGenerator(nn.Module):
 
-    def __init__(self, embedding_dim, hidden_dim, num_heads=4, nlayers=3, dropout=0.5, vocab_size, max_seq_len, padding_idx, gpu=False):
-        super(TransformerEncoder, self).__init__()
-        self.model_type = 'TransformerEncoder'
+    def __init__(self, embedding_dim, hidden_dim, vocab_size, max_seq_len, padding_idx, num_heads=4, nlayers=3, dropout=0.5, gpu=False):
+        super(TransformerGenerator, self).__init__()
+        self.model_type = 'TransformerGenerator'
         # Compared to pytorch transformer_tutorial: ntoken = vocab_size    and  ninp= embedding_dim  nhid=hidden_dim
 
         self.embedding_dim = embedding_dim
@@ -125,6 +125,7 @@ class TransformerEncoder(nn.Module):
 
         self.encoder = nn.Embedding(vocab_size, embedding_dim, padding_idx=padding_idx)
         self.pos_encoder = PositionalEncoding(embedding_dim, dropout)
+        print(f"embed_dim: {embedding_dim}, hidden_dim: {hidden_dim}, num_heads:{num_heads}")
         encoder_layers = TransformerEncoderLayer(embedding_dim, num_heads, hidden_dim, dropout)
         self.transformer_encoder = TransformerEncoder(encoder_layers, nlayers)
         
@@ -168,6 +169,7 @@ class TransformerEncoder(nn.Module):
         samples = samples[:num_samples]
         return samples
 
+    #Replace init_hidden, not sure it's working properly
     def init_weights(self):
         initrange = 0.1
         self.encoder.weight.data.uniform_(-initrange, initrange)
@@ -189,7 +191,6 @@ class TransformerEncoder(nn.Module):
                     torch.nn.init.normal_(param, std=stddev)
                 elif cfg.gen_init == 'truncated_normal':
                     truncated_normal_(param, std=stddev)
-    
 
 
 class PositionalEncoding(nn.Module):

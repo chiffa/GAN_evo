@@ -80,8 +80,9 @@ def program_config(parser):
     parser.add_argument('--mem_slots', default=cfg.mem_slots, type=int)
     parser.add_argument('--num_heads', default=cfg.num_heads, type=int)
     parser.add_argument('--head_size', default=cfg.head_size, type=int)
-    parser.add_argument('--gen_nlayers', default=cfg.nlayers, type=int)
+    parser.add_argument('--gen_nlayers', default=cfg.gen_nlayers, type=int)
     parser.add_argument('--gen_num_heads', default=cfg.gen_num_heads, type=int)
+    parser.add_argument('--dropout', default=cfg.dropout, type=int)
 
     # Discriminator
     parser.add_argument('--d_step', default=cfg.d_step, type=int)
@@ -163,7 +164,7 @@ if __name__ == '__main__':
         'maligan': MaliGANInstructor,
         'jsdgan': JSDGANInstructor,
         'dpgan': DPGANInstructor,
-        'sa_dpgan': SADPGANInstructor
+        'sa_dpgan': SADPGANInstructor,
         'relgan': RelGANInstructor,
         'sentigan': SentiGANInstructor,
         'evogan': EvoGANInstructor,

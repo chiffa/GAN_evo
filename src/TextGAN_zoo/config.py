@@ -95,30 +95,30 @@ use_ppl = False
 # ===Generator===
 ADV_g_step = 1  # 1
 rollout_num = 16  # 4
-gen_embed_dim = 32  # 32
-gen_hidden_dim = 32  # 32
+gen_embed_dim = 64  # 32
+gen_hidden_dim = 16  # 32
 goal_size = 16  # LeakGAN-16
 step_size = 4  # LeakGAN-4
 
 mem_slots = 1  # RelGAN-1
 head_size = 256  # RelGAN-256
-num_heads = 2  # RelGAN-2  , 
+num_heads = 4  # RelGAN-2  , 
 
-gen_num_heads = 2 #SA_xxxxGAN
+gen_num_heads = 4 #SA_xxxxGAN
 gen_nlayers = 3 #SA_xxxGAN
 dropout = 0.5 #SA_xxxGAN
 
 # ===Discriminator===
 d_step = 5  # SeqGAN-50, LeakGAN-5
-d_epoch = 3  # SeqGAN,LeakGAN-3
+d_epoch = 2  # SeqGAN,LeakGAN-3
 ADV_d_step = 5  # SeqGAN,LeakGAN,RelGAN-5
 ADV_d_epoch = 3  # SeqGAN,LeakGAN-3
 
 dis_embed_dim = 64
-dis_hidden_dim = 64
+dis_hidden_dim = 16
 num_rep = 64  # RelGAN
 
-dis_num_heads = 2 #SA_xxxxGAN
+dis_num_heads = 4 #SA_xxxxGAN
 dis_nlayers = 3 #SA_xxxGAN
 
 # ===log===
@@ -198,7 +198,7 @@ def init_param(opt):
         MLE_train_epoch, ADV_train_epoch, inter_epoch, batch_size, max_seq_len, start_letter, padding_idx, \
         gen_lr, gen_adv_lr, dis_lr, clip_norm, pre_log_step, adv_log_step, train_data, test_data, temp_adpt, \
         temperature, oracle_pretrain, gen_pretrain, dis_pretrain, ADV_g_step, rollout_num, gen_embed_dim, \
-        gen_hidden_dim, goal_size, step_size, mem_slots, num_heads, head_size, gen_num_heads, gen_nlayers d_step, dropout, d_epoch, \
+        gen_hidden_dim, goal_size, step_size, mem_slots, num_heads, head_size, gen_num_heads, gen_nlayers, d_step, dropout, d_epoch, \
         ADV_d_step, ADV_d_epoch, dis_embed_dim, dis_hidden_dim, num_rep, dis_num_heads, dis_nlayers, log_filename, save_root, \
         signal_file, tips, save_samples_root, save_model_root, if_real_data, pretrained_gen_path, \
         pretrained_dis_path, pretrain_root, if_test, dataset, PRE_clas_epoch, oracle_samples_path, \

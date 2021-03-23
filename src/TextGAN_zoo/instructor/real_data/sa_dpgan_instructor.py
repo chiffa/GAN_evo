@@ -2,20 +2,20 @@ import torch
 import torch.optim as optim
 
 import config as cfg
-from instructor.real_data.instructor import BasicSAInstructor
+from instructor.real_data.instructor import SelfAttentionInstructor
 from models.SA_DPGAN_D import SA_DPGAN_D
 from models.SA_DPGAN_G import SA_DPGAN_G
 
 
-class SADPGANInstructor(BasicSAInstructor):
+class SADPGANInstructor(SelfAttentionInstructor):
     def __init__(self, opt):
         super(SADPGANInstructor, self).__init__(opt)
 
         # generator, discriminator
-        self.gen = SA_DPGAN_G(cfg.gen_embed_dim, cfg.gen_hidden_dim, num_heads=cfg.gen_num_heads, nlayers=cfg.gen_nlayers, dropout=cfg.dropout, cfg.vocab_size, cfg.max_seq_len,
-                           cfg.padding_idx, gpu=cfg.CUDA)
-        self.dis = SA_DPGAN_D(cfg.gen_embed_dim, cfg.gen_hidden_dim, num_heads=cfg.dis_num_heads, nlayers=cfg.dis_nlayers, dropout=cfg.dropout, cfg.vocab_size, cfg.max_seq_len,
-                           cfg.padding_idx, gpu=cfg.CUDA)
+        self.gen = SA_DPGAN_G(cfg.gen_embed_dim, cfg.gen_hidden_dim, cfg.vocab_size, cfg.max_seq_len,
+                           cfg.padding_idx, num_heads=cfg.gen_num_heads, nlayers=cfg.gen_nlayers, dropout=cfg.dropout, gpu=cfg.CUDA)
+        self.dis = SA_DPGAN_D(cfg.gen_embed_dim, cfg.gen_hidden_dim, cfg.vocab_size, cfg.max_seq_len,
+                           cfg.padding_idx, num_heads=cfg.dis_num_heads, nlayers=cfg.dis_nlayers, dropout=cfg.dropout, gpu=cfg.CUDA)
         self.init_model()
 
         # Optimizer

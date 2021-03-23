@@ -55,8 +55,9 @@ adv_log_step = 1
 ADV_g_step = 1
 rollout_num = 16
 gen_embed_dim = 32
-gen_num_heads = 2
-gen_nlayers = 3
+gen_hidden_dim = 32
+gen_num_heads = 4
+gen_nlayers = 2
 
 # ===Discriminator===
 d_step = 5
@@ -64,8 +65,9 @@ d_epoch = 3
 ADV_d_step = 4
 ADV_d_epoch = 2
 dis_embed_dim = 64
-dis_num_heads = 2
-dis_nlayers = 3
+dis_hidden_dim = 64
+dis_num_heads = 4
+dis_nlayers = 2
 
 # ===Metrics===
 use_nll_oracle = int(True)
@@ -112,7 +114,7 @@ args = [
     '--gen_embed_dim', gen_embed_dim,
     '--gen_hidden_dim', gen_hidden_dim,
     '--gen_num_heads', gen_num_heads,
-    '--gen-nlayers', gen_nlayers,
+    '--gen_nlayers', gen_nlayers,
 
     # Discriminator
     '--d_step', d_step,
@@ -122,7 +124,7 @@ args = [
     '--dis_embed_dim', dis_embed_dim,
     '--dis_hidden_dim', dis_hidden_dim,
     '--dis_num_heads', dis_num_heads,
-    '--dis-nlayers', dis_nlayers,
+    '--dis_nlayers', dis_nlayers,
 
     # Metrics
     '--use_nll_oracle', use_nll_oracle,

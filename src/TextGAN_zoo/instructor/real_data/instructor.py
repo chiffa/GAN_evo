@@ -266,7 +266,7 @@ class BasicInstructor:
         if cfg.CUDA:
             self.gen.temperature.data = self.gen.temperature.data.cuda()
 
-class BasicSAInstructor:
+class SelfAttentionInstructor:
     def __init__(self, opt):
         self.log = create_logger(__name__, silent=False, to_disk=True,
                                  log_file=cfg.log_filename if cfg.if_test

@@ -1,12 +1,12 @@
 import torch
 import torch.nn.functional as F
 
-from models.generator import TransformerEncoder
+from models.generator import TransformerGenerator
 
 
-class SA_DPGAN_G(TransformerEncoder):
-    def __init__(self, embedding_dim, hidden_dim, num_heads=4, nlayers=3, dropout=0.5, vocab_size, max_seq_len, padding_idx, gpu=False):
-        super(SA_DPGAN_G, self).__init__(self, embedding_dim, num_heads, nhid, nlayers, dropout, vocab_size, max_seq_len, padding_idx, gpu)
+class SA_DPGAN_G(TransformerGenerator):
+    def __init__(self, embedding_dim, hidden_dim, vocab_size, max_seq_len, padding_idx, num_heads=4, nlayers=3, dropout=0.5, gpu=False):
+        super(SA_DPGAN_G, self).__init__(embedding_dim, hidden_dim, vocab_size, max_seq_len, padding_idx, num_heads, nlayers, dropout, gpu)
         self.name = 'sa_dpgan_g'
 
     def sample_teacher_forcing(self, inp):
