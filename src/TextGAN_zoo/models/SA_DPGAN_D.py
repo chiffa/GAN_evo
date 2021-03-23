@@ -19,7 +19,8 @@ class SA_DPGAN_D(TransformerGenerator):
         inp, target = GenDataIter.prepare(samples, cfg.CUDA)
 
         src_mask = self.generate_square_subsequent_mask(self.max_seq_len)
-        pred = self.forward(inp, src_mask)
+        #pred = self.forward(inp, src_mask)
+        pred = self.forward(inp)
 
         word_reward = F.nll_loss(pred, target.view(-1), reduction='none').view(batch_size, -1)
         sentence_reward = torch.mean(word_reward, dim=-1, keepdim=True)
