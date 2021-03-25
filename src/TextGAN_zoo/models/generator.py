@@ -110,6 +110,7 @@ class LSTMGenerator(nn.Module):
             return h, c
 
 
+# code adapted from https://pytorch.org/tutorials/beginner/transformer_tutorial.html
 class TransformerGenerator(nn.Module):
 
     def __init__(self, embedding_dim, hidden_dim, vocab_size, max_seq_len, padding_idx, num_heads=4, nlayers=3, dropout=0.5, gpu=False):

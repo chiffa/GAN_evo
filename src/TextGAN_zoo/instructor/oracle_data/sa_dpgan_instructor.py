@@ -6,7 +6,7 @@ from instructor.oracle_data.instructor import SelfAttentionInstructor
 from models.SA_DPGAN_D import SA_DPGAN_D
 from models.SA_DPGAN_G import SA_DPGAN_G
 
-
+#TODO: Debugging needed, issues with mini-batches sizes and loss function
 class SADPGANInstructor(SelfAttentionInstructor):
     def __init__(self, opt):
         super(SADPGANInstructor, self).__init__(opt)
