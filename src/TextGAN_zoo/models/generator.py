@@ -45,30 +45,28 @@ class LSTMGenerator(nn.Module):
         :param hidden: (h, c)
         :param need_hidden: if return hidden, use for sampling
         """
-        print("INP:")
-        print(inp.size())
+        #print("INP:")
+        #print(inp.size())
         emb = self.embeddings(inp)  # batch_size * len * embedding_dim
-        print("EMB1:")
-        print(emb.size())
+        #print("EMB1:")
+        #print(emb.size())
         if len(inp.size()) == 1:
             emb = emb.unsqueeze(1)  # batch_size * 1 * embedding_dim
-        
-        print("EMB2:")
-        print(emb.size())
-
+        #print("EMB2:")
+        #print(emb.size())
         out, hidden = self.lstm(emb, hidden)  # out: batch_size * seq_len * hidden_dim
-        print("OUT1:")
-        print(out.size())
+        #print("OUT1:")
+        #print(out.size())
         out = out.contiguous().view(-1, self.hidden_dim)  # out: (batch_size * len) * hidden_dim
-        print("OUT2:")
-        print(out.size())
+        #print("OUT2:")
+        #print(out.size())
         out = self.lstm2out(out)  # (batch_size * seq_len) * vocab_size
-        print("OUT3:")
-        print(out.size())
+        #print("OUT3:")
+        #print(out.size())
         # out = self.temperature * out  # temperature
         pred = self.softmax(out)
-        print("PRED:")
-        print(pred.size())
+        #print("PRED:")
+        #print(pred.size())
 
         if need_hidden:
             return pred, hidden

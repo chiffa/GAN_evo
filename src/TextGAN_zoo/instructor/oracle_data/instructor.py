@@ -15,6 +15,7 @@ import torch.nn as nn
 import config as cfg
 from metrics.nll import NLL
 from models.Oracle import Oracle
+from models.Oracle import SAOracle
 from utils.data_loader import GenDataIter
 from utils.data_utils import create_multi_oracle
 from utils.helpers import Signal, create_logger, create_oracle, get_fixed_temperature
@@ -248,14 +249,13 @@ class BasicInstructor:
         else:
             self.oracle.load_state_dict(torch.load(cfg.oracle_state_dict_path, map_location=torch.device('cpu')))
         for i in range(cfg.k_label):
-            oracle_path = cfg.multi_oracle_state_dict_path.format(i)
+            state_dict_path = cfg.multi_oracle_state_dict_path.format(i)
             if cfg.CUDA:
-                self.oracle_list[i].load_state_dict(torch.load(oracle_path, map_location='cuda:{}'.format(cfg.device)))
+                self.oracle_list[i].load_state_dict(torch.load(state_dict_path, map_location='cuda:{}'.format(cfg.device)))
             else:
-                self.oracle_list[i].load_state_dict(torch.load(oracle_path, map_location=torch.device('cpu')))
+                self.oracle_list[i].load_state_dict(torch.load(state_dict_path, map_location=torch.device('cpu')))
 
 
-#TODO: Should be modified to better fit the training of Self Attention gans
 class SelfAttentionInstructor:
     def __init__(self, opt):
         self.log = create_logger(__name__, silent=False, to_disk=True,
@@ -265,8 +265,8 @@ class SelfAttentionInstructor:
         self.opt = opt
 
         # oracle, generator, discriminator
-        self.oracle = Oracle(4, 4, cfg.vocab_size, cfg.max_seq_len, cfg.padding_idx, gpu=cfg.CUDA)
-        self.oracle_list = [Oracle(4, 4, cfg.vocab_size, cfg.max_seq_len, 
+        self.oracle = SAOracle(4, 4, cfg.vocab_size, cfg.max_seq_len, cfg.padding_idx, gpu=cfg.CUDA)
+        self.oracle_list = [SAOracle(4, 4, cfg.vocab_size, cfg.max_seq_len, 
             cfg.padding_idx, gpu=cfg.CUDA) for _ in range(cfg.k_label)]
 
         self.dis = None
@@ -480,13 +480,15 @@ class SelfAttentionInstructor:
                 break
 
         # Load Oracle state dict
+        oracle_state_dict_path = cfg.sa_oracle_state_dict_path if sa else cfg.oracle_state_dict_path
+        mutli_oracle_path = cfg.multi_sa_oracle_state_dict_path if sa else cfg.multi_oracle_state_dict_path
         if cfg.CUDA:
-            self.oracle.load_state_dict(torch.load(cfg.oracle_state_dict_path, map_location='cuda:{}'.format(cfg.device)))
+            self.oracle.load_state_dict(torch.load(oracle_state_dict_path, map_location='cuda:{}'.format(cfg.device)))
         else:
-            self.oracle.load_state_dict(torch.load(cfg.oracle_state_dict_path, map_location=torch.device('cpu')))
+            self.oracle.load_state_dict(torch.load(oracle_state_dict_path, map_location=torch.device('cpu')))
         for i in range(cfg.k_label):
-            oracle_path = cfg.multi_oracle_state_dict_path.format(i)
+            mutli_oracle_state_dict_path_i = mutli_oracle_path.format(i)
             if cfg.CUDA:
-                self.oracle_list[i].load_state_dict(torch.load(oracle_path, map_location='cuda:{}'.format(cfg.device)))
+                self.oracle_list[i].load_state_dict(torch.load(mutli_oracle_state_dict_path_i, map_location='cuda:{}'.format(cfg.device)))
             else:
-                self.oracle_list[i].load_state_dict(torch.load(oracle_path, map_location=torch.device('cpu')))
+                self.oracle_list[i].load_state_dict(torch.load(mutli_oracle_state_dict_path_i, map_location=torch.device('cpu')))

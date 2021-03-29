@@ -23,6 +23,7 @@ oracle_pretrain = True  # True
 gen_pretrain = False
 dis_pretrain = False
 clas_pretrain = False
+sa = False #Self attention
 
 run_model = 'catgan'  # seqgan, leakgan, maligan, jsdgan, relgan, evogan, sentigan, catgan, dpgan, dgsan, cot
 k_label = 2  # num of labels, >=2
@@ -177,6 +178,11 @@ oracle_samples_path = 'pretrain/oracle_data/oracle_lstm_samples_{}.pt'
 multi_oracle_state_dict_path = 'pretrain/oracle_data/oracle{}_lstm.pt'
 multi_oracle_samples_path = 'pretrain/oracle_data/oracle{}_lstm_samples_{}.pt'
 
+sa_oracle_state_dict_path = 'pretrain/oracle_data/oracle_transformer.pt'
+sa_oracle_samples_path = 'pretrain/oracle_data/oracle_transformer_samples_{}.pt'
+multi_sa_oracle_state_dict_path = 'pretrain/oracle_data/oracle{}_transformer.pt'
+multi_sa_oracle_samples_path = 'pretrain/oracle_data/oracle{}_transformer_samples_{}.pt'
+
 pretrain_root = 'pretrain/{}/'.format(dataset if if_real_data else 'oracle_data')
 pretrained_gen_path = pretrain_root + 'gen_MLE_pretrain_{}_{}_sl{}_sn{}.pt'.format(run_model, model_type, max_seq_len,
                                                                                    samples_num)
@@ -194,7 +200,7 @@ if samples_num == 5000 or samples_num == 2000:
 
 # Init settings according to parser
 def init_param(opt):
-    global run_model, model_type, loss_type, CUDA, device, data_shuffle, samples_num, vocab_size, \
+    global run_model, model_type, loss_type, sa, CUDA, device, data_shuffle, samples_num, vocab_size, \
         MLE_train_epoch, ADV_train_epoch, inter_epoch, batch_size, max_seq_len, start_letter, padding_idx, \
         gen_lr, gen_adv_lr, dis_lr, clip_norm, pre_log_step, adv_log_step, train_data, test_data, temp_adpt, \
         temperature, oracle_pretrain, gen_pretrain, dis_pretrain, ADV_g_step, rollout_num, gen_embed_dim, \
@@ -217,6 +223,7 @@ def init_param(opt):
     eval_type = opt.eval_type
     d_type = opt.d_type
     if_real_data = True if opt.if_real_data == 1 else False
+    sa = opt.sa
     CUDA = True if opt.cuda == 1 else False
     device = opt.device
     devices = opt.devices
@@ -324,8 +331,12 @@ def init_param(opt):
     cat_test_data = 'dataset/testdata/' + dataset + '_cat{}_test.txt'
 
     if max_seq_len == 40:
-        oracle_samples_path = 'pretrain/oracle_data/oracle_lstm_samples_{}_sl40.pt'
-        multi_oracle_samples_path = 'pretrain/oracle_data/oracle{}_lstm_samples_{}_sl40.pt'
+        if not sa:
+            oracle_samples_path = 'pretrain/oracle_data/oracle_lstm_samples_{}_sl40.pt'
+            multi_oracle_samples_path = 'pretrain/oracle_data/oracle{}_lstm_samples_{}_sl40.pt'
+        else:
+            oracle_samples_path = 'pretrain/oracle_data/oracle_transformer_samples_{}_sl40.pt'
+            multi_oracle_samples_path = 'pretrain/oracle_data/oracle{}_transformer_samples_{}_sl40.pt'
 
     pretrain_root = 'pretrain/{}/'.format(dataset if if_real_data else 'oracle_data')
     pretrained_gen_path = pretrain_root + 'gen_MLE_pretrain_{}_{}_sl{}_sn{}.pt'.format(run_model, model_type,

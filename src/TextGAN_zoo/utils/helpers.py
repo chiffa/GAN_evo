@@ -61,22 +61,28 @@ def create_logger(name, silent=False, to_disk=False, log_file=None):
 def create_oracle(sa=False):
     """Create a new Oracle model and Oracle's samples"""
     import config as cfg
-    from models.Oracle import Oracle
+    from models.Oracle import Oracle, SAOracle
 
     print('Creating Oracle...')
-    oracle = Oracle(cfg.gen_embed_dim, cfg.gen_hidden_dim, cfg.vocab_size,
-                    cfg.max_seq_len, cfg.padding_idx, gpu=cfg.CUDA)
+    if not sa:
+        oracle = Oracle(cfg.gen_embed_dim, cfg.gen_hidden_dim, cfg.vocab_size,
+                        cfg.max_seq_len, cfg.padding_idx, gpu=cfg.CUDA)
+    else:
+        oracle = SAOracle(cfg.gen_embed_dim, cfg.gen_hidden_dim, cfg.vocab_size,
+                        cfg.max_seq_len, cfg.padding_idx, gpu=cfg.CUDA)
     if cfg.CUDA:
         oracle = oracle.cuda()
 
-    torch.save(oracle.state_dict(), cfg.oracle_state_dict_path)
+    state_dict_path = cfg.sa_oracle_state_dict_path if sa else cfg.oracle_state_dict_path
+    samples_path = cfg.sa_oracle_samples_path if sa else cfg.oracle_samples_path
 
+    torch.save(oracle.state_dict(), state_dict_path)
     big_samples = oracle.sample(cfg.samples_num, 4 * cfg.batch_size)
     # large
-    torch.save(big_samples, cfg.oracle_samples_path.format(cfg.samples_num))
+    torch.save(big_samples, samples_path.format(cfg.samples_num))
     # small
     torch.save(oracle.sample(cfg.samples_num // 2, 4 * cfg.batch_size),
-               cfg.oracle_samples_path.format(cfg.samples_num // 2))
+                samples_path.format(cfg.samples_num // 2))
 
     oracle_data = GenDataIter(big_samples)
     mle_criterion = nn.NLLLoss()

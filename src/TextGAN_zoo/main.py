@@ -26,6 +26,7 @@ def program_config(parser):
     parser.add_argument('--eval_type', default=cfg.eval_type, type=str)
     parser.add_argument('--d_type', default=cfg.d_type, type=str)
     parser.add_argument('--if_real_data', default=cfg.if_real_data, type=int)
+    parser.add_argument('--sa', default=cfg.sa, type=int)
     parser.add_argument('--cuda', default=cfg.CUDA, type=int)
     parser.add_argument('--device', default=cfg.device, type=int)
     parser.add_argument('--devices', default=cfg.devices, type=str)

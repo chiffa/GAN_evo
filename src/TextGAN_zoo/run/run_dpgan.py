@@ -35,11 +35,11 @@ scriptname = 'main.py'
 if_test = int(False)
 run_model = 'dpgan'
 CUDA = int(False)
-oracle_pretrain = int(False)
+oracle_pretrain = int(True)
 gen_pretrain = int(False)
 dis_pretrain = int(False)
-MLE_train_epoch = 120
-ADV_train_epoch = 200
+MLE_train_epoch = 10
+ADV_train_epoch = 2
 tips = 'DPGAN experiments'
 
 # ===Oracle  or Real===

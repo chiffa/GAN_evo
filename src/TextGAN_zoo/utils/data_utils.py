@@ -10,8 +10,9 @@ from time import strftime, localtime
 
 import torch.nn as nn
 
+import config as cfg
 from metrics.nll import NLL
-from models.Oracle import Oracle
+from models.Oracle import Oracle, SAOracle
 from utils.data_loader import GenDataIter
 from utils.text_process import *
 
@@ -19,16 +20,24 @@ from utils.text_process import *
 def create_multi_oracle(number, sa=False):
     for i in range(number):
         print('Creating Oracle %d...' % i)
-        oracle = Oracle(cfg.gen_embed_dim, cfg.gen_hidden_dim, cfg.vocab_size,
+        if not sa:
+            oracle = Oracle(cfg.gen_embed_dim, cfg.gen_hidden_dim, cfg.vocab_size,
                         cfg.max_seq_len, cfg.padding_idx, gpu=cfg.CUDA)
+        else:
+            oracle = SAOracle(cfg.gen_embed_dim, cfg.gen_hidden_dim, cfg.vocab_size,
+                        cfg.max_seq_len, cfg.padding_idx, gpu=cfg.CUDA)
+        
         if cfg.CUDA:
             oracle = oracle.cuda()
         large_samples = oracle.sample(cfg.samples_num, 4 * cfg.batch_size)
         small_samples = oracle.sample(cfg.samples_num // 2, 4 * cfg.batch_size)
 
-        torch.save(oracle.state_dict(), cfg.multi_oracle_state_dict_path.format(i))
-        torch.save(large_samples, cfg.multi_oracle_samples_path.format(i, cfg.samples_num))
-        torch.save(small_samples, cfg.multi_oracle_samples_path.format(i, cfg.samples_num // 2))
+        dict_path = cfg.multi_sa_oracle_state_dict_path if sa else cfg.multi_oracle_state_dict_path
+        samples_path = cfg.multi_sa_oracle_samples_path if sa else cfg.multi_oracle_samples_path
+
+        torch.save(oracle.state_dict(), dict_path.format(i))
+        torch.save(large_samples, samples_path.format(i, cfg.samples_num))
+        torch.save(small_samples, samples_path.format(i, cfg.samples_num // 2))
 
         oracle_data = GenDataIter(large_samples)
         mle_criterion = nn.NLLLoss()
