@@ -265,16 +265,16 @@ class SelfAttentionInstructor:
         self.opt = opt
 
         # oracle, generator, discriminator
-        self.oracle = Oracle(32, 32, cfg.vocab_size, cfg.max_seq_len,
-                             cfg.padding_idx, gpu=cfg.CUDA)
-        self.oracle_list = [Oracle(32, 32, cfg.vocab_size, cfg.max_seq_len,
-                                   cfg.padding_idx, gpu=cfg.CUDA) for _ in range(cfg.k_label)]
+        self.oracle = Oracle(4, 4, cfg.vocab_size, cfg.max_seq_len, cfg.padding_idx, gpu=cfg.CUDA)
+        self.oracle_list = [Oracle(4, 4, cfg.vocab_size, cfg.max_seq_len, 
+            cfg.padding_idx, gpu=cfg.CUDA) for _ in range(cfg.k_label)]
 
         self.dis = None
         self.clas = None
+        self.sa = True
 
         self.show_config()
-        self.check_oracle()  # Create Oracle models if not exist
+        self.check_oracle(sa=self.sa)  # Create Oracle models if not exist
         # DataLoader
         self.oracle_samples = torch.load(cfg.oracle_samples_path.format(cfg.samples_num))
         self.oracle_samples_list = [torch.load(cfg.multi_oracle_samples_path.format(i, cfg.samples_num))
@@ -303,7 +303,7 @@ class SelfAttentionInstructor:
     def init_model(self):
         if cfg.oracle_pretrain:
             if not os.path.exists(cfg.oracle_state_dict_path):
-                create_oracle()
+                create_oracle(sa=self.sa)
             if cfg.CUDA:
                 self.oracle.load_state_dict(torch.load(cfg.oracle_state_dict_path, map_location='cuda:{}'.format(cfg.device)))
             else:
@@ -424,7 +424,7 @@ class SelfAttentionInstructor:
             self.nll_div.reset(self.gen, gen_data.loader)
 
         if fmt_str:
-            return ', '.join(['%s = %s' % (metric.get_name(), metric.get_score()) for metric in self.all_metrics])
+            return ', '.join(['%s = %s' % (metric.get_name(), metric.get_score(self.sa)) for metric in self.all_metrics])
         else:
             return [metric.get_score() for metric in self.all_metrics]
 
@@ -464,14 +464,14 @@ class SelfAttentionInstructor:
         if cfg.CUDA:
             self.gen.temperature.data = self.gen.temperature.data.cuda()
 
-    def check_oracle(self):
+    def check_oracle(self, sa=False):
         if not cfg.oracle_pretrain:
-            create_oracle()
-            create_multi_oracle(cfg.k_label)
+            create_oracle(sa)
+            create_multi_oracle(cfg.k_label, sa)
 
         # General text generation Oracle model
         if not os.path.exists(cfg.oracle_samples_path.format(cfg.samples_num)) or not cfg.oracle_pretrain:
-            create_oracle()
+            create_oracle(sa)
 
         # Category text generation Oracle models
         for i in range(cfg.k_label):

@@ -26,7 +26,7 @@ class NLL(Metrics):
         self.gpu = gpu
         self.criterion = nn.NLLLoss()
 
-    def get_score(self):
+    def get_score(self, sa=False):
         """note that NLL score need the updated model and data loader each time, use reset() before get_score()"""
         if not self.if_use:
             return 0
@@ -38,7 +38,7 @@ class NLL(Metrics):
             return self.cal_nll_with_label(self.model, self.data_loader, self.label_i,
                                            self.criterion, self.gpu)
         else:
-            return self.cal_nll(self.model, self.data_loader, self.criterion, self.gpu)
+            return self.cal_nll(self.model, self.data_loader, self.criterion, self.gpu, sa=sa)
 
     def reset(self, model=None, data_loader=None, label_i=None, leak_dis=None):
         self.model = model
@@ -47,7 +47,7 @@ class NLL(Metrics):
         self.leak_dis = leak_dis
 
     @staticmethod
-    def cal_nll(model, data_loader, criterion, gpu=cfg.CUDA):
+    def cal_nll(model, data_loader, criterion, gpu=cfg.CUDA, sa=False):
         """NLL score for general text generation model."""
         total_loss = 0
         with torch.no_grad():
@@ -55,9 +55,12 @@ class NLL(Metrics):
                 inp, target = data['input'], data['target']
                 if gpu:
                     inp, target = inp.cuda(), target.cuda()
-
-                hidden = model.init_hidden(data_loader.batch_size)
-                pred = model.forward(inp, hidden)
+                if not sa:
+                    hidden = model.init_hidden(data_loader.batch_size)
+                    pred = model.forward(inp, hidden)
+                else:
+                    model.init_weights()
+                    pred = model.forward(inp)
                 loss = criterion(pred, target.view(-1))
                 total_loss += loss.item()
         return round(total_loss / len(data_loader), 4)

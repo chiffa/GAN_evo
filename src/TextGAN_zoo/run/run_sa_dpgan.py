@@ -54,9 +54,9 @@ adv_log_step = 1
 # ===Generator===
 ADV_g_step = 1
 rollout_num = 16
-gen_embed_dim = 32
-gen_hidden_dim = 32
-gen_num_heads = 4
+gen_embed_dim = 4
+gen_hidden_dim = 4
+gen_num_heads = 2
 gen_nlayers = 2
 
 # ===Discriminator===
@@ -66,7 +66,7 @@ ADV_d_step = 4
 ADV_d_epoch = 2
 dis_embed_dim = 64
 dis_hidden_dim = 64
-dis_num_heads = 4
+dis_num_heads = 2
 dis_nlayers = 2
 
 # ===Metrics===

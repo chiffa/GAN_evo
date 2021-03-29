@@ -58,7 +58,7 @@ def create_logger(name, silent=False, to_disk=False, log_file=None):
     return log
 
 
-def create_oracle():
+def create_oracle(sa=False):
     """Create a new Oracle model and Oracle's samples"""
     import config as cfg
     from models.Oracle import Oracle
@@ -80,7 +80,7 @@ def create_oracle():
 
     oracle_data = GenDataIter(big_samples)
     mle_criterion = nn.NLLLoss()
-    groud_truth = NLL.cal_nll(oracle, oracle_data.loader, mle_criterion)
+    groud_truth = NLL.cal_nll(oracle, oracle_data.loader, mle_criterion, sa=sa)
     print('NLL_Oracle Groud Truth: %.4f' % groud_truth)
 
 

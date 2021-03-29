@@ -45,15 +45,30 @@ class LSTMGenerator(nn.Module):
         :param hidden: (h, c)
         :param need_hidden: if return hidden, use for sampling
         """
+        print("INP:")
+        print(inp.size())
         emb = self.embeddings(inp)  # batch_size * len * embedding_dim
+        print("EMB1:")
+        print(emb.size())
         if len(inp.size()) == 1:
             emb = emb.unsqueeze(1)  # batch_size * 1 * embedding_dim
+        
+        print("EMB2:")
+        print(emb.size())
 
         out, hidden = self.lstm(emb, hidden)  # out: batch_size * seq_len * hidden_dim
+        print("OUT1:")
+        print(out.size())
         out = out.contiguous().view(-1, self.hidden_dim)  # out: (batch_size * len) * hidden_dim
+        print("OUT2:")
+        print(out.size())
         out = self.lstm2out(out)  # (batch_size * seq_len) * vocab_size
+        print("OUT3:")
+        print(out.size())
         # out = self.temperature * out  # temperature
         pred = self.softmax(out)
+        print("PRED:")
+        print(pred.size())
 
         if need_hidden:
             return pred, hidden
@@ -113,11 +128,12 @@ class LSTMGenerator(nn.Module):
 # code adapted from https://pytorch.org/tutorials/beginner/transformer_tutorial.html
 class TransformerGenerator(nn.Module):
 
-    def __init__(self, embedding_dim, hidden_dim, vocab_size, max_seq_len, padding_idx, num_heads=4, nlayers=3, dropout=0.5, gpu=False):
+    def __init__(self, embedding_dim, hidden_dim, vocab_size, max_seq_len, padding_idx, num_heads=2, nlayers=2, dropout=0.5, gpu=False):
         super(TransformerGenerator, self).__init__()
         self.model_type = 'TransformerGenerator'
         # Compared to pytorch transformer_tutorial: ntoken = vocab_size    and  ninp= embedding_dim  nhid=hidden_dim
 
+        self.hidden_dim = hidden_dim
         self.embedding_dim = embedding_dim
         self.max_seq_len = max_seq_len
         self.vocab_size = vocab_size
@@ -140,13 +156,30 @@ class TransformerGenerator(nn.Module):
         mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
         return mask
 
-    def forward(self, src):
-        src = self.encoder(src) * math.sqrt(self.embedding_dim)
+    def forward(self, inp):
+        #print("SRC1:")
+        #print(inp.size())
+        src = self.encoder(inp) * math.sqrt(self.embedding_dim)
+        #print("SRC2:")
+        #print(src.size())
+        if len(inp.size()) == 1:
+            src = src.unsqueeze(1)  # batch_size * 1 * embedding_dim
         src = self.pos_encoder(src)
+        #print("SRC3:")
+        #print(src.size())
         output = self.transformer_encoder(src)
+        #print("OUT1:")
+        #print(output.size())
+        output = output.contiguous().view(-1, self.hidden_dim)  # out: (batch_size * len) * hidden_dim
+        #print("OUT2:")
+        #print(output.size())
         output = self.decoder(output)
-        output = self.softmax(output)
-        return output
+        #print("OUT2: ")
+        #print(output.size())
+        pred = self.softmax(output)
+        #print("PRED")
+        #print(pred.size())
+        return pred
 
 
     #def forward(self, src, src_mask):
@@ -174,6 +207,7 @@ class TransformerGenerator(nn.Module):
             for i in range(self.max_seq_len):
                 #out = self.forward(inp, self.generate_square_subsequent_mask(self.max_seq_len))  # out: batch_size * vocab_size
                 out = self.forward(inp)  # out: batch_size * vocab_size
+                #print(out.size())
                 next_token = torch.multinomial(torch.exp(out), 1)  # batch_size * 1 (sampling from each row)
                 samples[b * batch_size:(b + 1) * batch_size, i] = next_token.view(-1)
                 inp = next_token.view(-1)
@@ -190,18 +224,8 @@ class TransformerGenerator(nn.Module):
     def init_oracle(self):
         for param in self.parameters():
             if param.requires_grad:
-                torch.nn.init.normal_(param, mean=0, std=1)
-
-    def init_params(self):
-        for param in self.parameters():
-            if param.requires_grad and len(param.shape) > 0:
-                stddev = 1 / math.sqrt(param.shape[0])
-                if cfg.gen_init == 'uniform':
-                    torch.nn.init.uniform_(param, a=-0.05, b=0.05)
-                elif cfg.gen_init == 'normal':
-                    torch.nn.init.normal_(param, std=stddev)
-                elif cfg.gen_init == 'truncated_normal':
-                    truncated_normal_(param, std=stddev)
+                initrange = 0.1
+                torch.nn.init.uniform_(-initrange, initrange)
 
 
 class PositionalEncoding(nn.Module):

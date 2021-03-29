@@ -64,7 +64,7 @@ samples_num = 10000  # 10000, mr15: 2000,
 MLE_train_epoch = 150  # SeqGAN-80, LeakGAN-8, RelGAN-150
 PRE_clas_epoch = 10
 inter_epoch = 15  # LeakGAN-10
-batch_size = 64  # 64
+batch_size = 32  # 64
 start_letter = 1
 padding_idx = 0
 start_token = 'BOS'
@@ -95,13 +95,13 @@ use_ppl = False
 # ===Generator===
 ADV_g_step = 1  # 1
 rollout_num = 16  # 4
-gen_embed_dim = 64  # 32
+gen_embed_dim = 16  # 32
 gen_hidden_dim = 16  # 32
 goal_size = 16  # LeakGAN-16
 step_size = 4  # LeakGAN-4
 
 mem_slots = 1  # RelGAN-1
-head_size = 256  # RelGAN-256
+head_size = 64  # RelGAN-256
 num_heads = 4  # RelGAN-2  , 
 
 gen_num_heads = 4 #SA_xxxxGAN
@@ -114,12 +114,12 @@ d_epoch = 2  # SeqGAN,LeakGAN-3
 ADV_d_step = 5  # SeqGAN,LeakGAN,RelGAN-5
 ADV_d_epoch = 3  # SeqGAN,LeakGAN-3
 
-dis_embed_dim = 64
+dis_embed_dim = 16
 dis_hidden_dim = 16
 num_rep = 64  # RelGAN
 
-dis_num_heads = 4 #SA_xxxxGAN
-dis_nlayers = 3 #SA_xxxGAN
+dis_num_heads = 2 #SA_xxxxGAN
+dis_nlayers = 2 #SA_xxxGAN
 
 # ===log===
 log_time_str = strftime("%m%d_%H%M_%S", localtime())

@@ -16,7 +16,7 @@ from utils.data_loader import GenDataIter
 from utils.text_process import *
 
 
-def create_multi_oracle(number):
+def create_multi_oracle(number, sa=False):
     for i in range(number):
         print('Creating Oracle %d...' % i)
         oracle = Oracle(cfg.gen_embed_dim, cfg.gen_hidden_dim, cfg.vocab_size,
@@ -32,7 +32,7 @@ def create_multi_oracle(number):
 
         oracle_data = GenDataIter(large_samples)
         mle_criterion = nn.NLLLoss()
-        groud_truth = NLL.cal_nll(oracle, oracle_data.loader, mle_criterion)
+        groud_truth = NLL.cal_nll(oracle, oracle_data.loader, mle_criterion, sa=sa)
         print('Oracle %d Groud Truth: %.4f' % (i, groud_truth))
 
 
