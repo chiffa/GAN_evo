@@ -11,6 +11,7 @@ balancing_folders_location = fid_samples_location
 # fid_command = '/home/kucharav/Documents/pytorch-fid-master/fid_score.py'
 after_datetime = datetime.datetime.now() - datetime.timedelta(days=1)
 
+#AMIR: diff between the 3 functions? added value from calculate_fid_given_path ..?
 
 def calc_single_fid(random_tag):
     total_path = os.path.join(balancing_folders_location, random_tag)

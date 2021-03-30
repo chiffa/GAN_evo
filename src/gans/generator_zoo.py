@@ -9,6 +9,10 @@ from src.mongo_interface import pure_gen_from_random_tag
 import io
 from configs import cuda_device
 
+
+#Generators implementation
+
+
 char_set = string.ascii_uppercase + string.digits
 
 # TODO: make sure that the saving and resurrection are done to CPU at first and then sent to CUDAs

@@ -9,7 +9,14 @@ from src.mongo_interface import pure_disc_from_random_tag
 import io
 from configs import cuda_device
 
+
+#Discriminators implementation
+#l 30,46,72,173
+
+
 char_set = string.ascii_uppercase + string.digits
+
+
 
 # TODO: make sure that the saving and resurrection are done to CPU at first and then sent to CUDAs
 torch.cuda.set_device(cuda_device)
@@ -20,7 +27,7 @@ def generate_hyperparameter_key(_self):
            'disc_latent_params': _self.discriminator_latent_maps}
     return key
 
-
+#AMIR: ? payload? key.update()? return key ? ..etc
 def storage_representation(_self):
     _self.to(torch.device('cpu'))
     key = _self.generate_hyperparameter_key()
@@ -36,7 +43,7 @@ def storage_representation(_self):
 
     return key
 
-
+#AMIR: ??
 def resurrect(_self, random_tag):
     _self.to(torch.device('cpu'))
     stored_disc = pure_disc_from_random_tag(random_tag)
@@ -62,7 +69,7 @@ def resurrect(_self, random_tag):
     _self.current_fitness = stored_disc['current_fitness']
     _self.to(torch.device(cuda_device))
 
-
+#AMIR: Noise model (Adds noise to the input)?
 class GaussianNoise(nn.Module):
 
     def __init__(self, sigma=0.1, device=cuda_device):
@@ -163,6 +170,7 @@ class Discriminator(nn.Module):
     def save_instance_state(self):
         return storage_representation(self)
 
+    #AMIR: why is the argument self.main and not self like the other functions (we pass our model=self))
     def size_on_disc(self):
         return count_parameters(self.main)
 

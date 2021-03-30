@@ -56,6 +56,7 @@ def tqdm(x): return x
 
 from src.fid_calc.inception import InceptionV3
 
+#AMIR: for human interaction, command-line interface
 parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
 parser.add_argument('path', type=str, nargs=2,
                     help=('Path to the generated images or '
@@ -127,6 +128,10 @@ def get_activations(files, model, batch_size=50, dims=2048,
             batch = batch.cuda(current_cuda)
 
         pred = model(batch)[0]
+        #AMIR: model(batch)[1] ? 
+        #Why activations of pool3 layer? where is this specified in code?
+        #pred.size(2), pred.size(3) != 1 ??
+        
 
         # If model output is not scalar, apply global spatial average pooling.
         # This happens if you choose a dimensionality not equal 2048.
