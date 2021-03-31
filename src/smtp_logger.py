@@ -5,7 +5,7 @@ from datetime import datetime
 from email.message import EmailMessage
 
 
-#Send an email reporting the state of the code execution?
+#Send an email reporting the state of the code execution
 
 
 local_host = 'lpdpc28.epfl.ch'

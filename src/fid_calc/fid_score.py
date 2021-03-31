@@ -47,6 +47,9 @@ from configs import cuda_device
 current_cuda = cuda_device
 
 
+#Compute the FID score
+
+
 # try:
 #     from tqdm import tqdm
 # except ImportError:
@@ -56,7 +59,7 @@ def tqdm(x): return x
 
 from src.fid_calc.inception import InceptionV3
 
-#AMIR: for human interaction, command-line interface
+
 parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
 parser.add_argument('path', type=str, nargs=2,
                     help=('Path to the generated images or '

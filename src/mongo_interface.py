@@ -4,9 +4,7 @@ import pprint
 from bson.objectid import ObjectId
 
 
-#Database for gans storage?
-#update pure disc = update only the discriminator?
-#payload? trace & encounter_trace??
+#Database for gans storage and update
 
 
 root_password = os.environ['MONGOROOTPASS']

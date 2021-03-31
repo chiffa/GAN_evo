@@ -6,7 +6,7 @@ from collections import namedtuple, OrderedDict
 # it seems that inside and outside are equivalent.
 
 
-#(Overrite?) Networks and Layers structures
+#Networks and Layers structures
 
 
 operational_layers = {nn.Conv2d: {'in_channels': 'int',

@@ -24,7 +24,6 @@ from configs import fid_samples_location as _fid_samples_dir
 
 
 #Environment to match and train our gans (can be either disc only or gen only or both)
-#l 157,234,266,305,333,380
 
 
 char_set = string.ascii_uppercase + string.digits
@@ -151,15 +150,7 @@ def match_training_round(generator_instance, discriminator_instance,
             fake = generator_instance(noise)  # generates fake data
 
             label.fill_(fake_label)
-            
-            
-            
-            #AMIR: why do we detach the fake when training the discriminator
-            '''
-            Detaching fake from the graph is necessary to avoid forward-passing the noise through G when we actually update the generator.             If we do not detach, then, although fake is not needed for gradient update of D, it will still be added to the computational               graph and as a consequence of backward pass which clears all the variables in the graph (retain_graph=False by default), fake               won't be available when G is updated.
-            
-            '''            
-            
+                               
             output = discriminator_instance(fake.detach())  # flags input as
             # non-gradientable
             errD_fake = criterion(output, label)  # calculates the loss for the prediction
@@ -231,7 +222,6 @@ def match_training_round(generator_instance, discriminator_instance,
         match_trace = np.array(match_trace)
         match_trace = np.mean(match_trace, axis=0)
         return match_trace.tolist()
-    #AMIR: Difference between train_trace and match_trace?
 
 
 class Arena(object):
@@ -263,7 +253,6 @@ class Arena(object):
                                      training_epochs=1,
                                      timer=timer)
 
-        #AMIR: what is an encounter trace?
         d_encounter_trace = [type(self.generator_instance).__name__,
                              self.generator_instance.tag,
                              [],
@@ -302,8 +291,6 @@ class Arena(object):
             self.discriminator_instance.gen_error_map.pop(self.generator_instance.random_tag, None)
 
         
-        #AMIR: So if there is a contamination (pathogen_fitness > 1), then we save as the discriminator's (host) current fitness:
-        #the error on real + the error on fake, but if no contamination: just the error on real (the other is None)
         self.discriminator_instance.current_fitness = cumulative_host_fitness(trace[0],
                                                                               self.discriminator_instance.gen_error_map.values())
 
@@ -330,8 +317,6 @@ class Arena(object):
             save_pure_disc(self.discriminator_instance.save_instance_state())
 
     
-    #AMIR: ??
-    #diff with the def match() function? --> No use of fitness and host pathogen
     def cross_train(self, epochs=1, gan_only=False, disc_only=False, timer=None, commit=False):
 
         mode = "train"
@@ -377,7 +362,6 @@ class Arena(object):
 
         return trace
 
-    #AMIR: why are we saving the images? (which images are these)
     def sample_images(self, annotation=''):
 
         data = next(iter(self.env.dataloader))

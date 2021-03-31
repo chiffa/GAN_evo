@@ -10,7 +10,7 @@ import io
 from configs import cuda_device
 
 
-#Generators implementation
+#Generator's implementation
 
 
 char_set = string.ascii_uppercase + string.digits

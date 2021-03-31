@@ -4,7 +4,6 @@ from matplotlib import pyplot as plt
 
 
 #Functions returning the host and pathogen's fitnesses
-#l 42,90
 
 
 host_low_fitness_clip = 0.01
@@ -39,7 +38,6 @@ def log_weighted_elo(elo_A, elo_B, A_lead, base_k=16):
                         factor_k_function=multiplier_function)
 
 
-#AMIR: method to return host and pathogen's fitnesses from the average discriminator errors on real and fake? what paper?
 def pathogen_host_fitness(real_av_error, fake_av_error,
                           autoimmunity_factor=20, virulence_factor=20,
                           effective_phenotype_space_dimensions=2):
@@ -87,7 +85,6 @@ def pathogen_host_fitness(real_av_error, fake_av_error,
 
     return host_fitness, pathogen_fitness
 
-#AMIR: function to return host fitness from real_av_error and fake_av_error of disc(host)?
 #TODO: alternative fitness (proportional to capacity of error induction)
 def cumulative_host_fitness(real_av_error, fake_av_error_vector,
                         autoimmunity_factor=20, virulence_factor_vector=[],
