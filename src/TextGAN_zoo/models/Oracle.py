@@ -26,4 +26,4 @@ class SAOracle(TransformerGenerator):
         super(SAOracle, self).__init__(embedding_dim, hidden_dim, vocab_size, max_seq_len, padding_idx, num_heads, nlayers, dropout, gpu)
         self.name = 'sa_oracle'
 
-        self.init_oracle
+        self.init_oracle()

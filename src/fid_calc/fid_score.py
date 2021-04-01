@@ -49,8 +49,9 @@ from torch.nn.functional import adaptive_avg_pool2d
 from PIL import Image
 from configs import cuda_device
 
-current_cuda = cuda_device
+from src.fid_calc.inception import InceptionV3
 
+current_cuda = cuda_device
 
 # try:
 #     from tqdm import tqdm
@@ -59,9 +60,8 @@ current_cuda = cuda_device
 
 def tqdm(x): return x
 
-from src.fid_calc.inception import InceptionV3
-
 parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
+
 parser.add_argument('path', type=str, nargs=2,
                     help=('Path to the generated images or '
                           'to .npz statistic files'))
@@ -261,6 +261,17 @@ def calculate_fid_given_paths(paths, batch_size, cuda, dims):
     fid_value = calculate_frechet_distance(m1, s1, m2, s2)
 
     return fid_value
+
+
+def calculate_is_given_paths(path, batch_size, cuda, dims):
+    # TODO
+    pass
+
+
+def calculate_fid_and_is_given_paths(paths, batch_size, cuda, dims):
+    fid_value = calculate_fid_given_paths(paths, batch_size, cuda, dims)
+    is_value = calculate_is_given_paths(paths, batch_size, cuda, dims)
+    return fid_value, is_value
 
 
 if __name__ == '__main__':

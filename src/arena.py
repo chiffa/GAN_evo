@@ -725,6 +725,7 @@ def chain_evolve_with_fitness_reset(individuals_per_species, starting_cluster):
     dump_trace(['<<', 'chain evolve fit reset', datetime.now().isoformat(),
                 timer.get_total_time()])
 
+
 def brute_force_training(restarts, epochs):
     dump_trace(['>>', 'brute-force',
                 restarts, epochs,
