@@ -3,16 +3,17 @@ import torch
 from tqdm import trange
 
 from src.fid_calc.inception import InceptionV3
-
 from configs import cuda_device
-
 
 device = cuda_device
 
 
+#Implementation of the Inception Score
+
+
 def get_inception_score(images, splits=10, batch_size=32, use_torch=False,
                         verbose=False, parallel=False):
-    block_idx = InceptionV3.BLOCK_INDEX_BY_DIM['prob']
+    block_idx = InceptionV3.BLOCK_INDEX_BY_DIM[InceptionV3.DEFAULT_BLOCK_INDEX]
     model = InceptionV3([block_idx]).to(device)
     model.eval()
 

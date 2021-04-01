@@ -47,7 +47,7 @@ from configs import cuda_device
 current_cuda = cuda_device
 
 
-#Compute the FID score
+#Implementation of the FID score
 
 
 # try:
