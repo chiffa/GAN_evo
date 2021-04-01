@@ -4,6 +4,9 @@ import pprint
 from bson.objectid import ObjectId
 
 
+#Database for gans storage and update
+
+
 root_password = os.environ['MONGOROOTPASS']
 print(root_password)
 client = MongoClient(username='root', password=root_password)

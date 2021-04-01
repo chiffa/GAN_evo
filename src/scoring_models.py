@@ -2,6 +2,10 @@ import numpy as np
 from scipy import stats
 from matplotlib import pyplot as plt
 
+
+#Functions returning the host and pathogen's fitnesses
+
+
 host_low_fitness_clip = 0.01
 pathogen_low_fitness_clip = 0.05
 
@@ -32,7 +36,6 @@ def log_weighted_elo(elo_A, elo_B, A_lead, base_k=16):
 
     return weighted_elo(elo_A, elo_B, A_lead,
                         factor_k_function=multiplier_function)
-
 
 
 def pathogen_host_fitness(real_av_error, fake_av_error,
@@ -81,7 +84,6 @@ def pathogen_host_fitness(real_av_error, fake_av_error,
         host_fitness, pathogen_fitness))
 
     return host_fitness, pathogen_fitness
-
 
 #TODO: alternative fitness (proportional to capacity of error induction)
 def cumulative_host_fitness(real_av_error, fake_av_error_vector,

@@ -9,6 +9,8 @@ from src.mongo_interface import pure_gen_from_random_tag
 import io
 from configs import cuda_device
 
+#Generator's implementation
+
 #Generator collection. Use of convolution well adapted to images but not text
 #Same storage/ressurection code as for the discriminator
 

@@ -21,6 +21,8 @@ from src.smtp_logger import logger, successfully_completed, smtp_error_bail_out
 import smtplib
 
 
+
+#Main Environment, where natural evolution algorithm is implemented
 #Environment where evolutionary algorithm take place. 
 
 evo_trace_dump_location = "evolved_hosts_pathogen_map.dmp"
@@ -190,7 +192,9 @@ def cross_train_iteration(hosts, pathogens, host_type_selector, epochs=1, timer=
         print("%s: real_err: %s, gen_err: %s" % (
             arena.generator_instance.random_tag,
             arena_match_results[0], arena_match_results[1]))
-
+        
+    
+    #AMIR: why is the training implemented this way? why do we need a "final cross-match" train ?
     for (host_no, host), (pathogen_no, pathogen) in product(enumerate(hosts[host_type_selector]),
                                                             enumerate(pathogens)):
 
