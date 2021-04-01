@@ -21,8 +21,9 @@ from src.smtp_logger import logger, successfully_completed, smtp_error_bail_out
 import smtplib
 
 
-#Main Environment, where natural evolution algorithm is implemented
 
+#Main Environment, where natural evolution algorithm is implemented
+#Environment where evolutionary algorithm take place. 
 
 evo_trace_dump_location = "evolved_hosts_pathogen_map.dmp"
 evo2_trace_dump_location = "evolved_2_hosts_pathogen_map.dmp"

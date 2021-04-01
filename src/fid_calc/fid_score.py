@@ -32,6 +32,11 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+
+#Mathematical calculation of the Frechet Inception Distance
+#This implementation takes images as input, we'll have to adapt it for text 
+#  However most of the code is just statistical computation that will not need to be adapted
+
 import os
 import pathlib
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter

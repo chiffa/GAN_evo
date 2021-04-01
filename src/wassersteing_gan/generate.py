@@ -17,6 +17,8 @@ import json
 import models.dcgan as dcgan
 import models.mlp as mlp
 
+#Initialise the GAN 
+
 if __name__=="__main__":
 
     parser = argparse.ArgumentParser()

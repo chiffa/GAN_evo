@@ -24,6 +24,7 @@ from configs import fid_samples_location as _fid_samples_dir
 
 
 #Environment to match and train our gans (can be either disc only or gen only or both)
+#main test environment where the training of GANs is performed
 
 
 char_set = string.ascii_uppercase + string.digits

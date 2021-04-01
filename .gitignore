@@ -1,2 +1,9 @@
 .idea/
 venv/
+src/TextGAN_zoo/log/
+src/TextGAN_zoo/save/
+src/TextGAN_zoo/models/__pycache__/
+.vscode/launch.json
+src/TextGAN_zoo/__pycache__/
+src/TextGAN_zoo/instructor/oracle_data/__pycache__/
+

@@ -12,6 +12,8 @@ from configs import cuda_device
 
 #Discriminators implementations
 
+#Collection of several implementation of discriminator, sll designed for images as input
+#Storage-ressuraction boilerplate
 
 char_set = string.ascii_uppercase + string.digits
 
