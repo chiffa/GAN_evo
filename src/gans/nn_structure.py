@@ -7,6 +7,10 @@ from collections import namedtuple, OrderedDict
 # optimized for 2D tasks right now
 # it seems that inside and outside are equivalent.
 
+
+#Networks and Layers structures
+
+
 operational_layers = {nn.Conv2d: {'in_channels': 'int',
                                   'out_channels': 'int',
                                   'kernel_size': 'int',

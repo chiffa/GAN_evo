@@ -23,6 +23,7 @@ from configs import training_samples_location as _train_samples_dir
 from configs import fid_samples_location as _fid_samples_dir
 
 
+#Environment to match and train our gans (can be either disc only or gen only or both)
 #main test environment where the training of GANs is performed
 
 
@@ -150,6 +151,7 @@ def match_training_round(generator_instance, discriminator_instance,
             fake = generator_instance(noise)  # generates fake data
 
             label.fill_(fake_label)
+                               
             output = discriminator_instance(fake.detach())  # flags input as
             # non-gradientable
             errD_fake = criterion(output, label)  # calculates the loss for the prediction
@@ -289,6 +291,7 @@ class Arena(object):
             self.generator_instance.fitness_map.pop(self.discriminator_instance.random_tag, None)
             self.discriminator_instance.gen_error_map.pop(self.generator_instance.random_tag, None)
 
+        
         self.discriminator_instance.current_fitness = cumulative_host_fitness(trace[0],
                                                                               self.discriminator_instance.gen_error_map.values())
 
@@ -314,6 +317,7 @@ class Arena(object):
         if not gen_only:
             save_pure_disc(self.discriminator_instance.save_instance_state())
 
+    
     def cross_train(self, epochs=1, gan_only=False, disc_only=False, timer=None, commit=False):
 
         mode = "train"

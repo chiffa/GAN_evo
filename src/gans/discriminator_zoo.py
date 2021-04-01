@@ -10,10 +10,14 @@ import io
 from configs import cuda_device
 
 
+#Discriminators implementations
+
 #Collection of several implementation of discriminator, sll designed for images as input
 #Storage-ressuraction boilerplate
 
 char_set = string.ascii_uppercase + string.digits
+
+
 
 # TODO: make sure that the saving and resurrection are done to CPU at first and then sent to CUDAs
 torch.cuda.set_device(cuda_device)
