@@ -265,8 +265,8 @@ class SelfAttentionInstructor:
         self.opt = opt
 
         # oracle, generator, discriminator
-        self.oracle = SAOracle(4, 4, cfg.vocab_size, cfg.max_seq_len, cfg.padding_idx, gpu=cfg.CUDA)
-        self.oracle_list = [SAOracle(4, 4, cfg.vocab_size, cfg.max_seq_len, 
+        self.oracle = SAOracle(32, 32, cfg.vocab_size, cfg.max_seq_len, cfg.padding_idx, gpu=cfg.CUDA)
+        self.oracle_list = [SAOracle(32, 32, cfg.vocab_size, cfg.max_seq_len, 
             cfg.padding_idx, gpu=cfg.CUDA) for _ in range(cfg.k_label)]
 
         self.dis = None

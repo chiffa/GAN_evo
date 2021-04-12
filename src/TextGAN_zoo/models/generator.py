@@ -223,7 +223,7 @@ class TransformerGenerator(nn.Module):
         for param in self.parameters():
             if param.requires_grad:
                 initrange = 0.1
-                torch.nn.init.uniform_(-initrange, initrange)
+                torch.nn.init.uniform_(param, -initrange, initrange)
 
 
 class PositionalEncoding(nn.Module):

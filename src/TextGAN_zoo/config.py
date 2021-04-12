@@ -15,7 +15,7 @@ import torch
 
 # ===Program===
 if_test = False
-CUDA = False
+CUDA = True
 multi_gpu = False
 if_save = True
 data_shuffle = False  # False
@@ -147,7 +147,7 @@ if torch.cuda.is_available() and torch.cuda.device_count() > 0:
 else:
     device = -1
 # device=0
-# print('device: ', device)
+print('device: ', device)
 
 if multi_gpu:
     devices = '0,1'
