@@ -35,10 +35,10 @@ def get_log_data(filename):
 
 
 if __name__ == '__main__':
-    log_file_root = 'log/'
+    log_file_root = '../log/'
     # Custom your log files in lists, no more than len(color_list)
-    log_file_list = ['jsdgan_vanilla_oracle', 'catgan_vanilla_oracle']
-    legend_text = ['JSDGAN', 'CatGAN']
+    log_file_list = ['dpgan_log', 'sa_dpgan_log']
+    legend_text = ['DPGAN', 'SADPGAN']
 
     color_id = 0
     title = 'Synthetic data'
@@ -60,7 +60,7 @@ if __name__ == '__main__':
 
     plt.legend()
     # plt.tight_layout()
-    plt.xlabel(r'${\rm NLL_{\rm oracle}}$')
+    plt.xlabel(r'${\rm NLL_{\rm gen}}$')
     plt.ylabel(r'${\rm NLL_{\rm div}}$')
     if if_save:
         plt.savefig('../savefig/synthetic_oracle_div.png')

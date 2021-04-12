@@ -338,8 +338,8 @@ class SelfAttentionInstructor:
 
             model.init_weights()
             src_mask = model.generate_square_subsequent_mask(model.max_seq_len)
-            #pred = model.forward(inp, src_mask)
-            pred = model.forward(inp)
+            #pred = model.forward(inp)
+            pred = model.forward(inp, src_mask)
             loss = criterion(pred, target.view(-1))
             self.optimize(optimizer, loss, model)
             total_loss += loss.item()

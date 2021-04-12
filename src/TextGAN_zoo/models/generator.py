@@ -154,7 +154,7 @@ class TransformerGenerator(nn.Module):
         mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
         return mask
 
-    def forward(self, inp):
+    def forward(self, inp, src_mask):
         #print("SRC1:")
         #print(inp.size())
         src = self.encoder(inp) * math.sqrt(self.embedding_dim)
@@ -165,7 +165,7 @@ class TransformerGenerator(nn.Module):
         src = self.pos_encoder(src)
         #print("SRC3:")
         #print(src.size())
-        output = self.transformer_encoder(src)
+        output = self.transformer_encoder(src, src_mask)
         #print("OUT1:")
         #print(output.size())
         output = output.contiguous().view(-1, self.hidden_dim)  # out: (batch_size * len) * hidden_dim
@@ -203,8 +203,8 @@ class TransformerGenerator(nn.Module):
                 inp = inp.cuda()
 
             for i in range(self.max_seq_len):
-                #out = self.forward(inp, self.generate_square_subsequent_mask(self.max_seq_len))  # out: batch_size * vocab_size
-                out = self.forward(inp)  # out: batch_size * vocab_size
+                out = self.forward(inp, self.generate_square_subsequent_mask(self.max_seq_len))  # out: batch_size * vocab_size
+                #out = self.forward(inp)  # out: batch_size * vocab_size
                 #print(out.size())
                 next_token = torch.multinomial(torch.exp(out), 1)  # batch_size * 1 (sampling from each row)
                 samples[b * batch_size:(b + 1) * batch_size, i] = next_token.view(-1)
