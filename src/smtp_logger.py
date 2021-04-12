@@ -8,8 +8,8 @@ from email.message import EmailMessage
 #Send an email reporting the state of the code execution
 
 
-local_host = 'lpdpc28.epfl.ch'
-local_mail_account = 'andrei@lpdpc28.epfl.ch'
+local_host = 'lpdpc35.epfl.ch'
+local_mail_account = 'andrei@lpdpc35.epfl.ch'
 reporting_target_mail = 'andrei.kucharavy@epfl.ch'
 
 mime_message = EmailMessage()

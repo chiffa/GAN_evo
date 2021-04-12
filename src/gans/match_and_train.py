@@ -91,6 +91,7 @@ def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
+# CURRENTPASS: [complexity] cyclomatic complexity=20
 def match_training_round(generator_instance, discriminator_instance,
                          disc_optimizer, gen_optimizer, criterion,
                          dataloader, device, latent_vector_size, mode="match",

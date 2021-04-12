@@ -482,7 +482,7 @@ def render_relative_performances(gen_index, disc_index,
     plt.xticks(rotation=90)
     plt.show()
 
-
+# CURRENTPASS: [complexity] cyclomatic complexity=28 (!)
 def render_training_history(method_names, best_fid_gen_tags):
 
     type_map = {0: 'X',

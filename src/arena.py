@@ -20,10 +20,9 @@ from configs import current_dataset as _dataset
 from src.smtp_logger import logger, successfully_completed, smtp_error_bail_out
 import smtplib
 
-
-
 #Main Environment, where natural evolution algorithm is implemented
 #Environment where evolutionary algorithm take place. 
+
 
 evo_trace_dump_location = "evolved_hosts_pathogen_map.dmp"
 evo2_trace_dump_location = "evolved_2_hosts_pathogen_map.dmp"
@@ -462,6 +461,7 @@ def homogenus_chain_progression(individuals_per_species, starting_cluster):
                 timer.get_total_time()])
 
 
+# CURRENTPASS: [complexity] cyclomatic complexity=17
 def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit_reset=False,
                          timer=None):
 
