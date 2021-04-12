@@ -41,13 +41,23 @@ def weights_init(m):
 
 
 class GANEnvironment(object):
+    """
+    A wrapper object that contains the configurations for the environment in which the GAN is
+    trained
+    """
 
     def __init__(self, dataset,
-                 number_of_colors=1, image_dimensions=64, batch_size=64,
-                 ngpu=1, workers=2, device=cuda_device,
+                 number_of_colors=1,
+                 image_dimensions=64,
+                 batch_size=64,
+                 ngpu=1,
+                 workers=2,
+                 device=cuda_device,
                  sample_image_folder=_train_samples_dir,
                  fid_image_folder=_fid_samples_dir,
-                 true_label=1, fake_label=0, latent_vector_size=64):
+                 true_label=1,  # TRACING: from configs
+                 fake_label=0,  # TRACING: from configs
+                 latent_vector_size=64):
 
         self.number_of_colors = number_of_colors
         self.image_dimensions = image_dimensions
@@ -72,7 +82,7 @@ class GANEnvironment(object):
 
         try:
             os.makedirs(self.sample_image_folder)
-        except OSError:
+        except OSError:  # the folder to store the sample images exists
             pass
 
     def hyperparameter_key(self):
@@ -87,17 +97,48 @@ class GANEnvironment(object):
 
         return key
 
+
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
 # CURRENTPASS: [complexity] cyclomatic complexity=20
+#  Split the training round with the matching round
 def match_training_round(generator_instance, discriminator_instance,
                          disc_optimizer, gen_optimizer, criterion,
                          dataloader, device, latent_vector_size, mode="match",
                          real_label=1, fake_label=0, training_epochs=1,
                          noise_floor=0.01, fitness_biases=(1, 1),
                          timer=None):
+    """
+    The central process that performs a matching or a training round between a generator and a
+    discriminator
+
+    :param generator_instance: generator instance used
+    :param discriminator_instance: discriminator instance used
+    :param disc_optimizer: optimizer used for the discriminator
+    :param gen_optimizer: generator used for the generator
+    :param criterion: criterion used to calculate divergence between the real and fake samples
+    :param dataloader: dataloader feeding the real data in
+    :param device: device on which the training is happening  # TRACING: from configs
+    :param latent_vector_size: the size of the latent v ector we are using
+    :param mode: ``match`` (default) | ``train_g`` (train the generator only) | ``train_d`` (train the
+            discriminator only) | ``train`` (train both)
+    :param real_label: (optional) = 1  # TRACING: from configs
+    :param fake_label: (optional) = 0  # TRACING: from configs
+    :param training_epochs: (optional) = 1 for how many epochs to train. if between 0 and 1,
+            the batches will be rounded with a ceil to the nearest fraction of the whole dataset.
+    :param noise_floor: (optional, inactive) error below which the training is assumed useless
+    :param fitness_biases: (optional, inactive) weighting factors for training - ratio of epochs to
+            train generator vs discriminatior
+    :param timer: (optional) a timer object used to time the execution
+    :return: if match: [[average disc error on real, average disc error on fake], ...] for all
+            the batches in a single epoch
+             if train: [[epoch, batch no, total discrimninator criterion, total discriminator
+             criterion on the generator, average success of real dioscriminator on real,
+             average error of discriminator on generator before training round, average error of
+             discriminator on generator after the training round], ...]
+    """
 
     training_trace = []
     match_trace = []
@@ -126,6 +167,7 @@ def match_training_round(generator_instance, discriminator_instance,
         training_epochs = 1
 
     for epoch in range(training_epochs):
+
         for i, data in enumerate(dataloader, 0):
 
             if dataloader_limiter is not None and i > dataloader_limiter:
@@ -145,6 +187,7 @@ def match_training_round(generator_instance, discriminator_instance,
 
             if train_d:
                 errD_real.backward()
+
             average_disc_success_on_real = output.mean().item()
 
             # train with fake
@@ -210,7 +253,6 @@ def match_training_round(generator_instance, discriminator_instance,
             if match:
                 match_trace.append([average_disc_error_on_real,
                                     average_disc_error_on_gan])
-        print()
 
     # TODO: potential optimization, although not a very potent one.
     # matching requires no real data training.
@@ -228,10 +270,22 @@ def match_training_round(generator_instance, discriminator_instance,
 
 class Arena(object):
 
-    def __init__(self, environment, generator_instance, discriminator_instance,
-                 generator_optimizer_partial, discriminator_optimizer_partial,
+    def __init__(self, environment,
+                 generator_instance,
+                 discriminator_instance,
+                 generator_optimizer_partial,
+                 discriminator_optimizer_partial,
                  criterion=nn.BCELoss()):
-
+        """
+        :param environment: GANEnvironment environment object from the src.match_and_train
+        :param generator_instance: the instance of the generator
+        :param discriminator_instance: the instance of the discriminator
+        :param generator_optimizer_partial: partial function for the optimizer that only requires
+                the generator instance parameters and already contains all the hyperparameters
+        :param discriminator_optimizer_partial: partial function for the optimizer that only requires
+                the discriminator instance parameters and already contains all the hyperparameters
+        :param criterion: (optional) loss criterion. by default, BCELoss
+        """
         self.env = environment
 
         self.generator_instance = generator_instance
@@ -244,6 +298,15 @@ class Arena(object):
         self.criterion = criterion
 
     def match(self, timer=None, commit=True):
+        """
+        A wrapper for a single match between a discriminator and a generator
+
+        :param timer: (object) timer object
+        :param commit: (object) if the training/matching results are to be committed to the database
+        :return: output of the ``match_training_round`` function in the match mode
+                Aka [[average disc error on real, average disc error on fake], ...] for all
+                the batches in a single epoch
+        """
         trace = match_training_round(self.generator_instance, self.discriminator_instance,
                                      self.discriminator_optimizer, self.generator_optimizer,
                                      self.criterion,
@@ -302,30 +365,58 @@ class Arena(object):
         return trace
 
     def commit_disc_gen_updates(self):
-            update_pure_disc(self.discriminator_instance.random_tag,
-                             {'encounter_trace': self.discriminator_instance.encounter_trace,
-                              'self_error': self.discriminator_instance.real_error,
-                              'gen_error_map': self.discriminator_instance.gen_error_map,
-                              'current_fitness': self.discriminator_instance.current_fitness})
-            update_pure_gen(self.generator_instance.random_tag,
-                            {'encounter_trace': self.generator_instance.encounter_trace,
-                             'fitness_map': self.generator_instance.fitness_map})
+        """
+        A helper function that commits the updates to the generator/discriminator performed in
+        the database to the mongodb
+
+        :return:
+        """
+        update_pure_disc(self.discriminator_instance.random_tag,
+                         {'encounter_trace': self.discriminator_instance.encounter_trace,
+                          'self_error': self.discriminator_instance.real_error,
+                          'gen_error_map': self.discriminator_instance.gen_error_map,
+                          'current_fitness': self.discriminator_instance.current_fitness})
+        update_pure_gen(self.generator_instance.random_tag,
+                        {'encounter_trace': self.generator_instance.encounter_trace,
+                         'fitness_map': self.generator_instance.fitness_map})
 
     def first_disc_gen_commit(self, gen_only=False, disc_only=False):
+        """
+        A helper function that performs a first commit of the generator/discriminator discriminator
+        pair into the database
 
+        :param gen_only: if only the generator is to be inserted into the database
+        :param disc_only: if only the discriminator is to be inserted into the datasbase
+        :return:
+        """
         if not disc_only:
             save_pure_gen(self.generator_instance.save_instance_state())
         if not gen_only:
             save_pure_disc(self.discriminator_instance.save_instance_state())
-
     
-    def cross_train(self, epochs=1, gan_only=False, disc_only=False, timer=None, commit=False):
+    def cross_train(self, epochs=1, gen_only=False, disc_only=False, timer=None, commit=False):
+        """
+        A wrapper function that allows to train gan and disc one against each other, together or
+        separately
+
+        :param epochs: the number of epochs to train for. If decimal, a fraction of the batches
+            of the data closest to the decimal will be used, rounding upwards (1 by default)
+        :param gen_only: if only generator is to be trained (False by default)
+        :param disc_only: if only the disc is to be trained (False by default)
+        :param timer: (optional) a timer object
+        :param commit: if a commit to the database is to be performed.
+        :return: output of the ``match_training_round`` function in the train mode
+            Aka [[epoch, batch no, total discrimninator criterion, total discriminator
+             criterion on the generator, average success of real dioscriminator on real,
+             average error of discriminator on generator before training round, average error of
+             discriminator on generator after the training round], ...]
+        """
 
         mode = "train"
 
-        if gan_only and disc_only:
+        if gen_only and disc_only:
             raise Exception('Both Gan and Disc training are set to only')
-        if gan_only:
+        if gen_only:
             mode = "train_g"
         if disc_only:
             mode = "train_d"
@@ -360,11 +451,18 @@ class Arena(object):
         print(self.generator_instance.random_tag)
 
         if commit:
-            self.first_disc_gen_commit(disc_only=disc_only, gen_only=gan_only)
+            self.first_disc_gen_commit(disc_only=disc_only, gen_only=gen_only)
 
         return trace
 
     def sample_images(self, annotation=''):
+        """
+        Save a sample of images that can be generated by the generator at the current stage.
+
+        :param annotation: any annotation to be added to the default folder name where to save
+        the images are sampled into
+        :return:
+        """
 
         data = next(iter(self.env.dataloader))
         real_cpu = data[0].to(self.env.device)

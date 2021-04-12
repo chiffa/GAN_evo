@@ -559,7 +559,7 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit
                 #immune system is not bothered
                 # print('debug: pop evolve: silent infection')
                 dump_trace(['silent infection'])
-                arena.cross_train(gan_only=True, timer=timer, commit=False)
+                arena.cross_train(gen_only=True, timer=timer, commit=False)
                 i += 0.5
             else:
                 #immune sytem is active and competitive evolution happens:

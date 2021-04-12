@@ -11,6 +11,9 @@ abstractions that don't make sense or are excessively complex to grock. In gener
 writing into README.md what I am figuring about the code and renaming variables in a way that
 they make more sense.
 
+Similarly, writing the docstrings for the methods and classes is a good way to understand the
+codebase and help yourself as well as other developers in the long run.
+
 Another good thing to do is to figure out the methods that are excessively complex. They are
 commonly created by devs running out of time, just trying to make things work, but are impossible
 to work for other/later. In Python, flake8 has a good way to do just that::

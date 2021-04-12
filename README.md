@@ -2,6 +2,25 @@
 
 ## General structure: 
 
+### `Arena` object
+The raw generator/discriminator structures are stored in the `src.gans.
+<generator/discriminator>_zoo`. Several convenience functions, such self-saving and 
+self-resurrection to and from text-serialized forms are implemented as monkey-patching in there 
+as well.
+
+However, the training requires more paramters, such as data, hyper-parameters, optimizers, 
+criterion, .... All of that is stored in the `src.gans.match_and_train` `GANEnvironment` object.
+
+The actual evaluation of performance of a generator against a discriminator as well as the 
+logistics of training between them are managed by the `match_training_round` function in 
+the `src.gans.match_and_train` module, and are in turn wrapped into the `Arena.match` and 
+`Arena.cross_train` methods of the `Arena` object, that integrates the environment, generator 
+and discriminator instances as well as the loss criterions, and the optimizers used by both. 
+Basically, `Arena` is the interface that is used for any training/adversarial performance 
+evaluation of the generator/discriminator instances. For convenience, `Arena` is also the object 
+that contains the method `Arena.sample_images`, allowing the loaded generator to generate sample 
+images.
+
 
 ### Memorization of the run.
  - Runs are saved into a mongoDB instance (`src.mongo_interface`).
