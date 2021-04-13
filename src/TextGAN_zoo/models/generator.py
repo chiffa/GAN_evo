@@ -154,7 +154,7 @@ class TransformerGenerator(nn.Module):
         mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
         return mask
 
-    def forward(self, inp, src_mask):
+    def forward(self, inp, src_mask=None):
         #print("SRC1:")
         #print(inp.size())
         src = self.encoder(inp) * math.sqrt(self.embedding_dim)
@@ -165,7 +165,8 @@ class TransformerGenerator(nn.Module):
         src = self.pos_encoder(src)
         #print("SRC3:")
         #print(src.size())
-        output = self.transformer_encoder(src, src_mask)
+        #output = self.transformer_encoder(src, src_mask)
+        output = self.transformer_encoder(src)
         #print("OUT1:")
         #print(output.size())
         output = output.contiguous().view(-1, self.hidden_dim)  # out: (batch_size * len) * hidden_dim
