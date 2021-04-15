@@ -2,7 +2,8 @@ import os
 import sys
 from random import shuffle
 from itertools import combinations
-from src.fid_calc.fid_score import calculate_fid_given_paths
+from src.fid_calc.fid_score import calculate_fid_given_paths  # TRACING: usage of fid > fid_is
+from src.fid_is_calc.both import get_inception_score_and_fid
 import pickle
 import datetime
 from configs import fid_samples_location
@@ -20,7 +21,11 @@ def calc_single_fid(random_tag):
         current_fake = balancing_folders_location + '/' + random_tag + '/' + 'fake'
 
         try:
-            fid_value = calculate_fid_given_paths([current_real, current_fake], 64, True, 2048)
+            fid_value = calculate_fid_given_paths([current_real, current_fake],
+                                                      batch_size=64,
+                                                      cuda=True,
+                                                      dims=2048)
+
             print('fid compute', random_tag, ': ', fid_value)
             return fid_value
 
@@ -36,11 +41,16 @@ def calc_gen_fids():
     for random_tag in os.listdir(balancing_folders_location):
         if os.path.getmtime(random_tag) > after_datetime:
             random_tag_list.append(random_tag)
+
             current_real = balancing_folders_location + '/' + random_tag + '/' + 'real'
             current_fake = balancing_folders_location + '/' + random_tag + '/' + 'fake'
 
             try:
-                fid_value = calculate_fid_given_paths([current_real, current_fake], 64, True, 2048)
+                fid_value = calculate_fid_given_paths([current_real, current_fake],
+                                                      batch_size=64,
+                                                      cuda=True,
+                                                      dims=2048)
+
                 fid_map[random_tag] = fid_value
                 print(random_tag, ': ', fid_value)
             except:
@@ -60,7 +70,10 @@ def calc_reals_fid(random_tag_list):
         current_2 = balancing_folders_location + '/' + random_tag_2 + '/' + 'real'
 
         try:
-            fid_value = calculate_fid_given_paths([current_1, current_2], 64, True, 2048)
+            fid_value = calculate_fid_given_paths([current_1, current_2],
+                                                      batch_size=64,
+                                                      cuda=True,
+                                                      dims=2048)
             real_comparison.append(fid_value)
             print('real to real sample', ': ', fid_value)
         except:

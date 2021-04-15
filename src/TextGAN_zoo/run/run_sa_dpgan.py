@@ -18,7 +18,8 @@ else:
     print('Missing argument: job_id and gpu_id. Use default job_id: {}, gpu_id: {}'.format(job_id, gpu_id))
 
 # Executables
-executable = '/home/kevinblin/anaconda3/envs/pytorch_env/bin/python'  # specify your own python interpreter path here
+#executable = '/home/kevinblin/anaconda3/envs/pytorch_env/bin/python'  # specify your own python interpreter path here
+executable = '/usr/bin/python3'  # specify your own python interpreter path here
 rootdir = '../'
 scriptname = 'main.py'
 
@@ -26,12 +27,12 @@ scriptname = 'main.py'
 if_test = int(False)
 run_model = 'sa_dpgan'
 sa = int(True)
-CUDA = int(False)
+CUDA = int(True)
 oracle_pretrain = int(False)
 gen_pretrain = int(False)
 dis_pretrain = int(False)
-MLE_train_epoch = 2
-ADV_train_epoch = 3
+MLE_train_epoch = 120
+ADV_train_epoch = 200
 tips = 'DPGAN experiments'
 
 # ===Oracle  or Real===
@@ -55,10 +56,10 @@ adv_log_step = 1
 # ===Generator===
 ADV_g_step = 1
 rollout_num = 16
-gen_embed_dim = 4
-gen_hidden_dim = 4
-gen_num_heads = 2
-gen_nlayers = 2
+gen_embed_dim = 32
+gen_hidden_dim = 32
+gen_num_heads = 4
+gen_nlayers = 4
 
 # ===Discriminator===
 d_step = 5
@@ -67,8 +68,8 @@ ADV_d_step = 4
 ADV_d_epoch = 2
 dis_embed_dim = 64
 dis_hidden_dim = 64
-dis_num_heads = 2
-dis_nlayers = 2
+dis_num_heads = 4
+dis_nlayers = 4
 
 # ===Metrics===
 use_nll_oracle = int(True)

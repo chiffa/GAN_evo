@@ -20,7 +20,7 @@ def plt_x_y_data(x, y, title, c_id):
 def get_log_data(filename):
     with open(filename, 'r') as fin:
         all_lines = fin.read().strip().split('\n')
-        data_dict = {'NLL_oracle': [], 'NLL_gen': [], 'NLL_div': []}
+        data_dict = {'Epoch': [],'NLL_oracle': [], 'NLL_gen': [], 'NLL_div': []}
 
         for line in all_lines:
             items = line.split()
@@ -35,13 +35,13 @@ def get_log_data(filename):
 
 
 if __name__ == '__main__':
-    log_file_root = 'log/'
+    log_file_root = '../log/'
     # Custom your log files in lists, no more than len(color_list)
-    log_file_list = ['jsdgan_vanilla_oracle', 'catgan_vanilla_oracle']
-    legend_text = ['JSDGAN', 'CatGAN']
+    log_file_list = ['dpgan_log1', 'sa_dpgan_log1']
+    legend_text = ['DPGAN', 'SADPGAN']
 
     color_id = 0
-    title = 'Synthetic data'
+    title = 'Generator MLE pretraining'
     if_save = True
     length = 100
 
@@ -53,14 +53,14 @@ if __name__ == '__main__':
 
         # save log file
         all_data = get_log_data(log_file)
-        idxs = np.argsort(-np.array(all_data['NLL_oracle']))
-        plt_x_y_data(np.array(all_data['NLL_oracle'])[idxs][:length], np.array(all_data['NLL_div'])[idxs][:length],
+        idxs = np.argsort(-np.array(all_data['Epoch']))
+        plt_x_y_data(np.array(all_data['Epoch'])[idxs][:length], np.array(all_data['NLL_div'])[idxs][:length],
                      legend_text[idx], color_id)
         color_id += 1
 
     plt.legend()
     # plt.tight_layout()
-    plt.xlabel(r'${\rm NLL_{\rm oracle}}$')
+    plt.xlabel(r'${\rm Epoch}$')
     plt.ylabel(r'${\rm NLL_{\rm div}}$')
     if if_save:
         plt.savefig('../savefig/synthetic_oracle_div.png')

@@ -86,7 +86,7 @@ class DPGANInstructor(BasicInstructor):
                 # ===Test===
                 if epoch % cfg.pre_log_step == 0 or epoch == epochs - 1:
                     self.log.info(
-                        '[MLE-GEN] epoch %d : pre_loss = %.4f, %s' % (epoch, pre_loss, self.cal_metrics(fmt_str=True)))
+                        '[MLE-GEN] epoch %d : Epoch = %d,  pre_loss = %.4f, %s' % (epoch, epoch, pre_loss, self.cal_metrics(fmt_str=True)))
                     if cfg.if_save and not cfg.if_test:
                         self._save('MLE', epoch)
             else:

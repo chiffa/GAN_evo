@@ -49,6 +49,8 @@ from torch.nn.functional import adaptive_avg_pool2d
 from PIL import Image
 from configs import cuda_device
 
+from src.fid_calc.inception import InceptionV3
+
 current_cuda = cuda_device
 
 
@@ -64,8 +66,8 @@ def tqdm(x): return x
 
 from src.fid_calc.inception import InceptionV3
 
-
 parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
+
 parser.add_argument('path', type=str, nargs=2,
                     help=('Path to the generated images or '
                           'to .npz statistic files'))
@@ -136,10 +138,10 @@ def get_activations(files, model, batch_size=50, dims=2048,
             batch = batch.cuda(current_cuda)
 
         pred = model(batch)[0]
-        #AMIR: model(batch)[1] ? 
+        #AMIR: model(batch)[1] ?
         #Why activations of pool3 layer? where is this specified in code?
         #pred.size(2), pred.size(3) != 1 ??
-        
+
 
         # If model output is not scalar, apply global spatial average pooling.
         # This happens if you choose a dimensionality not equal 2048.
@@ -269,6 +271,17 @@ def calculate_fid_given_paths(paths, batch_size, cuda, dims):
     fid_value = calculate_frechet_distance(m1, s1, m2, s2)
 
     return fid_value
+
+
+def calculate_is_given_paths(path, batch_size, cuda, dims):
+    # TODO
+    pass
+
+
+def calculate_fid_and_is_given_paths(paths, batch_size, cuda, dims):
+    fid_value = calculate_fid_given_paths(paths, batch_size, cuda, dims)
+    is_value = calculate_is_given_paths(paths, batch_size, cuda, dims)
+    return fid_value, is_value
 
 
 if __name__ == '__main__':

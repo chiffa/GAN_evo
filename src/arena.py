@@ -20,10 +20,9 @@ from configs import current_dataset as _dataset
 from src.smtp_logger import logger, successfully_completed, smtp_error_bail_out
 import smtplib
 
-
-
 #Main Environment, where natural evolution algorithm is implemented
 #Environment where evolutionary algorithm take place. 
+
 
 evo_trace_dump_location = "evolved_hosts_pathogen_map.dmp"
 evo2_trace_dump_location = "evolved_2_hosts_pathogen_map.dmp"
@@ -462,6 +461,7 @@ def homogenus_chain_progression(individuals_per_species, starting_cluster):
                 timer.get_total_time()])
 
 
+# CURRENTPASS: [complexity] cyclomatic complexity=17
 def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit_reset=False,
                          timer=None):
 
@@ -559,7 +559,7 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit
                 #immune system is not bothered
                 # print('debug: pop evolve: silent infection')
                 dump_trace(['silent infection'])
-                arena.cross_train(gan_only=True, timer=timer, commit=False)
+                arena.cross_train(gen_only=True, timer=timer, commit=False)
                 i += 0.5
             else:
                 #immune sytem is active and competitive evolution happens:
@@ -728,6 +728,7 @@ def chain_evolve_with_fitness_reset(individuals_per_species, starting_cluster):
     # pickle.dump((host_map, pathogen_map), open('evolved_2_hosts_pathogen_map.dmp', 'wb'))
     dump_trace(['<<', 'chain evolve fit reset', datetime.now().isoformat(),
                 timer.get_total_time()])
+
 
 def brute_force_training(restarts, epochs):
     dump_trace(['>>', 'brute-force',
