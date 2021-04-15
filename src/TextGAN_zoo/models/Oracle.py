@@ -22,7 +22,7 @@ class Oracle(LSTMGenerator):
 
 class SAOracle(TransformerGenerator):
 
-    def __init__(self, embedding_dim, hidden_dim, vocab_size, max_seq_len, padding_idx, num_heads=2, nlayers=2, dropout=0.5, gpu=False):
+    def __init__(self, embedding_dim, hidden_dim, vocab_size, max_seq_len, padding_idx, num_heads=4, nlayers=4, dropout=0.5, gpu=False):
         super(SAOracle, self).__init__(embedding_dim, hidden_dim, vocab_size, max_seq_len, padding_idx, num_heads, nlayers, dropout, gpu)
         self.name = 'sa_oracle'
 
