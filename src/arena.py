@@ -193,7 +193,6 @@ def cross_train_iteration(hosts, pathogens, host_type_selector, epochs=1, timer=
             arena_match_results[0], arena_match_results[1]))
         
     
-    #AMIR: why is the training implemented this way? why do we need a "final cross-match" train ?
     for (host_no, host), (pathogen_no, pathogen) in product(enumerate(hosts[host_type_selector]),
                                                             enumerate(pathogens)):
 
