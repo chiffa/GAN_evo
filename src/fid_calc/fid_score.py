@@ -64,7 +64,6 @@ current_cuda = cuda_device
 
 def tqdm(x): return x
 
-from src.fid_calc.inception import InceptionV3
 
 parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
 
@@ -138,9 +137,6 @@ def get_activations(files, model, batch_size=50, dims=2048,
             batch = batch.cuda(current_cuda)
 
         pred = model(batch)[0]
-        #AMIR: model(batch)[1] ?
-        #Why activations of pool3 layer? where is this specified in code?
-        #pred.size(2), pred.size(3) != 1 ??
 
 
         # If model output is not scalar, apply global spatial average pooling.
@@ -273,14 +269,54 @@ def calculate_fid_given_paths(paths, batch_size, cuda, dims):
     return fid_value
 
 
-def calculate_is_given_paths(path, batch_size, cuda, dims):
-    # TODO
-    pass
+def calculate_is_given_path(path, batch_size, cuda, dims, splits=10):
+    """Calculates the IS of a path"""
+    
+    if not os.path.exists(path):
+        raise RuntimeError('Invalid path: %s' % path)
 
+    block_idx = InceptionV3.BLOCK_INDEX_BY_DIM[dims]
+
+    model = InceptionV3([block_idx])
+    model.eval()
+    
+    if cuda:
+        model.cuda(current_cuda)
+           
+    path = pathlib.Path(path)
+    files = list(path.glob('*.jpg')) + list(path.glob('*.png'))    
+    
+    preds = get_activations(files, model, batch_size, dims, cuda, verbose=True)
+    preds = np.concatenate(preds, 0)
+    
+    scores = []
+    
+    for i in range(splits):
+        
+        part = preds[(i * preds.shape[0] // splits): ((i + 1) * preds.shape[0] // splits), :]        
+        kl = part * (np.log(part) - np.log(np.expand_dims(np.mean(part, 0), 0)))
+        kl = np.mean(np.sum(kl, 1))
+        scores.append(np.exp(kl))
+    
+    is_value = np.mean(scores)
+    
+    return is_value
+
+    #If we want to implement this without using the splits, remove the "splits=10" argument in the
+    #definition and replace the lines from 292 (scores=[]) --> 301 (is_value = np.mean(scores)) by this code:
+    
+    """    
+    kl = preds * (np.log(preds) - np.log(np.expand_dims(np.mean(preds, 0), 0)))
+    kl = np.mean(np.sum(kl, 1))
+    is_value = np.exp(kl)
+    
+    """
 
 def calculate_fid_and_is_given_paths(paths, batch_size, cuda, dims):
+    
     fid_value = calculate_fid_given_paths(paths, batch_size, cuda, dims)
-    is_value = calculate_is_given_paths(paths, batch_size, cuda, dims)
+    is_value = calculate_is_given_path(path[0], batch_size, cuda, dims, splits, use_torch)
+    
     return fid_value, is_value
 
 
