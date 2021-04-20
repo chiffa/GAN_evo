@@ -165,8 +165,8 @@ class TransformerGenerator(nn.Module):
         src = self.pos_encoder(src)
         #print("SRC3:")
         #print(src.size())
-        #output = self.transformer_encoder(src, src_mask)
-        output = self.transformer_encoder(src)
+        output = self.transformer_encoder(src, src_mask)
+        #output = self.transformer_encoder(src)
         #print("OUT1:")
         #print(output.size())
         output = output.contiguous().view(-1, self.hidden_dim)  # out: (batch_size * len) * hidden_dim
@@ -199,7 +199,8 @@ class TransformerGenerator(nn.Module):
 
         # Generate sentences with multinomial sampling strategy
         for b in range(num_batch):
-            inp = torch.LongTensor([start_letter] * batch_size)
+            #inp = torch.LongTensor([start_letter] * batch_size)
+            inp = torch.LongTensor(self.max_seq_len)
             if self.gpu:
                 inp = inp.cuda()
 
