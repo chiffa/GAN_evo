@@ -1,6 +1,50 @@
 Project structure:
 ==================
 
+On the table:
+-------------
+
+AK:
+```
+the first thing I am doing when coming back to an old codebase is to annotate the
+abstractions that don't make sense or are excessively complex to grock. In general, it means
+writing into README.md what I am figuring about the code and renaming variables in a way that
+they make more sense.
+
+Similarly, writing the docstrings for the methods and classes is a good way to understand the
+codebase and help yourself as well as other developers in the long run.
+
+Another good thing to do is to figure out the methods that are excessively complex. They are
+commonly created by devs running out of time, just trying to make things work, but are impossible
+to work for other/later. In Python, flake8 has a good way to do just that::
+
+    > flake8 --select=C --max-complexity 10 <source_code_directory>.
+
+Everything above 10 is not great, but I usually refactor only things that go above 15. In the
+case of this codebase, we have several modules that do that:
+
+ - `src.post_analysis render_training_history` (CC - 28; there is no way to understand it, it does
+too much and needs to)
+ - `src.arena evolve_in_population` (CC - 17)
+ - `src.gans.trainer_zoo match_training_round` (CC - 18, but the module looks deprecated now)
+ - `src.gans.match_and_train match_training_round` (CC - 20)
+
+I am going now to proceed to refactoring those modules as well as the code base to make more
+sense and to be more easy to modify.
+
+Basically, from the perspective of "big ball of mud" (a good reference for how real-life
+codebases behave over their life cycle), we are starting to shear the layers (extract business
+logic and separate the concerns) and swipe under the rug (create abstract interfaces in the terms
+of that business logic) the chaotic code that will then need to be rewritten.
+
+
+Current refactoring:
+--------------------
+
+
+Past sprint notes:
+------------------
+
 We have four main components - GAN/Disc pair; evolutionary algorithm; arena and players.
 
 GAN(s) is/are trained to best fit (a) discriminator(s) that the player has control on.
