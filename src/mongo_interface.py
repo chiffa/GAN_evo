@@ -7,10 +7,11 @@ from bson.objectid import ObjectId
 #Database for gans storage and update
 
 
-root_password = os.environ['MONGOROOTPASS']
-print(root_password)
-client = MongoClient(username='root', password=root_password)
+# root_password = os.environ['MONGOROOTPASS']
+# print(root_password)
+# client = MongoClient(username='root', password=root_password)
 
+client = MongoClient('localhost', 27017)
 
 gan_pair_db = client['gen-disc']
 gan_trace = gan_pair_db['pure_trace']
