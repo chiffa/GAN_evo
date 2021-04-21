@@ -180,9 +180,10 @@ def match_training_round(generator_instance, discriminator_instance,
             discriminator_instance.zero_grad()
             real_cpu = data[0].to(device)
             _batch_size = real_cpu.size(0)
-            label = torch.full((_batch_size,), real_label, device=device)
+            label = torch.full((_batch_size,), real_label, device=device, dtype=torch.float32)
 
             output = discriminator_instance(real_cpu)
+
             errD_real = criterion(output, label)
 
             if train_d:
@@ -198,6 +199,7 @@ def match_training_round(generator_instance, discriminator_instance,
                                
             output = discriminator_instance(fake.detach())  # flags input as
             # non-gradientable
+
             errD_fake = criterion(output, label)  # calculates the loss for the prediction
             # error
 
