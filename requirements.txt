@@ -1,4 +1,7 @@
 pytorch
 torchvision
-cudatoolkit=10.1
+cudatoolkit
 pymongo
+scipy
+numpy
+matplotlib
