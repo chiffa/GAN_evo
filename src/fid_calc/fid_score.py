@@ -49,6 +49,8 @@ from torch.nn.functional import adaptive_avg_pool2d
 from PIL import Image
 from configs import cuda_device
 
+from scipy.stats import entropy
+
 from src.fid_calc.inception import InceptionV3
 
 current_cuda = cuda_device
@@ -114,30 +116,34 @@ def get_activations(files, model, batch_size=50, dims=2048,
         print(('Warning: batch size is bigger than the data size. '
                'Setting batch size to data size'))
         batch_size = len(files)
-
+    
+    
     pred_arr = np.empty((len(files), dims))
-
-    for i in tqdm(range(0, len(files), batch_size)):
+    
+    
+    for i in range(0, len(files), batch_size): #add tqdm()?
         if verbose:
-            print('\rPropagating batch %d/%d' % (i + 1, n_batches),
+            print('\rPropagating batch %d \n ' % (i + 1),
                   end='', flush=True)
         start = i
         end = i + batch_size
 
+        
         images = np.array([imread(str(f)).astype(np.float32)
                            for f in files[start:end]])
 
+        
         # Reshape to (n_images, 3, height, width)
         images = images.transpose((0, 3, 1, 2))
         images /= 255
 
         batch = torch.from_numpy(images).type(torch.FloatTensor)
 
+        
         if cuda:
             batch = batch.cuda(current_cuda)
 
         pred = model(batch)[0]
-
 
         # If model output is not scalar, apply global spatial average pooling.
         # This happens if you choose a dimensionality not equal 2048.
@@ -145,9 +151,9 @@ def get_activations(files, model, batch_size=50, dims=2048,
             pred = adaptive_avg_pool2d(pred, output_size=(1, 1))
 
         pred_arr[start:end] = pred.cpu().data.numpy().reshape(pred.size(0), -1)
-
+        
     if verbose:
-        print(' done')
+        print('done')
 
     return pred_arr
 
@@ -261,12 +267,15 @@ def calculate_fid_given_paths(paths, batch_size, cuda, dims):
         model.cuda(current_cuda)
 
     m1, s1 = _compute_statistics_of_path(paths[0], model, batch_size,
-                                         dims, cuda)
+                                         dims, cuda)    
+    
     m2, s2 = _compute_statistics_of_path(paths[1], model, batch_size,
-                                         dims, cuda)
-    fid_value = calculate_frechet_distance(m1, s1, m2, s2)
+                                         dims, cuda)    
+    
+    fid_value = calculate_frechet_distance(m1, s1, m2, s2)    
 
     return fid_value
+
 
 
 def calculate_is_given_path(path, batch_size, cuda, dims, splits=10):
@@ -281,41 +290,42 @@ def calculate_is_given_path(path, batch_size, cuda, dims, splits=10):
     model.eval()
     
     if cuda:
-        model.cuda(current_cuda)
-           
+        model.cuda(current_cuda)           
+    
     path = pathlib.Path(path)
-    files = list(path.glob('*.jpg')) + list(path.glob('*.png'))    
-    
-    preds = get_activations(files, model, batch_size, dims, cuda, verbose=True)
-    preds = np.concatenate(preds, 0)
-    
-    scores = []
-    
-    for i in range(splits):
+    files = list(path.glob('*.jpg')) + list(path.glob('*.png'))   
         
-        part = preds[(i * preds.shape[0] // splits): ((i + 1) * preds.shape[0] // splits), :]        
-        kl = part * (np.log(part) - np.log(np.expand_dims(np.mean(part, 0), 0)))
-        kl = np.mean(np.sum(kl, 1))
-        scores.append(np.exp(kl))
+    preds = get_activations(files, model, batch_size, dims, cuda, verbose=True)
+                    
+    split_scores = []
+        
+    for i in range(splits):                
+                          
+        print("Split number: ", i)
+        part = preds[i * (preds.shape[0] // splits): (i+1) * (preds.shape[0] // splits), :]
+
+        py = np.mean(part, axis=0)
+
+        scores = []
+        
+        for i in range(part.shape[0]):
+            pyx = part[i, :]
+            scores.append(entropy(pyx, py))
+            split_scores.append(np.exp(np.mean(scores)))
+        
+        print("Split scores size: ", len(split_scores))
+   
+    print("IS Value ", np.mean(split_scores))
     
-    is_value = np.mean(scores)
+    is_value = np.mean(split_scores)
     
     return is_value
 
-    #If we want to implement this without using the splits, remove the "splits=10" argument in the
-    #definition and replace the lines from 292 (scores=[]) --> 301 (is_value = np.mean(scores)) by this code:
-    
-    """    
-    kl = preds * (np.log(preds) - np.log(np.expand_dims(np.mean(preds, 0), 0)))
-    kl = np.mean(np.sum(kl, 1))
-    is_value = np.exp(kl)
-    
-    """
 
 def calculate_fid_and_is_given_paths(paths, batch_size, cuda, dims):
     
     fid_value = calculate_fid_given_paths(paths, batch_size, cuda, dims)
-    is_value = calculate_is_given_path(path[0], batch_size, cuda, dims, splits, use_torch)
+    is_value = calculate_is_given_path(paths[0], batch_size, cuda, dims, splits=10)
     
     return fid_value, is_value
 

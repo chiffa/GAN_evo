@@ -3,6 +3,7 @@ import sys
 from random import shuffle
 from itertools import combinations
 from src.fid_calc.fid_score import calculate_fid_given_paths  # TRACING: usage of fid > fid_is
+from src.fid_calc.fid_score import calculate_fid_and_is_given_paths
 from src.fid_is_calc.both import get_inception_score_and_fid
 import pickle
 import datetime
@@ -13,7 +14,7 @@ balancing_folders_location = fid_samples_location
 after_datetime = datetime.datetime.now() - datetime.timedelta(days=1)
 
 
-def calc_single_fid(random_tag):
+def calc_single_fid_is(random_tag):
     total_path = os.path.join(balancing_folders_location, random_tag)
 
     if os.path.isdir(total_path):
@@ -21,23 +22,38 @@ def calc_single_fid(random_tag):
         current_fake = balancing_folders_location + '/' + random_tag + '/' + 'fake'
 
         try:
+            #This may be omitted, replaced by what is below
             fid_value = calculate_fid_given_paths([current_real, current_fake],
                                                       batch_size=64,
                                                       cuda=True,
                                                       dims=2048)
+            
+            
+            
 
             print('fid compute', random_tag, ': ', fid_value)
-            return fid_value
+            
+            
+            fid_val, is_val = calculate_fid_and_is_given_paths([current_real, current_fake],
+                                                      batch_size=64,
+                                                      cuda=True,
+                                                      dims=2048)
+            
+            print('new fid and is compute', random_tag, ': ', (fid_val, is_val))
+            
+            return fid_val, is_val
 
         except:
             print("Unexpected error:", sys.exc_info()[0])
 
     return -1
 
-
-def calc_gen_fids():
+#Changed code to create, fill and return inception score map : is_map
+def calc_gen_fids_is():
     random_tag_list = []
     fid_map = {}
+    is_map = {}
+    
     for random_tag in os.listdir(balancing_folders_location):
         if os.path.getmtime(random_tag) > after_datetime:
             random_tag_list.append(random_tag)
@@ -46,17 +62,19 @@ def calc_gen_fids():
             current_fake = balancing_folders_location + '/' + random_tag + '/' + 'fake'
 
             try:
-                fid_value = calculate_fid_given_paths([current_real, current_fake],
-                                                      batch_size=64,
-                                                      cuda=True,
-                                                      dims=2048)
+                fid_value, is_value = calculate_fid_and_is_given_paths([current_real, current_fake],
+                                                              batch_size=64,
+                                                              cuda=True,
+                                                              dims=2048)
 
                 fid_map[random_tag] = fid_value
-                print(random_tag, ': ', fid_value)
+                is_map[random_tag]  = is_value
+                print(random_tag, ': 1.FID: ', fid_value, '\n 2.IS: ', is_value)
+                
             except:
                 print("Unexpected error:", sys.exc_info()[0])
 
-    return fid_map, random_tag_list
+    return is_map, fid_map, random_tag_list
 
 
 def calc_reals_fid(random_tag_list):
@@ -83,14 +101,25 @@ def calc_reals_fid(random_tag_list):
 
 
 if __name__ == "__main__":
-    fid_map, random_tag_list = calc_gen_fids()
+    
+    is_map, fid_map, random_tag_list = calc_gen_fids_is() # added code to get the inception score map
     real_comparison = calc_reals_fid(random_tag_list)
 
+    
     if os.path.isfile('fid_scores.dmp'):
-        old_fid_map, old_real_comparison = pickle.load((fid_map,
-                                                        real_comparison),
-                                                       open('fid_scores.dmp', 'rb'))
+        old_fid_map, old_real_comparison = pickle.load((fid_map, real_comparison), open('fid_scores.dmp', 'rb'))
         fid_map.update(old_fid_map)
         real_comparison += old_real_comparison
 
-    pickle.dump((fid_map, real_comparison), open('fid_scores.dmp', 'wb'))
+    pickle.dump((fid_map, real_comparison), open('fid_scores.dmp', 'wb'))   
+    
+    
+    # Added code to dump inception scores!  (do we need real_comparaison ?)
+    if os.path.isfile('inception_scores.dmp'):
+        old_is_map = pickle.load((is_map), open('inception_scores.dmp', 'rb'))
+        is_map.update(old_is_map)
+
+    pickle.dump((is_map), open('inception_scores.dmp', 'wb'))
+    
+    
+    

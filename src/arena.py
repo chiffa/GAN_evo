@@ -12,7 +12,7 @@ from collections import defaultdict
 import os
 from datetime import datetime, timedelta
 import csv
-from src.fid_analyser import calc_single_fid
+from src.fid_analyser import calc_single_fid_is #Made changes for this method to give back inception score also.
 from src.mongo_interface import save_pure_disc, save_pure_gen, update_pure_disc, update_pure_gen
 from datetime import datetime
 from configs import cuda_device
@@ -171,7 +171,7 @@ def cross_train_iteration(hosts, pathogens, host_type_selector, epochs=1, timer=
 
         arena.sample_images()
 
-        current_fid = calc_single_fid(arena.generator_instance.random_tag)
+        current_fid, _ = calc_single_fid_is(arena.generator_instance.random_tag)
         dump_trace(['sampled images from',
                     pathogen_no,
                     arena.generator_instance.random_tag, current_fid])
@@ -278,7 +278,7 @@ def round_robin_iteration(hosts, pathogens, host_type_selector, epochs=1,
 
         arena.sample_images()
 
-        current_fid = calc_single_fid(arena.generator_instance.random_tag)
+        current_fid, _ = calc_single_fid_is(arena.generator_instance.random_tag)
         dump_trace(['sampled images from',
                     pathogen_no,
                     arena.generator_instance.random_tag, current_fid])
@@ -568,7 +568,7 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit
                 i += 1
 
             arena.sample_images()
-            current_fid = calc_single_fid(arena.generator_instance.random_tag)
+            current_fid, _ = calc_single_fid_is(arena.generator_instance.random_tag)
 
             dump_trace(['sampled images from', current_pathogen_idx,
                         arena.generator_instance.random_tag, current_fid])
@@ -632,7 +632,7 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit
         if pathogen not in encountered_pathogens:
 
             arena.sample_images()
-            current_fid = calc_single_fid(arena.generator_instance.random_tag)
+            current_fid, _ = calc_single_fid_is(arena.generator_instance.random_tag)
 
             dump_trace(['sampled images from',
                         pathogen_no,
@@ -765,7 +765,7 @@ def brute_force_training(restarts, epochs):
 
         arena.sample_images()
 
-        current_fid = calc_single_fid(arena.generator_instance.random_tag)
+        current_fid, _ = calc_single_fid_is(arena.generator_instance.random_tag)
 
         dump_trace(['sampled images from',
                     pathogen_no,
