@@ -46,28 +46,28 @@ class LSTMGenerator(nn.Module):
         :param hidden: (h, c)
         :param need_hidden: if return hidden, use for sampling
         """
-        #print("INP:")
-        #print(inp.size())
+        print("INP:")
+        print(inp.size())
         emb = self.embeddings(inp)  # batch_size * len * embedding_dim
-        #print("EMB1:")
-        #print(emb.size())
+        print("EMB:")
+        print(emb.size())
         if len(inp.size()) == 1:
             emb = emb.unsqueeze(1)  # batch_size * 1 * embedding_dim
-        #print("EMB2:")
-        #print(emb.size())
+        print("EMB after unsqueeze:")
+        print(emb.size())
         out, hidden = self.lstm(emb, hidden)  # out: batch_size * seq_len * hidden_dim
-        #print("OUT1:")
-        #print(out.size())
+        print("OUT after LSTM:")
+        print(out.size())
         out = out.contiguous().view(-1, self.hidden_dim)  # out: (batch_size * len) * hidden_dim
-        #print("OUT2:")
-        #print(out.size())
+        print("OUT after view:")
+        print(out.size())
         out = self.lstm2out(out)  # (batch_size * seq_len) * vocab_size
-        #print("OUT3:")
-        #print(out.size())
+        print("OUT after lstm2out:")
+        print(out.size())
         # out = self.temperature * out  # temperature
         pred = self.softmax(out)
-        #print("PRED:")
-        #print(pred.size())
+        print("PRED:")
+        print(pred.size())
 
         if need_hidden:
             return pred, hidden
@@ -86,14 +86,19 @@ class LSTMGenerator(nn.Module):
         for b in range(num_batch):
             hidden = self.init_hidden(batch_size)
             inp = torch.LongTensor([start_letter] * batch_size)
+            print(f"inp: {inp.size()}")
             if self.gpu:
                 inp = inp.cuda()
 
             for i in range(self.max_seq_len):
                 out, hidden = self.forward(inp, hidden, need_hidden=True)  # out: batch_size * vocab_size
+                print(f"out: {out.size()}")
                 next_token = torch.multinomial(torch.exp(out), 1)  # batch_size * 1 (sampling from each row)
+                print(f"nexttoken: {next_token.size()}")
                 samples[b * batch_size:(b + 1) * batch_size, i] = next_token.view(-1)
+                print(f"samples: {samples.size()}")
                 inp = next_token.view(-1)
+                print(f"inp: {inp.size()}")
         samples = samples[:num_samples]
 
         return samples
@@ -130,13 +135,13 @@ class TransformerGenerator(nn.Module):
     def __init__(self, embedding_dim, hidden_dim, vocab_size, max_seq_len, padding_idx, nhead=2, nlayers=2, dropout=0.5, gpu=False):
         super(TransformerGenerator, self).__init__()
         self.model_type = 'TransformerGenerator'
-        # Compared to pytorch transformer_tutorial: ntoken = vocab_size    and  ninp= embedding_dim  nhid=hidden_dim
+        # Compared to pytorch transformer_tutorial: ntoken = vocab_size, ninp= embedding_dim,  nhid=hidden_dim, bptt = max_seq_len
 
         self.embedding_dim = embedding_dim  # embedding dimension
         self.hidden_dim = hidden_dim        # the dimension of the feedforward network model in nn.TransformerEncoder
         self.nlayers = nlayers              # the number of nn.TransformerEncoderLayer in nn.TransformerEncoder
         self.nhead = nhead                  # the number of heads in the multiheadattention models
-        self.max_seq_len = max_seq_len
+        self.max_seq_len = max_seq_len      #
         self.vocab_size = vocab_size
         self.padding_idx = padding_idx
         self.gpu = gpu
@@ -164,28 +169,30 @@ class TransformerGenerator(nn.Module):
         return torch.from_numpy(subsequent_mask) == 0
 
     def forward(self, src, src_mask=None):
+        #src: [max_seq_len, batch_size]
         print("1. SRC:")
         print(src.size())
-        src1 = self.encoder(src) * math.sqrt(self.embedding_dim)
+        src1 = self.encoder(src) * math.sqrt(self.embedding_dim) #src1: [max_seq_len, batch_size, embedding_dim]
         print("2. SRC after encoder(inp):")
         print(src1.size())
         if len(src1.size()) == 1:
-            src1 = src1.unsqueeze(1)  # batch_size * 1 * embedding_dim
+            src1 = src1.unsqueeze(1) # ???? batch_size * 1 * embedding_dim
         print("3. SRC after unsqueeze:")
         print(src1.size())
-        src2 = self.pos_encoder(src1)
+        src2 = self.pos_encoder(src1) #src2: [max_seq_len, batch_size, embedding_dim]
         print("4. SRC after pos_encoder:")
         print(src2.size())
-        output = self.transformer_encoder(src2, src_mask)
+        output = self.transformer_encoder(src2, src_mask) #output: [max_seq_len, batch_size, embedding_dim]
         #output = self.transformer_encoder(src)
         print("1. OUT after transencod:")
         print(output.size())
-        output = self.decoder(output)
+        output = self.decoder(output) #output: [max_seq_len, batch_size, vocab_size]
         print("2. OUT after decoder: ")
         print(output.size())
-        output = output.contiguous().view(-1, self.hidden_dim)  # out: (batch_size * len) * hidden_dim
-        print("3. OUT after view:")
-        print(output.size())
+        return output
+        #output = output.contiguous().view(-1, self.hidden_dim)  # out: (batch_size * len) * hidden_dim
+        #print("3. OUT after view:")
+        #print(output.size())
         pred = self.softmax(output)
         print("PRED")
         print(pred.size())
@@ -227,12 +234,22 @@ class TransformerGenerator(nn.Module):
                 out = self.forward(inp, self.generate_square_subsequent_mask(self.max_seq_len))  # out: batch_size * vocab_size
                 #out = self.forward(inp)  # out: batch_size * vocab_size
                 print(f"out: {out.size()}")
-                next_token = torch.multinomial(torch.exp(out), 1)  # batch_size * 1 (sampling from each row)
+                #out = out.contiguous().view(-1, self.hidden_dim)  # out: (batch_size * len) * hidden_dim
+                #print(f"3. OUT after view: {out.size()}")
+
+                #Reduce the dimension from 3 to 2 otherwise we can't use multinomial sampling
+                pred = out[i, :, :]
+                print(f"PRED {pred.size()}")
+
+                pred = self.softmax(pred)
+                print(f"PRED {pred.size()}")
+
+                next_token = torch.multinomial(torch.exp(pred), 1)  # batch_size * 1 (sampling from each row)
                 print(f"Nexttoken: {next_token.size()}")
                 print(f"samples: {samples.size()}")
-
-                samples[b * batch_size:(b + 1) * batch_size, i] = next_token.view(-1)
-                inp = next_token.view(-1)
+                samples[b * batch_size : (b + 1) * batch_size, i] = next_token.view(-1)
+                inp = next_token.view(-1).unsqueeze(0).expand(20, batch_size)
+                print(f"inp end loop: {inp.size()}")
         samples = samples[:num_samples]
         return samples
 
