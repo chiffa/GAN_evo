@@ -57,7 +57,7 @@ adv_log_step = 1
 ADV_g_step = 1
 rollout_num = 16
 gen_embed_dim = 32
-gen_hidden_dim = 32
+gen_hidden_dim = 40
 gen_num_heads = 4
 gen_nlayers = 4
 

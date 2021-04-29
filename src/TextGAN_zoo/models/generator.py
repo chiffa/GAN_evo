@@ -170,25 +170,25 @@ class TransformerGenerator(nn.Module):
 
     def forward(self, src, src_mask=None):
         #src: [max_seq_len, batch_size]
-        print("1. SRC:")
-        print(src.size())
+        #print("1. SRC:")
+        #print(src.size())
         src1 = self.encoder(src) * math.sqrt(self.embedding_dim) #src1: [max_seq_len, batch_size, embedding_dim]
-        print("2. SRC after encoder(inp):")
-        print(src1.size())
+        #print("2. SRC after encoder(inp):")
+        #print(src1.size())
         if len(src1.size()) == 1:
             src1 = src1.unsqueeze(1) # ???? batch_size * 1 * embedding_dim
-        print("3. SRC after unsqueeze:")
-        print(src1.size())
+        #print("3. SRC after unsqueeze:")
+        #print(src1.size())
         src2 = self.pos_encoder(src1) #src2: [max_seq_len, batch_size, embedding_dim]
-        print("4. SRC after pos_encoder:")
-        print(src2.size())
+        #print("4. SRC after pos_encoder:")
+        #print(src2.size())
         output = self.transformer_encoder(src2, src_mask) #output: [max_seq_len, batch_size, embedding_dim]
         #output = self.transformer_encoder(src)
-        print("1. OUT after transencod:")
-        print(output.size())
+        #print("1. OUT after transencod:")
+        #print(output.size())
         output = self.decoder(output) #output: [max_seq_len, batch_size, vocab_size]
-        print("2. OUT after decoder: ")
-        print(output.size())
+        #print("2. OUT after decoder: ")
+        #print(output.size())
         return output
         #output = output.contiguous().view(-1, self.hidden_dim)  # out: (batch_size * len) * hidden_dim
         #print("3. OUT after view:")
@@ -221,35 +221,35 @@ class TransformerGenerator(nn.Module):
             #inp = torch.LongTensor([start_letter] * self.max_seq_len)
             inp = torch.LongTensor([start_letter] * self.max_seq_len)
             inp = inp.unsqueeze(1).expand(20, batch_size)
-            print(f"start letter:, {[start_letter]}")
-            print(f"batch size: {batch_size}")
-            print(f"inp:, {inp}")
+            #print(f"start letter:, {[start_letter]}")
+            #print(f"batch size: {batch_size}")
+            #print(f"inp:, {inp}")
             #inp = torch.LongTensor(self.max_seq_len)
             if self.gpu:
                 inp = inp.cuda()
 
             for i in range(self.max_seq_len):
-                print(f"inp in range: {inp.size()}")
+                #print(f"inp in range: {inp.size()}")
 
                 out = self.forward(inp, self.generate_square_subsequent_mask(self.max_seq_len))  # out: batch_size * vocab_size
                 #out = self.forward(inp)  # out: batch_size * vocab_size
-                print(f"out: {out.size()}")
+                #print(f"out: {out.size()}")
                 #out = out.contiguous().view(-1, self.hidden_dim)  # out: (batch_size * len) * hidden_dim
                 #print(f"3. OUT after view: {out.size()}")
-
+    
                 #Reduce the dimension from 3 to 2 otherwise we can't use multinomial sampling
                 pred = out[i, :, :]
-                print(f"PRED {pred.size()}")
+                #print(f"PRED {pred.size()}")
 
                 pred = self.softmax(pred)
-                print(f"PRED {pred.size()}")
+                #print(f"PRED {pred.size()}")
 
                 next_token = torch.multinomial(torch.exp(pred), 1)  # batch_size * 1 (sampling from each row)
-                print(f"Nexttoken: {next_token.size()}")
-                print(f"samples: {samples.size()}")
+                #print(f"Nexttoken: {next_token.size()}")
+                #print(f"samples: {samples.size()}")
                 samples[b * batch_size : (b + 1) * batch_size, i] = next_token.view(-1)
                 inp = next_token.view(-1).unsqueeze(0).expand(20, batch_size)
-                print(f"inp end loop: {inp.size()}")
+                #print(f"inp end loop: {inp.size()}")
         samples = samples[:num_samples]
         return samples
 
