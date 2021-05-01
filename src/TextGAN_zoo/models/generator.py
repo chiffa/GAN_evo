@@ -160,13 +160,9 @@ class TransformerGenerator(nn.Module):
     def generate_square_subsequent_mask(self, sz):
         mask = (torch.triu(torch.ones(sz, sz)) == 1).transpose(0, 1)
         mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
+        if cfg.CUDA:
+            mask = mask.cuda()
         return mask
-    
-    def subsequent_mask(self, size):
-        "Mask out subsequent positions."
-        attn_shape = (1, size, size)
-        subsequent_mask = np.triu(np.ones(attn_shape), k=1).astype('uint8')
-        return torch.from_numpy(subsequent_mask) == 0
 
     def forward(self, src, src_mask=None):
         #src: [max_seq_len, batch_size]
@@ -266,6 +262,7 @@ class TransformerGenerator(nn.Module):
                 initrange = 0.1
                 torch.nn.init.uniform_(param, -initrange, initrange)
 
+#Not used yet but potentially useful if we change the network structure
 class Generator(nn.Module):
         "Define standard linear + softmax generation step."
         def __init__(self, d_model, vocab):
