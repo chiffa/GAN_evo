@@ -302,12 +302,13 @@ class SelfAttentionInstructor:
 
     def init_model(self):
         if cfg.oracle_pretrain:
-            if not os.path.exists(cfg.oracle_state_dict_path):
+            if not os.path.exists(cfg.sa_oracle_state_dict_path):
                 create_oracle(sa=self.sa)
             if cfg.CUDA:
-                self.oracle.load_state_dict(torch.load(cfg.oracle_state_dict_path, map_location='cuda:{}'.format(cfg.device)))
+                self.oracle.load_state_dict(torch.load(cfg.sa_oracle_state_dict_path, map_location='cuda:{}'.format(cfg.device)))
             else:
-                self.oracle.load_state_dict(torch.load(cfg.oracle_state_dict_path, map_location=torch.device('cpu')))
+                print(cfg.sa_oracle_state_dict_path)
+                self.oracle.load_state_dict(torch.load(cfg.sa_oracle_state_dict_path, map_location=torch.device('cpu')))
             
 
         if cfg.dis_pretrain:
