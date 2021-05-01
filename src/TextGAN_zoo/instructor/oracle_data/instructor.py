@@ -333,14 +333,20 @@ class SelfAttentionInstructor:
     def train_gen_epoch(self, model, data_loader, criterion, optimizer):
         total_loss = 0
         for i, data in enumerate(data_loader):
+            
             inp, target = data['input'], data['target']
+            inp = inp.permute(1,0)
             if cfg.CUDA:
                 inp, target = inp.cuda(), target.cuda()
 
             model.init_weights()
             src_mask = model.generate_square_subsequent_mask(model.max_seq_len)
             #pred = model.forward(inp)
+            #print(f"inp: {inp.size()}")
+            #print(f"src_mask: {src_mask.size()}")
             pred = model.forward(inp, src_mask)
+            #print(f"pred: {pred.size()}")
+            pred = pred.view(-1, model.vocab_size)
             loss = criterion(pred, target.view(-1))
             self.optimize(optimizer, loss, model)
             total_loss += loss.item()
