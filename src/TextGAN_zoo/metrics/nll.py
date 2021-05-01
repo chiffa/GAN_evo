@@ -61,6 +61,10 @@ class NLL(Metrics):
                 else:
                     model.init_weights()
                     pred = model.forward(inp)
+                    pred = pred.view(-1, model.vocab_size)
+                #print(f"pred: {pred.size()}")
+                #print(f"target: {target.size()}")
+                #print(f"target view(-1): {target.view(-1).size()}")
                 loss = criterion(pred, target.view(-1))
                 total_loss += loss.item()
         return round(total_loss / len(data_loader), 4)

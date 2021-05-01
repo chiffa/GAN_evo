@@ -46,28 +46,28 @@ class LSTMGenerator(nn.Module):
         :param hidden: (h, c)
         :param need_hidden: if return hidden, use for sampling
         """
-        print("INP:")
-        print(inp.size())
+        #print("INP:")
+        #print(inp.size())
         emb = self.embeddings(inp)  # batch_size * len * embedding_dim
-        print("EMB:")
-        print(emb.size())
+        #print("EMB:")
+        #print(emb.size())
         if len(inp.size()) == 1:
             emb = emb.unsqueeze(1)  # batch_size * 1 * embedding_dim
-        print("EMB after unsqueeze:")
-        print(emb.size())
+        #print("EMB after unsqueeze:")
+        #print(emb.size())
         out, hidden = self.lstm(emb, hidden)  # out: batch_size * seq_len * hidden_dim
-        print("OUT after LSTM:")
-        print(out.size())
+        #print("OUT after LSTM:")
+        #print(out.size())
         out = out.contiguous().view(-1, self.hidden_dim)  # out: (batch_size * len) * hidden_dim
-        print("OUT after view:")
-        print(out.size())
+        #print("OUT after view:")
+        #print(out.size())
         out = self.lstm2out(out)  # (batch_size * seq_len) * vocab_size
-        print("OUT after lstm2out:")
-        print(out.size())
+        #print("OUT after lstm2out:")
+        #print(out.size())
         # out = self.temperature * out  # temperature
         pred = self.softmax(out)
-        print("PRED:")
-        print(pred.size())
+        #print("PRED:")
+        #print(pred.size())
 
         if need_hidden:
             return pred, hidden
@@ -86,19 +86,19 @@ class LSTMGenerator(nn.Module):
         for b in range(num_batch):
             hidden = self.init_hidden(batch_size)
             inp = torch.LongTensor([start_letter] * batch_size)
-            print(f"inp: {inp.size()}")
+            #print(f"inp: {inp.size()}")
             if self.gpu:
                 inp = inp.cuda()
 
             for i in range(self.max_seq_len):
                 out, hidden = self.forward(inp, hidden, need_hidden=True)  # out: batch_size * vocab_size
-                print(f"out: {out.size()}")
+                #print(f"out: {out.size()}")
                 next_token = torch.multinomial(torch.exp(out), 1)  # batch_size * 1 (sampling from each row)
-                print(f"nexttoken: {next_token.size()}")
+                #print(f"nexttoken: {next_token.size()}")
                 samples[b * batch_size:(b + 1) * batch_size, i] = next_token.view(-1)
-                print(f"samples: {samples.size()}")
+                #print(f"samples: {samples.size()}")
                 inp = next_token.view(-1)
-                print(f"inp: {inp.size()}")
+                #print(f"inp: {inp.size()}")
         samples = samples[:num_samples]
 
         return samples
