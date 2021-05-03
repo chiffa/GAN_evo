@@ -334,20 +334,26 @@ class SelfAttentionInstructor:
         total_loss = 0
         for i, data in enumerate(data_loader):
             
-            inp, target = data['input'], data['target']
-            inp = inp.permute(1,0)
+            inp, target = data['input'], data['target'] #[batch_size, max_seq_len], [batch_size, max_seq_len]
+            #print(f"inp: {inp.size()}")
+            #print(f"target: {target.size()}")
+            inp = inp.transpose(1, 0)       # [max_seq_len, batch_size]
+            target = target.transpose(1, 0) # [max_seq_len, batch_size]
+            #print(f"inp per: {inp.size()}")
+            #print(f"target perm: {target.size()}")
             if cfg.CUDA:
                 inp, target = inp.cuda(), target.cuda()
 
             model.init_weights()
             src_mask = model.generate_square_subsequent_mask(model.max_seq_len)
             #pred = model.forward(inp)
-            #print(f"inp: {inp.size()}")
+            
             #print(f"src_mask: {src_mask.size()}")
             pred = model.forward(inp, src_mask)
             #print(f"pred: {pred.size()}")
-            pred = pred.view(-1, model.vocab_size)
-            loss = criterion(pred, target.view(-1))
+            pred = pred.contiguous().view(-1, model.vocab_size)
+            pred = model.softmax(pred)
+            loss = criterion(pred, target.contiguous().view(-1))
             self.optimize(optimizer, loss, model)
             total_loss += loss.item()
         return total_loss / len(data_loader)

@@ -69,6 +69,7 @@ class NLL(Metrics):
                     #print(f"pred before view: {pred.size()}")
                     pred = pred.view(-1, model.vocab_size) # [max_seq_len * batch_size, vocab_size]
                     #print(f"pred: {pred.size()}")
+                    pred = model.softmax(pred)
                 target = target.contiguous().view(-1) # [max_seq_len * batch_size]
                 #print(f"target view(-1): {target.size()}")
                 loss = criterion(pred, target)
