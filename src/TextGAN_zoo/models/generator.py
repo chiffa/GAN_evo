@@ -186,7 +186,7 @@ class TransformerGenerator(nn.Module):
         #print("2. OUT after decoder: ")
         #print(output.size())
         return output
-        #output = output.contiguous().view(-1, self.hidden_dim)  # out: (batch_size * len) * hidden_dim
+        #output = output.contiguous().view(-1, self.vocab_size)  # [max_seq_len * batch_size, vocab_size]
         #print("3. OUT after view:")
         #print(output.size())
         pred = self.softmax(output)

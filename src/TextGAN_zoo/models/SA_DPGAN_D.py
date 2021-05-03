@@ -21,6 +21,9 @@ class SA_DPGAN_D(TransformerGenerator):
         src_mask = self.generate_square_subsequent_mask(self.max_seq_len)
         #pred = self.forward(inp, src_mask)
         pred = self.forward(inp)
+        pred = pred.view(-1, self.vocab_size) # [max_seq_len * batch_size, vocab_size]
+        #print(f"pred: {pred.size()}")
+        pred = self.softmax(pred)
 
         word_reward = F.nll_loss(pred, target.view(-1), reduction='none').view(batch_size, -1)
         sentence_reward = torch.mean(word_reward, dim=-1, keepdim=True)
