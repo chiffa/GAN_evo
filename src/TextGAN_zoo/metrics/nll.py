@@ -52,20 +52,26 @@ class NLL(Metrics):
         total_loss = 0
         with torch.no_grad():
             for i, data in enumerate(data_loader):
-                inp, target = data['input'], data['target']
+                inp, target = data['input'], data['target'] # [batch_size, max_seq_len], [batch_size, max_seq_len]
                 if gpu:
                     inp, target = inp.cuda(), target.cuda()
                 if not sa:
                     hidden = model.init_hidden(data_loader.batch_size)
                     pred = model.forward(inp, hidden)
                 else:
+                    #If SA, transpose data columns in NLL metric
+                    inp = inp.transpose(1, 0)       # [max_seq_len, batch_size]
+                    target = target.transpose(1, 0) # [max_seq_len, batch_size]
+                    #print(f"inp: {inp.size()}")
+                    #print(f"target: {target.size()}")
                     model.init_weights()
-                    pred = model.forward(inp)
-                    pred = pred.view(-1, model.vocab_size)
-                #print(f"pred: {pred.size()}")
-                #print(f"target: {target.size()}")
-                #print(f"target view(-1): {target.view(-1).size()}")
-                loss = criterion(pred, target.view(-1))
+                    pred = model.forward(inp)  # [max_seq_len, batch_size, vocab_size]
+                    #print(f"pred before view: {pred.size()}")
+                    pred = pred.view(-1, model.vocab_size) # [max_seq_len * batch_size, vocab_size]
+                    #print(f"pred: {pred.size()}")
+                target = target.contiguous().view(-1) # [max_seq_len * batch_size]
+                #print(f"target view(-1): {target.size()}")
+                loss = criterion(pred, target)
                 total_loss += loss.item()
         return round(total_loss / len(data_loader), 4)
 

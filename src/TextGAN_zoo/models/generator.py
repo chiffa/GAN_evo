@@ -216,7 +216,7 @@ class TransformerGenerator(nn.Module):
             #inp = torch.LongTensor([start_letter] * batch_size)
             #inp = torch.LongTensor([start_letter] * self.max_seq_len)
             inp = torch.LongTensor([start_letter] * self.max_seq_len)
-            inp = inp.unsqueeze(1).expand(20, batch_size)
+            inp = inp.unsqueeze(1).expand(self.max_seq_len, batch_size)
             #print(f"start letter:, {[start_letter]}")
             #print(f"batch size: {batch_size}")
             #print(f"inp:, {inp}")
@@ -244,7 +244,7 @@ class TransformerGenerator(nn.Module):
                 #print(f"Nexttoken: {next_token.size()}")
                 #print(f"samples: {samples.size()}")
                 samples[b * batch_size : (b + 1) * batch_size, i] = next_token.view(-1)
-                inp = next_token.view(-1).unsqueeze(0).expand(20, batch_size)
+                inp = next_token.view(-1).unsqueeze(0).expand(self.max_seq_len, batch_size)
                 #print(f"inp end loop: {inp.size()}")
         samples = samples[:num_samples]
         return samples
