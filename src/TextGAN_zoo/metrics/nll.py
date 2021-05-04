@@ -59,19 +59,13 @@ class NLL(Metrics):
                     hidden = model.init_hidden(data_loader.batch_size)
                     pred = model.forward(inp, hidden)
                 else:
-                    #If SA, transpose data columns in NLL metric
+                    #If SA, transpose data columns
                     inp = inp.transpose(1, 0)       # [max_seq_len, batch_size]
                     target = target.transpose(1, 0) # [max_seq_len, batch_size]
-                    #print(f"inp: {inp.size()}")
-                    #print(f"target: {target.size()}")
                     model.init_weights()
-                    pred = model.forward(inp)  # [max_seq_len, batch_size, vocab_size]
-                    #print(f"pred before view: {pred.size()}")
-                    pred = pred.view(-1, model.vocab_size) # [max_seq_len * batch_size, vocab_size]
-                    #print(f"pred: {pred.size()}")
-                    pred = model.softmax(pred)
+                    src_mask = model.generate_square_subsequent_mask(model.max_seq_len)
+                    pred = model.forward(inp, src_mask)  # [max_seq_len * batch_size, vocab_size]
                 target = target.contiguous().view(-1) # [max_seq_len * batch_size]
-                #print(f"target view(-1): {target.size()}")
                 loss = criterion(pred, target)
                 total_loss += loss.item()
         return round(total_loss / len(data_loader), 4)

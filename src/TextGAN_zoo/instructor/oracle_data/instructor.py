@@ -335,24 +335,15 @@ class SelfAttentionInstructor:
         for i, data in enumerate(data_loader):
             
             inp, target = data['input'], data['target'] #[batch_size, max_seq_len], [batch_size, max_seq_len]
-            #print(f"inp: {inp.size()}")
-            #print(f"target: {target.size()}")
             inp = inp.transpose(1, 0)       # [max_seq_len, batch_size]
             target = target.transpose(1, 0) # [max_seq_len, batch_size]
-            #print(f"inp per: {inp.size()}")
-            #print(f"target perm: {target.size()}")
             if cfg.CUDA:
                 inp, target = inp.cuda(), target.cuda()
 
             model.init_weights()
             src_mask = model.generate_square_subsequent_mask(model.max_seq_len)
-            #pred = model.forward(inp)
-            
-            #print(f"src_mask: {src_mask.size()}")
-            pred = model.forward(inp, src_mask)
-            #print(f"pred: {pred.size()}")
-            pred = pred.contiguous().view(-1, model.vocab_size)
-            pred = model.softmax(pred)
+            pred = model.forward(inp, src_mask)  # [max_seq_len * batch_size, vocab_size]
+           
             loss = criterion(pred, target.contiguous().view(-1))
             self.optimize(optimizer, loss, model)
             total_loss += loss.item()
@@ -367,7 +358,8 @@ class SelfAttentionInstructor:
             if cfg.CUDA:
                 inp, target = inp.cuda(), target.cuda()
 
-            pred = model.forward(inp)
+            src_mask = model.generate_square_subsequent_mask(model.max_seq_len)
+            pred = model.forward(inp, src_mask)  # [max_seq_len * batch_size, vocab_size]
             loss = criterion(pred, target)
             self.optimize(optimizer, loss, model)
 
@@ -390,7 +382,8 @@ class SelfAttentionInstructor:
                 if cfg.CUDA:
                     inp, target = inp.cuda(), target.cuda()
 
-                pred = model.forward(inp)
+                src_mask = model.generate_square_subsequent_mask(model.max_seq_len)
+                pred = model.forward(inp, src_mask)  # [max_seq_len * batch_size, vocab_size]
                 loss = criterion(pred, target)
                 total_loss += loss.item()
                 total_acc += torch.sum((pred.argmax(dim=-1) == target)).item()

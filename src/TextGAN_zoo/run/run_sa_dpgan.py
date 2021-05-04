@@ -3,6 +3,8 @@ from subprocess import call
 
 import os
 
+from torch.autograd.grad_mode import F
+
 # Job id and gpu_id
 if len(sys.argv) > 2:
     job_id = int(sys.argv[1])
@@ -28,9 +30,9 @@ if_test = int(False)
 run_model = 'sa_dpgan'
 sa = int(True)
 CUDA = int(True)
-oracle_pretrain = int(True)
-gen_pretrain = int(True)
-dis_pretrain = int(True)
+oracle_pretrain = int(False)
+gen_pretrain = int(False)
+dis_pretrain = int(False)
 MLE_train_epoch = 120
 ADV_train_epoch = 200
 tips = 'DPGAN experiments'

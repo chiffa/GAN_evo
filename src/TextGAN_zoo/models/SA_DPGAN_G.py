@@ -21,11 +21,7 @@ class SA_DPGAN_G(TransformerGenerator):
         batch_size, _ = inp.size()
         src_mask = self.generate_square_subsequent_mask(self.max_seq_len)
         inp = inp.transpose(1, 0)       # [max_seq_len, batch_size]
-        print(f"inp: {inp.size()}")
         pred = self.forward(inp, src_mask)
-        pred = pred.view(-1, self.vocab_size) # [max_seq_len * batch_size, vocab_size]
-        #print(f"pred: {pred.size()}")
-        pred = self.softmax(pred)
         samples = torch.argmax(pred, dim=-1).view(batch_size, -1)
         log_prob = F.nll_loss(pred, samples.view(-1), reduction='none').view(batch_size, -1)
         # samples = torch.multinomial(torch.exp(log_prob), 1)
