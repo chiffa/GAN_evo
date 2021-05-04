@@ -16,13 +16,14 @@ class SA_DPGAN_D(TransformerGenerator):
         Get word-level reward and sentence-level reward of samples.
         """
         batch_size, _ = samples.size()
-        inp, target = GenDataIter.prepare(samples, cfg.CUDA)
+        inp, target = GenDataIter.prepare(samples, cfg.CUDA) # [batch_size, max_seq_len], [batch_size, max_seq_len]
+        inp = inp.transpose(1, 0)       # [max_seq_len, batch_size]
+        target = target.transpose(1, 0) # [max_seq_len, batch_size]
 
         src_mask = self.generate_square_subsequent_mask(self.max_seq_len)
-        #pred = self.forward(inp, src_mask)
-        pred = self.forward(inp)
+        pred = self.forward(inp, src_mask)
 
-        word_reward = F.nll_loss(pred, target.view(-1), reduction='none').view(batch_size, -1)
+        word_reward = F.nll_loss(pred, target.contiguous().view(-1), reduction='none').view(batch_size, -1)
         sentence_reward = torch.mean(word_reward, dim=-1, keepdim=True)
 
         return word_reward, sentence_reward

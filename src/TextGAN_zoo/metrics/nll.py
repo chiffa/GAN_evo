@@ -52,16 +52,21 @@ class NLL(Metrics):
         total_loss = 0
         with torch.no_grad():
             for i, data in enumerate(data_loader):
-                inp, target = data['input'], data['target']
+                inp, target = data['input'], data['target'] # [batch_size, max_seq_len], [batch_size, max_seq_len]
                 if gpu:
                     inp, target = inp.cuda(), target.cuda()
                 if not sa:
                     hidden = model.init_hidden(data_loader.batch_size)
                     pred = model.forward(inp, hidden)
                 else:
+                    #If SA, transpose data columns
+                    inp = inp.transpose(1, 0)       # [max_seq_len, batch_size]
+                    target = target.transpose(1, 0) # [max_seq_len, batch_size]
                     model.init_weights()
-                    pred = model.forward(inp)
-                loss = criterion(pred, target.view(-1))
+                    src_mask = model.generate_square_subsequent_mask(model.max_seq_len)
+                    pred = model.forward(inp, src_mask)  # [max_seq_len * batch_size, vocab_size]
+                target = target.contiguous().view(-1) # [max_seq_len * batch_size]
+                loss = criterion(pred, target)
                 total_loss += loss.item()
         return round(total_loss / len(data_loader), 4)
 

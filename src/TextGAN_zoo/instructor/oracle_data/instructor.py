@@ -265,8 +265,8 @@ class SelfAttentionInstructor:
         self.opt = opt
 
         # oracle, generator, discriminator
-        self.oracle = SAOracle(32, 32, cfg.vocab_size, cfg.max_seq_len, cfg.padding_idx, gpu=cfg.CUDA)
-        self.oracle_list = [SAOracle(32, 32, cfg.vocab_size, cfg.max_seq_len, 
+        self.oracle = SAOracle(32, 40, cfg.vocab_size, cfg.max_seq_len, cfg.padding_idx, gpu=cfg.CUDA)
+        self.oracle_list = [SAOracle(32, 40, cfg.vocab_size, cfg.max_seq_len, 
             cfg.padding_idx, gpu=cfg.CUDA) for _ in range(cfg.k_label)]
 
         self.dis = None
@@ -302,12 +302,13 @@ class SelfAttentionInstructor:
 
     def init_model(self):
         if cfg.oracle_pretrain:
-            if not os.path.exists(cfg.oracle_state_dict_path):
+            if not os.path.exists(cfg.sa_oracle_state_dict_path):
                 create_oracle(sa=self.sa)
             if cfg.CUDA:
-                self.oracle.load_state_dict(torch.load(cfg.oracle_state_dict_path, map_location='cuda:{}'.format(cfg.device)))
+                self.oracle.load_state_dict(torch.load(cfg.sa_oracle_state_dict_path, map_location='cuda:{}'.format(cfg.device)))
             else:
-                self.oracle.load_state_dict(torch.load(cfg.oracle_state_dict_path, map_location=torch.device('cpu')))
+                print(cfg.sa_oracle_state_dict_path)
+                self.oracle.load_state_dict(torch.load(cfg.sa_oracle_state_dict_path, map_location=torch.device('cpu')))
             
 
         if cfg.dis_pretrain:
@@ -332,15 +333,18 @@ class SelfAttentionInstructor:
     def train_gen_epoch(self, model, data_loader, criterion, optimizer):
         total_loss = 0
         for i, data in enumerate(data_loader):
-            inp, target = data['input'], data['target']
+            
+            inp, target = data['input'], data['target'] #[batch_size, max_seq_len], [batch_size, max_seq_len]
+            inp = inp.transpose(1, 0)       # [max_seq_len, batch_size]
+            target = target.transpose(1, 0) # [max_seq_len, batch_size]
             if cfg.CUDA:
                 inp, target = inp.cuda(), target.cuda()
 
             model.init_weights()
             src_mask = model.generate_square_subsequent_mask(model.max_seq_len)
-            #pred = model.forward(inp)
-            pred = model.forward(inp, src_mask)
-            loss = criterion(pred, target.view(-1))
+            pred = model.forward(inp, src_mask)  # [max_seq_len * batch_size, vocab_size]
+           
+            loss = criterion(pred, target.contiguous().view(-1))
             self.optimize(optimizer, loss, model)
             total_loss += loss.item()
         return total_loss / len(data_loader)
@@ -354,7 +358,8 @@ class SelfAttentionInstructor:
             if cfg.CUDA:
                 inp, target = inp.cuda(), target.cuda()
 
-            pred = model.forward(inp)
+            src_mask = model.generate_square_subsequent_mask(model.max_seq_len)
+            pred = model.forward(inp, src_mask)  # [max_seq_len * batch_size, vocab_size]
             loss = criterion(pred, target)
             self.optimize(optimizer, loss, model)
 
@@ -377,7 +382,8 @@ class SelfAttentionInstructor:
                 if cfg.CUDA:
                     inp, target = inp.cuda(), target.cuda()
 
-                pred = model.forward(inp)
+                src_mask = model.generate_square_subsequent_mask(model.max_seq_len)
+                pred = model.forward(inp, src_mask)  # [max_seq_len * batch_size, vocab_size]
                 loss = criterion(pred, target)
                 total_loss += loss.item()
                 total_acc += torch.sum((pred.argmax(dim=-1) == target)).item()
