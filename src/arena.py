@@ -636,10 +636,10 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit
         
         
         hosts_list[current_host_idx].finish_calc_skill_rating()
-        host.current_fitness = host.skill_rating.mu
+        hosts_list[current_host_idx].current_fitness = host.skill_rating.mu
     
         pathogens_list[current_pathogen_idx].finish_calc_skill_rating()
-        pathogen.current_fitness = pathogen.skill_rating.mu
+        pathogens_list[current_pathogen_idx].current_fitness = pathogen.skill_rating.mu
         
         #####################################################
 
