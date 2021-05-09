@@ -234,7 +234,7 @@ def calculate_activation_statistics(files, model, batch_size=50,
     -- sigma : The covariance matrix of the activations of the pool_3 layer of
                the inception model.
     """
-    act = get_activations(files, model, batch_size, dims, cuda, verbose)
+    act = get_activations(files, model, batch_size, dims, cuda, verbose=False)
     mu = np.mean(act, axis=0)
     sigma = np.cov(act, rowvar=False)
     return mu, sigma
@@ -281,9 +281,10 @@ def calculate_fid_given_paths(paths, batch_size, cuda, dims):
 def calculate_is_given_path(path, batch_size, cuda, dims, splits=10):
     """Calculates the IS of a path"""
     
+    
     if not os.path.exists(path):
         raise RuntimeError('Invalid path: %s' % path)
-
+    
     block_idx = InceptionV3.BLOCK_INDEX_BY_DIM[dims]
 
     model = InceptionV3([block_idx])
@@ -294,14 +295,14 @@ def calculate_is_given_path(path, batch_size, cuda, dims, splits=10):
     
     path = pathlib.Path(path)
     files = list(path.glob('*.jpg')) + list(path.glob('*.png'))   
+            
+    preds = get_activations(files, model, batch_size, dims, cuda, verbose=False)    
+                   
         
-    preds = get_activations(files, model, batch_size, dims, cuda, verbose=True)
-                    
     split_scores = []
         
     for i in range(splits):                
                           
-        print("Split number: ", i)
         part = preds[i * (preds.shape[0] // splits): (i+1) * (preds.shape[0] // splits), :]
 
         py = np.mean(part, axis=0)
@@ -312,11 +313,7 @@ def calculate_is_given_path(path, batch_size, cuda, dims, splits=10):
             pyx = part[i, :]
             scores.append(entropy(pyx, py))
             split_scores.append(np.exp(np.mean(scores)))
-        
-        print("Split scores size: ", len(split_scores))
-   
-    print("IS Value ", np.mean(split_scores))
-    
+               
     is_value = np.mean(split_scores)
     
     return is_value
@@ -338,4 +335,4 @@ if __name__ == '__main__':
                                           args.batch_size,
                                           args.gpu != '',
                                           args.dims)
-    print('FID: ', fid_value)
+    #print('FID: ', fid_value)

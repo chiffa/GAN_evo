@@ -72,6 +72,7 @@ def pathogen_host_fitness(real_av_error, fake_av_error,
         pathogen_fitness_clipped = True
         pathogen_fitness = pathogen_low_fitness_clip
 
+    '''
     print('debug: raw scoring called with errors: real:%s, fake:%s; '
           '\n\t cumulative load: %s;'
           '\n\t host/pathogen pre-clip fitnesses: %s, %s'
@@ -82,7 +83,7 @@ def pathogen_host_fitness(real_av_error, fake_av_error,
         host_pre_clip_fitness, pathogen_pre_clip_fitness,
         host_fitness_clipped, pathogen_fitness_clipped,
         host_fitness, pathogen_fitness))
-
+    '''
     return host_fitness, pathogen_fitness
 
 #TODO: alternative fitness (proportional to capacity of error induction)

@@ -9,16 +9,6 @@ from src.mongo_interface import pure_gen_from_random_tag
 import io
 from configs import cuda_device
 
-#import logging
-
-######### EVO ###############
-
-from src.glicko2 import glicko2
-
-#############################
-
-
-
 #Generator's implementation
 
 #Generator collection. Use of convolution well adapted to images but not text
@@ -88,20 +78,6 @@ class Generator(nn.Module):
         self.encounter_trace = []
         self.tag_trace = [self.random_tag]
         self.virulence = virulence
-        
-        
-        ########## EVO ############
-                                      
-        self.win_rate = 0
-        self.glicko = glicko2.Glicko2(mu=1500, phi=350, sigma=0.06, tau=0.3)
-        self.skill_rating = self.glicko.create_rating()
-        self.skill_rating_games = []
-        
-        #EVO
-        self.current_fitness = self.skill_rating.mu
-        #############################
-        
-        
         self.main = nn.Sequential(
             # input is Z, going into a convolution
             nn.ConvTranspose2d(in_channels=self.latent_vector_size,
@@ -177,31 +153,3 @@ class Generator(nn.Module):
     def bump_random_tag(self):
         self.random_tag = ''.join(sample(char_set * 10, 10))
         self.tag_trace += [self.random_tag]
-
-        
-###################### EVO ############################
-
-    #adds (summation) the average win rate of last batch of images
-    def calc_win_rate(self, disc_decision_on_fake):
-        self.win_rate += sum((disc_decision_on_fake >= 0.5).float()).item()/len(disc_decision_on_fake)
-        
-        
-    #creates a rating object for its adversarial (its opponent in a specific game)
-    #appends (self.win_rate, adv.skill_rating) to its skill_rating_games []
-    def calc_skill_rating(self, adversarial):       
-        rating = self.glicko.create_rating(mu=adversarial.skill_rating.mu,\
-                                           phi=adversarial.skill_rating.phi, sigma=adversarial.skill_rating.sigma)
-        
-        self.skill_rating_games.append((self.win_rate, rating))
-
-    
-    #assigns a skill_rating to self, and resets own skill_rating_games table (got the skill rating from all those stored games played)
-    def finish_calc_skill_rating(self):
-        #if len(self.skill_rating_games) == 0:
-            #logger.warning("no games to update the skill rating")
-            #return
-        #logger.debug("finish_calc_skill_rating {self.skill_rating_games}")
-        self.skill_rating = self.glicko.rate(self.skill_rating, self.skill_rating_games)
-        self.skill_rating_games = []
-        
-#######################################################

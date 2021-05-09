@@ -108,7 +108,7 @@ def match_training_round(generator_instance, discriminator_instance,
                          disc_optimizer, gen_optimizer, criterion,
                          dataloader, device, latent_vector_size, mode="match",
                          real_label=1, fake_label=0, training_epochs=1,
-                         noise_floor=0.01, fitness_biases=(1, 1),                    #fitness biases not used -- EVO?
+                         noise_floor=0.01, fitness_biases=(1, 1),
                          timer=None):
     """
     The central process that performs a matching or a training round between a generator and a
@@ -166,50 +166,30 @@ def match_training_round(generator_instance, discriminator_instance,
         dataloader_limiter = int(len(dataloader)*training_epochs)
         training_epochs = 1
 
-    #### EVO ####
-            
-    discriminator_instance.win_rate = 0
-    generator_instance.win_rate = 0
-                
-    
     for epoch in range(training_epochs):
 
-        
-        #### EVO ####
-            
-        n = 0  #keep track of number of batches, needed afterwards
-            
-        #############
-        
         for i, data in enumerate(dataloader, 0):
 
-            #### EVO ####
-            
-            n += 1
-            
-            
-            
             if dataloader_limiter is not None and i > dataloader_limiter:
                 break
 
             if timer is not None:
                 timer.start()
 
-                
             # train with real data
             discriminator_instance.zero_grad()
             real_cpu = data[0].to(device)
             _batch_size = real_cpu.size(0)
             label = torch.full((_batch_size,), real_label, device=device, dtype=torch.float32)
 
-            output_on_real = discriminator_instance(real_cpu)
+            output = discriminator_instance(real_cpu)
 
-            errD_real = criterion(output_on_real, label)
+            errD_real = criterion(output, label)
 
             if train_d:
                 errD_real.backward()
 
-            average_disc_success_on_real = output_on_real.mean().item()
+            average_disc_success_on_real = output.mean().item()
 
             # train with fake
             noise = torch.randn(_batch_size, latent_vector_size, 1, 1, device=device)
@@ -217,24 +197,23 @@ def match_training_round(generator_instance, discriminator_instance,
 
             label.fill_(fake_label)
                                
-            output_on_fake = discriminator_instance(fake.detach())  # flags input as
+            output = discriminator_instance(fake.detach())  # flags input as
             # non-gradientable
 
-            errD_fake = criterion(output_on_fake, label)  # calculates the loss for the prediction
+            errD_fake = criterion(output, label)  # calculates the loss for the prediction
             # error
 
             if train_d:
                 errD_fake.backward()  # backpropagates it
 
-            average_disc_error_on_gan = output_on_fake.mean().item()
+            average_disc_error_on_gan = output.mean().item()
             average_disc_error_on_real = 1 - average_disc_success_on_real
 
             total_discriminator_error = errD_real + errD_fake
 
             if train_d:
                 disc_optimizer.step()
-                                        
-            
+
             if train_g:
                 generator_instance.zero_grad()  # clears gradients from the previous back
                 label.fill_(real_label)  # fake labels are real for generator_instance cost
@@ -243,7 +222,6 @@ def match_training_round(generator_instance, discriminator_instance,
                 total_generator_error.backward()
                 average_disc_error_on_gan_post_update = output.mean().item()
                 gen_optimizer.step()
-                
 
             if timer is not None:
                 timer.stop()
@@ -253,7 +231,6 @@ def match_training_round(generator_instance, discriminator_instance,
                 if not train_g:
                     total_generator_error = total_discriminator_error
                     average_disc_error_on_gan_post_update = average_disc_error_on_gan
-
 
                 print('[%02d/%02d][%03d/%03d]'
                       '\tdisc loss: %.4f; '
@@ -279,49 +256,11 @@ def match_training_round(generator_instance, discriminator_instance,
                 match_trace.append([average_disc_error_on_real,
                                     average_disc_error_on_gan])
 
-
-            
-            #adds disc's win rate average of each recent batch of images
-            #adds gen's win rate average of each recent batch of images
-            ######################## EVO ############### 
-            
-            discriminator_instance.calc_win_rate(output_on_real, output_on_fake)
-            generator_instance.calc_win_rate(output_on_fake)
-            
-            ############################################
-            #TODO: 10 to 15 matches for each player?
-            
-            
-            
-        #after adding the average win_rate of each batch, we divide by the number of batches to get a global win_rate average
-        #of the whole game(all the images) disc vs gen
-        ############################# EVO ####################################
-        
-        discriminator_instance.win_rate /= n
-        generator_instance.win_rate = 1 - discriminator_instance.win_rate
-        
-        ######################################################################
-        
-
-    
-    #update the skill rating tables according to self's win_rate against each specific opponent's skill rate
-    #after all epochs because we need one 'append' for each adv
-    ############################# EVO ####################################
-        
-    discriminator_instance.calc_skill_rating(generator_instance)
-    generator_instance.calc_skill_rating(discriminator_instance)
-    
-    ######################################################################
-    
-    
-        
-    
     # TODO: potential optimization, although not a very potent one.
     # matching requires no real data training.
     # training needs to return the average error on the reals, but can't - because that's
     # the last pass one that finishes the training, without any backward propagation
-    
-    
+
     if train_g or train_d:
         return np.array(training_trace).tolist()
 
@@ -394,65 +333,34 @@ class Arena(object):
         self.discriminator_instance.encounter_trace.append(d_encounter_trace)
         self.generator_instance.encounter_trace.append(g_encounter_trace)
 
-        #TODO: add the weightings by autoimmunity and virulence
+        #TODO: add the weigtings by autoimmunity and virulence
 
         # print('debug: inside match: real_error: %s, false_error: %s' % (trace[0], trace[1]))
 
-        
-        
-        ########################### EVO ###################################
-        
-        pathogen_fitness = self.generator_instance.skill_rating.mu
-                
-        
-        #host_fitness, pathogen_fitness = pathogen_host_fitness(trace[0], trace[1])
+        host_fitness, pathogen_fitness = pathogen_host_fitness(trace[0], trace[1])
         self.discriminator_instance.real_error = trace[0]
 
-        ###################################################################
-        
-        
-        
         # print('debug: inside match: host_fitness: %s, pathogen_fitness: %s' % (host_fitness,
         #                                                                        pathogen_fitness))
 
-        
         # TODO: check for conflict with the decisions made inside the arena module
-        if pathogen_fitness > 1000:                                                      #### EVO
+        if pathogen_fitness > 1:
             # print('debug: inside match: contamination branch')  # contamination
-            '''
             self.generator_instance.fitness_map = {
                 self.discriminator_instance.random_tag: pathogen_fitness}
             self.discriminator_instance.gen_error_map = {self.generator_instance.random_tag:
                                                              trace[1]}
-            '''
-            self.generator_instance.fitness_map[self.discriminator_instance.random_tag] = pathogen_fitness
-            
-            self.discriminator_instance.gen_error_map[self.generator_instance.random_tag] = trace[1] #use tag_trace instead as key?
-            
-            #IMPORTANT CHANGES HERE AS WE APPEND TO THE MAPS, AND NOT OVERWRITE (otherwise we were kept with all hosts infected only
-            #by same last pathogen, and all pathongens have infected only one same last host (in their maps)).
-            
-            
-            
+
         else:  # No contamination
             # print('debug: inside match: no-contamination branch')
             # clear pathogens if exist
             self.generator_instance.fitness_map.pop(self.discriminator_instance.random_tag, None)
             self.discriminator_instance.gen_error_map.pop(self.generator_instance.random_tag, None)
 
-            
-        #################### EVO ####################
         
-        
-        self.discriminator_instance.current_fitness = self.discriminator_instance.skill_rating.mu
-        #self.discriminator_instance.current_fitness = cumulative_host_fitness(trace[0],
-        #                                                                      \self.discriminator_instance.gen_error_map.values())  
-        
-        self.generator_instance.current_fitness = self.generator_instance.skill_rating.mu
-        
-        #############################################
-        
-        
+        self.discriminator_instance.current_fitness = cumulative_host_fitness(trace[0],
+                                                                              self.discriminator_instance.gen_error_map.values())
+
         if commit:
             self.commit_disc_gen_updates()
 
@@ -537,13 +445,8 @@ class Arena(object):
         self.discriminator_instance.encounter_trace.append(d_encounter_trace)
         self.generator_instance.encounter_trace.append(g_encounter_trace)
 
-       
-        ###################  EVO     
         
-        #EVO -- CHANGE IN GENERATION HAPPENS HERE
-        #Shouldn't the generation change be after the evaluation(def match() ) of the trained individuals?      
-        
-        print()
+        #Change in generation happens here
         print('disc: ', self.discriminator_instance.random_tag, '->', end='')
         self.discriminator_instance.bump_random_tag()
         print(self.discriminator_instance.random_tag)
@@ -551,9 +454,6 @@ class Arena(object):
         self.generator_instance.bump_random_tag()
         print(self.generator_instance.random_tag)
 
-        ################
-        
-        
         if commit:
             self.first_disc_gen_commit(disc_only=disc_only, gen_only=gen_only)
 

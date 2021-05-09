@@ -12,7 +12,7 @@ from collections import defaultdict
 import os
 from datetime import datetime, timedelta
 import csv
-from src.fid_analyser import calc_single_fid_is
+from src.fid_analyser import calc_single_fid_is #Made changes for this method to give back inception score also.
 from src.mongo_interface import save_pure_disc, save_pure_gen, update_pure_disc, update_pure_gen
 from datetime import datetime
 from configs import cuda_device
@@ -28,8 +28,7 @@ evo_trace_dump_location = "evolved_hosts_pathogen_map.csv"
 evo2_trace_dump_location = "evolved_2_hosts_pathogen_map.csv"
 brute_force_trace_dump_location = 'brute_force_pathogen_map.csv'
 
-
-#Implemented to keep track of the advancement of the run in the main
+#AMIR
 def dump_test(payload_list):
     if not os.path.isfile(test_dump_file):
         open(test_dump_file, 'w')
@@ -195,38 +194,13 @@ def cross_train_iteration(hosts, pathogens, host_type_selector, epochs=1, timer=
                     arena.generator_instance.random_tag,
                     arena_match_results[0], arena_match_results[1],
                     arena.discriminator_instance.current_fitness,
-                    arena.generator_instance.current_fitness])
-        
-             #arena.generator_instance.fitness_map.get(
-             #    arena.discriminator_instance.random_tag, 0.05)])adapt the 0.05 to skill rating range in case we put this code back
+                    arena.generator_instance.fitness_map.get(
+                        arena.discriminator_instance.random_tag, 0.05)])
 
-        
         print("%s: real_err: %s, gen_err: %s" % (
             arena.generator_instance.random_tag,
             arena_match_results[0], arena_match_results[1]))
         
-        
-        
-    #We update the skill rating values for each individual after having collected his games against every different opponent   
-    ############################## EVO #################################
-    
-    #Depending on how we define adaptation and a generation, we can choose to update the skill rating here,
-    # or after the final-cross-match, or in both. (BOTH is what we chose right now to benifit twice from the game's outcomes)
-    
-    for host in hosts[host_type_selector]:
-        host.finish_calc_skill_rating()
-        host.current_fitness = host.skill_rating.mu
-    
-    for pathogen in pathogens:
-        pathogen.finish_calc_skill_rating()
-        pathogen.current_fitness = pathogen.skill_rating.mu
-    
-    #Now each individual has an updated skill_rating, we use this to perform a final-cross-match, then a final update   
-    
-    ####################################################################
-    
-    
-
     
     for (host_no, host), (pathogen_no, pathogen) in product(enumerate(hosts[host_type_selector]),
                                                             enumerate(pathogens)):
@@ -245,38 +219,17 @@ def cross_train_iteration(hosts, pathogens, host_type_selector, epochs=1, timer=
                     arena.generator_instance.random_tag,
                     arena_match_results[0], arena_match_results[1],
                     arena.discriminator_instance.current_fitness,
-                    arena.generator_instance.current_fitness])
-                    
-                    #arena.generator_instance.fitness_map.get(
-                    #    arena.discriminator_instance.random_tag, 0.05)])
+                    arena.generator_instance.fitness_map.get(
+                        arena.discriminator_instance.random_tag, 0.05)])
 
-        print(" GENERATOR VS DISCRIMINATOR")
-        
         print("%s vs %s: real_err: %s, gen_err: %s" % (
             arena.generator_instance.random_tag,
             arena.discriminator_instance.random_tag,
             arena_match_results[0], arena_match_results[1]))
-    
-    
-    
-    #The repeated skill rating update after final cross match
-    ################### EVO ####
-    
-    for host in hosts[host_type_selector]:
-        host.finish_calc_skill_rating()
-        host.current_fitness = host.skill_rating.mu                    
-    
-    for pathogen in pathogens:
-        pathogen.finish_calc_skill_rating()
-        pathogen.current_fitness = pathogen.skill_rating.mu
-    
-    ####################################################################
 
-    
-    
     for host in hosts[host_type_selector]:
         print('host', host.random_tag, host.current_fitness, host.gen_error_map)
-        save_pure_disc_helper(host)                      #EVO -- load and use the trained individuals in the next methods?
+        save_pure_disc_helper(host)
 
     for pathogen in pathogens:
         print('pathogen', pathogen.random_tag, pathogen.fitness_map)
@@ -328,7 +281,7 @@ def round_robin_iteration(hosts, pathogens, host_type_selector, epochs=1,
         dump_trace(['pre-train:',
                     host_no, pathogen_no,
                     arena.discriminator_instance.random_tag,
-                    arena.generator_instance.random_tag])
+                    arena.generator_instance.random_tag, ])
 
         arena.cross_train(epochs, timer=timer, commit=False)
 
@@ -347,31 +300,13 @@ def round_robin_iteration(hosts, pathogens, host_type_selector, epochs=1,
                     arena.generator_instance.random_tag,
                     arena_match_results[0], arena_match_results[1],
                     arena.discriminator_instance.current_fitness,
-                    arena.generator_instance.current_fitness])
-        
-                    #arena.generator_instance.fitness_map.get(
-                    #    arena.discriminator_instance.random_tag, 0.05)])
+                    arena.generator_instance.fitness_map.get(
+                        arena.discriminator_instance.random_tag, 0.05)])
 
         print("%s: real_err: %s, gen_err: %s" % (
             arena.generator_instance.random_tag,
             arena_match_results[0], arena_match_results[1]))
 
-        
-    
-    ############################## EVO #################################
-    
-    for host in hosts[host_type_selector]:
-        host.finish_calc_skill_rating()
-        host.current_fitness = host.skill_rating.mu
-    
-    for pathogen in pathogens:
-        pathogen.finish_calc_skill_rating()
-        pathogen.current_fitness = pathogen.skill_rating.mu
-    
-    ####################################################################
-    
-    
-    
     for (host_no, host), (pathogen_no, pathogen) in product(enumerate(hosts[host_type_selector]),
                                                             enumerate(pathogens)):
 
@@ -389,33 +324,14 @@ def round_robin_iteration(hosts, pathogens, host_type_selector, epochs=1,
                     arena.generator_instance.random_tag,
                     arena_match_results[0], arena_match_results[1],
                     arena.discriminator_instance.current_fitness,
-                    arena.generator_instance.current_fitness])
-                    
-                    #arena.generator_instance.fitness_map.get(
-                    #    arena.discriminator_instance.random_tag, 0.05)])
+                    arena.generator_instance.fitness_map.get(
+                        arena.discriminator_instance.random_tag, 0.05)])
 
         print("%s vs %s: real_err: %s, gen_err: %s" % (
             arena.generator_instance.random_tag,
             arena.discriminator_instance.random_tag,
             arena_match_results[0], arena_match_results[1]))
 
-    
-    
-    ############################## EVO #################################
-    
-    for host in hosts[host_type_selector]:
-        host.finish_calc_skill_rating()
-        host.current_fitness = host.skill_rating.mu
-    
-    for pathogen in pathogens:
-        pathogen.finish_calc_skill_rating()
-        pathogen.current_fitness = pathogen.skill_rating.mu
-    
-    ####################################################################
-    
-    
-    
-    
     for host in hosts[host_type_selector]:
         print('host', host.random_tag, host.current_fitness, host.gen_error_map)
         save_pure_disc_helper(host)
@@ -557,21 +473,15 @@ def homogenus_chain_progression(individuals_per_species, starting_cluster):
 def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit_reset=False,
                          timer=None):
 
-    
-    '''
     def pathogen_fitness_retriever(pathogen):
-        fitness = 1500 #used to be 0.05                  #EVO
+        fitness = 0.05
         try:
-            #fitness = max(pathogen.fitness_map.values()) #as we do now, we extract the maximum
-            fitness = pathogen.current_fitness           #EVO (or pathogen.skill_rating.mu)
+            fitness = max(pathogen.fitness_map.values())
         except ValueError:
             pass
 
         return fitness
-    '''                #not used because now we have a generator.current_fitness
-    
-    
-    
+
     dump_trace(['>>>', 'evolve_in_population',
                 [host.random_tag for host in hosts_list],
                 [pathogen.random_tag for pathogen in pathogens_list],
@@ -584,17 +494,12 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit
     hosts_index = list(range(0, len(hosts_list)))
 
     if fit_reset:
-        pathogens_fitnesses = [1500.]*len(pathogens_list)         ######### EVO -- test for best initial values
-        hosts_fitnesses = [1500.]*len(hosts_list)
+        pathogens_fitnesses = [20.]*len(pathogens_list)
+        hosts_fitnesses = [1.]*len(hosts_list)
     else:
-        
-        #pathogen_fitness_retriever not needed anymore (we can use .current_fit for generator)
-        #pathogens_fitnesses = [pathogen_fitness_retriever(_pathogen) for _pathogen in pathogens_list] 
-        pathogen_fitnesses = [_pathogen.current_fitness for _pathogen in pathogens_list]
-        
+        pathogens_fitnesses = [pathogen_fitness_retriever(_pathogen) for _pathogen in pathogens_list]
         hosts_fitnesses = [_host.current_fitness for _host in hosts_list]
 
-    
     host_idx_2_pathogens_carried = defaultdict(list)
 
     i = 0
@@ -616,9 +521,6 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit
         # TODO: realistically, we need to look in the carrying tables and then attempt to cross
         #  the infections to other, more efficient hosts.
 
-        
-        
-        ########## EVO -- the only place where we actually use the fitness values, as weights to choose who to train against whom.
         current_host_idx = random.choices(hosts_index, weights=hosts_fitnesses)[0]
         current_pathogen_idx = random.choices(pathogens_index, weights=pathogens_fitnesses)[0]
 
@@ -628,48 +530,25 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit
                   generator_optimizer_partial=gen_opt_part,
                   discriminator_optimizer_partial=disc_opt_part)
 
-        
-        ########################## EVO ######################
-        
-        
         arena_match_results = arena.match(timer=timer, commit=False)
-        
-        
-        hosts_list[current_host_idx].finish_calc_skill_rating()
-        host.current_fitness = host.skill_rating.mu
-    
-        pathogens_list[current_pathogen_idx].finish_calc_skill_rating()
-        pathogen.current_fitness = pathogen.skill_rating.mu
-        
-        #####################################################
 
-        
-        
-        
         print("%s: real_err: %s, gen_err: %s; updated fitnesses: host: %s path: %s" % (
             arena.generator_instance.random_tag,
             arena_match_results[0], arena_match_results[1],
             arena.discriminator_instance.current_fitness,
-            arena.generator_instance.current_fitness))
-            
-            #arena.generator_instance.fitness_map.get(arena.discriminator_instance.random_tag,
-            #                                         0.05)))
+            arena.generator_instance.fitness_map.get(arena.discriminator_instance.random_tag,
+                                                     0.05)))
 
         dump_trace(['infection attempt:',
                     current_host_idx, current_pathogen_idx,
                     arena.discriminator_instance.random_tag,
                     arena.generator_instance.random_tag, arena_match_results[0], arena_match_results[1],
                     arena.discriminator_instance.current_fitness,
-                    arena.generator_instance.current_fitness])
-                    
-            #arena.generator_instance.fitness_map.get(arena.discriminator_instance.random_tag,
-            #                                         0.05)])
+            arena.generator_instance.fitness_map.get(arena.discriminator_instance.random_tag,
+                                                     0.05)])
 
-        #EVO
-        #if arena.generator_instance.fitness_map.get(arena.discriminator_instance.random_tag, 0.05) > 1500:
-        if arena.generator_instance.current_fitness > 1000:
-            
-            
+        if arena.generator_instance.fitness_map.get(arena.discriminator_instance.random_tag,
+                                                    0.05) > 1:
             #infection
             if current_pathogen_idx not in host_idx_2_pathogens_carried[current_host_idx]:
 
@@ -683,8 +562,8 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit
                         current_host_idx,
                         arena.discriminator_instance.current_fitness])
 
-            if arena.discriminator_instance.current_fitness > 1600 or \
-                    arena.discriminator_instance.real_error > 0.1:                     #EVO --why so?!
+            if arena.discriminator_instance.current_fitness > 0.95 or \
+                    arena.discriminator_instance.real_error > 0.1:
                 #immune system is not bothered
                 # print('debug: pop evolve: silent infection')
                 dump_trace(['silent infection'])
@@ -703,38 +582,16 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit
             dump_trace(['sampled images from', current_pathogen_idx,
                         arena.generator_instance.random_tag, current_fid, current_is])
 
-            ##################### EVO ######################
-            
-            hosts_list[current_host_idx].finish_calc_skill_rating()                 
-            hosts_list[current_host_idx].current_fitness = host.skill_rating.mu                          
-    
-            pathogens_list[current_pathogen_idx].finish_calc_skill_rating()
-            pathogens_list[current_pathogen_idx].current_fitness = pathogen.skill_rating.mu
-            
-            
             arena_match_results = arena.match(timer=timer, commit=False)
-            
-            
-            hosts_list[current_host_idx].finish_calc_skill_rating()                 
-            hosts_list[current_host_idx].current_fitness = host.skill_rating.mu                          
-    
-            pathogens_list[current_pathogen_idx].finish_calc_skill_rating()
-            pathogens_list[current_pathogen_idx].current_fitness = pathogen.skill_rating.mu
-            
-            ################################################
-            
-            
-            
+
             dump_trace(['post-infection',
                         current_host_idx, current_pathogen_idx,
                         arena.discriminator_instance.random_tag,
                         arena.generator_instance.random_tag,
                         arena_match_results[0], arena_match_results[1],
                         arena.discriminator_instance.current_fitness,
-                        arena.generator_instance.current_fitness])
-                        
-                        #arena.generator_instance.fitness_map.get(
-                        #    arena.discriminator_instance.random_tag, 0.05)]) #100 instead of 0.05
+                        arena.generator_instance.fitness_map.get(
+                            arena.discriminator_instance.random_tag, 0.05)])
 
             # print("debug: pop evolve: post-train: real_err: %s, gen_err: %s" % (
                 # arena_match_results[0], arena_match_results[1]))
@@ -744,34 +601,24 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit
             #     arena.generator_instance.fitness_map.get(
             #     arena.discriminator_instance.random_tag, 0.05)))
 
-            
-            
             hosts_fitnesses[current_host_idx] = arena.discriminator_instance.current_fitness
-            pathogens_fitnesses[current_pathogen_idx] = arena.generator_instance.current_fitness  #EVO 
-        
-        
-        else: #NO INFECTION
-            
+            pathogens_fitnesses[current_pathogen_idx] = arena.generator_instance.fitness_map.get(
+                arena.discriminator_instance.random_tag, 0.05)
+
+        else:
             # print('debug: pop evolve: infection fails')
 
             if current_pathogen_idx in host_idx_2_pathogens_carried[current_host_idx]:
                 host_idx_2_pathogens_carried[current_host_idx].remove(current_pathogen_idx)
 
-            ###### EVO -- same thing here, we keep this
             hosts_fitnesses[current_host_idx] = arena.discriminator_instance.current_fitness
-            pathogens_fitnesses[current_host_idx] = arena.generator_instance.current_fitness
 
-            '''
             try:
-                #pathogens_fitnesses[current_pathogen_idx] = max(
-                    #arena.generator_instance.fitness_map.values())      
-            
-                pathogens_fitnesses[current_pathogen_idx] = arena.generator_instance.skill_rating.mu
+                pathogens_fitnesses[current_pathogen_idx] = max(
+                    arena.generator_instance.fitness_map.values())
             except ValueError:
-                pathogens_fitnesses[current_pathogen_idx] = 100         
+                pathogens_fitnesses[current_pathogen_idx] = 0.05
 
-            '''    
-            
             dump_trace(['infection failed, current host state:',
                         host_idx_2_pathogens_carried[current_host_idx],
                         arena.discriminator_instance.gen_error_map,
@@ -789,14 +636,8 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit
                   generator_optimizer_partial=gen_opt_part,
                   discriminator_optimizer_partial=disc_opt_part)
 
-        ######################## EVO ##############################
-        
-        #already up to date here, finish_..() not needed
-        
         arena_match_results = arena.match(timer=timer, commit=False)
-        
-        ##########################################################
-        
+
         if pathogen not in encountered_pathogens:
 
             arena.sample_images()
@@ -815,24 +656,9 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit
                     arena.generator_instance.random_tag,
                     arena_match_results[0], arena_match_results[1],
                     arena.discriminator_instance.current_fitness,
-                    arena.generator_instance.current_fitness])
-                    
-                    #arena.generator_instance.fitness_map.get(
-                    #    arena.discriminator_instance.random_tag, 100)])
+                    arena.generator_instance.fitness_map.get(
+                        arena.discriminator_instance.random_tag, 0.05)])
 
-    ############################ EVO #####################
-    
-    for host in hosts_list:
-        host.finish_calc_skill_rating()
-        host.current_fitness = host.skill_rating.mu
-    
-    for pathogen in pathogens_list:
-        pathogen.finish_calc_skill_rating()
-        pathogen.current_fitness = pathogen.skill_rating.mu
-    
-    #########################################################
-    
-    
     for host in hosts_list:
         save_pure_disc_helper(host)
 
@@ -967,31 +793,13 @@ def brute_force_training(restarts, epochs):
                     arena.generator_instance.random_tag,
                     arena_match_results[0], arena_match_results[1],
                     arena.discriminator_instance.current_fitness,
-                    arena.generator_instance.current_fitness])
-                    
-                    #arena.generator_instance.fitness_map.get(
-                    #arena.discriminator_instance.random_tag, 0.05)])
+                    arena.generator_instance.fitness_map.get(
+                    arena.discriminator_instance.random_tag, 0.05)])
 
         print("%s: real_err: %s, gen_err: %s" % (
             arena.generator_instance.random_tag,
             arena_match_results[0], arena_match_results[1]))
 
-    
-    ############################## EVO #################################
-    
-    for host in hosts:
-        host.finish_calc_skill_rating()
-        host.current_fitness = host.skill_rating.mu
-    
-    for pathogen in pathogens:
-        pathogen.finish_calc_skill_rating()
-        pathogen.current_fitness = pathogen.skill_rating.mu
-    
-    ####################################################################
-    
-
-    
-    
     for pathogen in pathogens:
         print(pathogen.random_tag, ": ", pathogen.fitness_map)
 
@@ -1145,25 +953,14 @@ if __name__ == "__main__":
         # chain_progression(5, 5)
         # chain_progression(5, 5)
 
-        dump_test(['RUN STARTED'])
-        
+        dump_test(['CHAIN EVOLVE WITH FITNESS RESET 1 STARTED'])
         chain_evolve_with_fitness_reset(3, 3)
-        dump_test(['CHAIN EVOLVE WITH FITNESS RESET COMPLETED'])
         
-        chain_evolve(3, 3)
-        dump_test(['CHAIN EVOLVE COMPLETED'])
+        ERROR
         
-        round_robin_randomized(4, 4)
-        dump_test(['ROUND ROBIN RANDOMIZED COMPLETED'])
-        
-        round_robin_deterministic(4, 4)
-        dump_test(['ROUND ROBIN DETERMINISTIC COMPLETED'])
-        
-        brute_force_training(4, 6)
-        dump_test(['BRUTE FORCE TRAINING COMPLETED'])
-        
-                        
-        '''
+        dump_test(['CHAIN EVOLVE WITH FITNESS RESET 1 COMPLETED'])
+        chain_evolve_with_fitness_reset(3, 3)
+        dump_test(['CHAIN EVOLVE WITH FITNESS RESET 2 COMPLETED'])
         chain_evolve_with_fitness_reset(3, 3)
         dump_test(['CHAIN EVOLVE WITH FITNESS RESET 3 COMPLETED'])
         chain_evolve_with_fitness_reset(3, 3)
@@ -1230,14 +1027,11 @@ if __name__ == "__main__":
 
         # match_from_tags([('W0247GHVV4', '7TRW7286CW')])
 
-        '''
-        
         pass
 
     except Exception as exc:
         try:
-            print('ERROR IN MAIN LOOP, BUT LOGGING CODE BACK FOR DEBUG [Amir]')
-            '''           
+                       
             dump_test([logger.exception("1. EXCEPTION IN MAIN")])
             dump_test([logger.debug("2. DEBUG IN MAIN")])
             dump_test([logger.info("3. INFO IN MAIN")])
@@ -1247,7 +1041,7 @@ if __name__ == "__main__":
             logger.info("3. INFO IN MAIN")
             
             
-            logger.error(exc, exc_info=True)'''
+            logger.error(exc, exc_info=True)
         except (AttributeError, smtplib.SMTPServerDisconnected):
             smtp_error_bail_out()
         raise

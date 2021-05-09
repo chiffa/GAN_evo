@@ -14,6 +14,25 @@ balancing_folders_location = fid_samples_location
 after_datetime = datetime.datetime.now() - datetime.timedelta(days=1)
 
 
+
+#import logging
+
+#logging.basicConfig(filename="test.csv", level=logging.DEBUG)
+
+exception_dump_file = "Exception_dump.csv"
+
+def dump_for_exception(payload_list):
+    if not os.path.isfile(exception_dump_file):
+        open(exception_dump_file, 'w')
+
+    with open(exception_dump_file, 'a') as destination:
+        writer = csv.writer(destination, delimiter='\t')
+        writer.writerow(payload_list)
+
+
+
+        
+        
 def calc_single_fid_is(random_tag):
     total_path = os.path.join(balancing_folders_location, random_tag)
 
@@ -22,33 +41,49 @@ def calc_single_fid_is(random_tag):
         current_fake = balancing_folders_location + '/' + random_tag + '/' + 'fake'
 
         try:
+            '''
             #This may be omitted, replaced by what is below
             fid_value = calculate_fid_given_paths([current_real, current_fake],
                                                       batch_size=64,
                                                       cuda=True,
                                                       dims=2048)
-            
-            
-            
-
+                        
             print('fid compute', random_tag, ': ', fid_value)
-            
+            '''
             
             fid_val, is_val = calculate_fid_and_is_given_paths([current_real, current_fake],
                                                       batch_size=64,
                                                       cuda=True,
                                                       dims=2048)
             
-            print('new fid and is compute', random_tag, ': ', (fid_val, is_val))
+            #print('new fid and is compute', random_tag, ': ', (fid_val, is_val))
             
             return fid_val, is_val
 
-        except:
-            print("Unexpected error:", sys.exc_info()[0])
+        except Exception as e:
+            '''                        
+            dump_for_exception([logging.error("Exception occured in calc_single_fid_is (1. logging.error)", exc_info=True), \
+                                logging.debug("Exception occured in calc_single_fid_is (2. logging.debug)", exc_info=True)])
+            
+            logging.error("Exception occured in calc_single_fid_is (1. logging.error)", exc_info=True)
+            logging.debug("Exception occured in calc_single_fid_is (2. logging.debug)", exc_info=True)
+            
+            
+            logger = logging.getLogger()
+            
+            dump_for_exception([logger.exception("Exception (3. logger.exception)"), logger.debug("Exception (4. logger.debug)"), \
+                                logger.info("Exception (5. logger.info)")])            
+                      
+            logger.exception("Exception (3. logger.exception)")
+            logger.debug("Exception (4. logger.debug)")
+            logger.info("Exception (5. logger.info)")
+            '''
+            
+            print("Unexpected error:", sys.exc_info())
 
-    return -1
+    return -1, -1
 
-#Changed code to create, fill and return inception score map : is_map
+#Changed code to create, fill and return inception score map : is_map, returns 3 values now
 def calc_gen_fids_is():
     random_tag_list = []
     fid_map = {}
@@ -72,7 +107,7 @@ def calc_gen_fids_is():
                 print(random_tag, ': 1.FID: ', fid_value, '\n 2.IS: ', is_value)
                 
             except:
-                print("Unexpected error:", sys.exc_info()[0])
+                print("Unexpected error:", sys.exc_info())
 
     return is_map, fid_map, random_tag_list
 
@@ -111,7 +146,7 @@ if __name__ == "__main__":
         fid_map.update(old_fid_map)
         real_comparison += old_real_comparison
 
-    pickle.dump((fid_map, real_comparison), open('fid_scores.dmp', 'wb'))   
+    pickle.dump((fid_map, real_comparison), open('fid_scores.dmp', 'wb'))
     
     
     # Added code to dump inception scores!  (do we need real_comparaison ?)
@@ -120,6 +155,5 @@ if __name__ == "__main__":
         is_map.update(old_is_map)
 
     pickle.dump((is_map), open('inception_scores.dmp', 'wb'))
-    
     
     

@@ -10,13 +10,6 @@ import io
 from configs import cuda_device
 
 
-######### EVO ###############
-
-from src.glicko2 import glicko2
-
-#############################
-
-
 #Discriminators implementations
 
 #Collection of several implementation of discriminator, sll designed for images as input
@@ -111,25 +104,12 @@ class Discriminator(nn.Module):
         self.number_of_colors = number_of_colors
         self.real_error = 1.
         self.gen_error_map = {}
-        #self.current_fitness = 0.
+        self.current_fitness = 0.
         self.encounter_trace = []  # ((type, id, training_trace, match score))
         self.tag_trace = [self.random_tag]
         self.autoimmunity = autoimmunity
         # TODO: Gaussian noise injection
         # self.noise = GaussianNoise()
-        
-        ########## EVO ############ 
-        
-        self.win_rate = 0
-        self.glicko = glicko2.Glicko2(mu=1500, phi=350, sigma=0.06, tau=0.3)
-        self.skill_rating = self.glicko.create_rating()
-        self.skill_rating_games = []
-        
-        #EVO
-        self.current_fitness = self.skill_rating.mu
-        #############################
-        
-        
         self.main = nn.Sequential(
             # input is (nc) x 64 x 64
             nn.Conv2d(in_channels=self.number_of_colors,
@@ -201,37 +181,6 @@ class Discriminator(nn.Module):
     def resurrect(self, random_tag):
         resurrect(self, random_tag)
 
-        
-###################### EVO ############################
-
-    def calc_win_rate(self, disc_decision_on_real, disc_decision_on_fake):
-        #if self.skill_rating_enabled():
-        self.win_rate += (sum((disc_decision_on_real > 0.5).float()) + \
-                          sum((disc_decision_on_fake < 0.5).float())).item() /\
-        (len(disc_decision_on_real) + len(disc_decision_on_fake))
-    
-    
-    #creates a rating object for its adversarial (its opponent in a specific game)
-    #appends (self.win_rate, adv.skill_rating) to its skill_rating_games []
-    def calc_skill_rating(self, adversarial):
-        rating = self.glicko.create_rating(mu=adversarial.skill_rating.mu,\
-                                           phi=adversarial.skill_rating.phi, sigma=adversarial.skill_rating.sigma)
-        
-        self.skill_rating_games.append((self.win_rate, rating))
-
-    #assigns a skill_rating to self, and resets own skill_rating_games table (got the skill rating from all those stored games played)
-    def finish_calc_skill_rating(self):
-        #if len(self.skill_rating_games) == 0:
-            #logger.warning("no games to update the skill rating")
-            #return
-        #logger.debug("finish_calc_skill_rating {self.skill_rating_games}")
-        self.skill_rating = self.glicko.rate(self.skill_rating, self.skill_rating_games)
-        self.skill_rating_games = []
-        
-#######################################################
-
-
-
 
 class Discriminator_light(nn.Module):
 
@@ -246,24 +195,12 @@ class Discriminator_light(nn.Module):
         self.number_of_colors = number_of_colors
         self.real_error = 1.
         self.gen_error_map = {}
-        #self.current_fitness = 0.
+        self.current_fitness = 0.
         self.encounter_trace = []  # ((type, id, training_trace, match score))
         self.tag_trace = [self.random_tag]
         self.autoimmunity = autoimmunity
         # TODO: Gaussian noise injection
         # self.noise = GaussianNoise()
-        
-        ########## EVO ############
-        
-        self.win_rate = 0
-        self.glicko = glicko2.Glicko2(mu=1500, phi=350, sigma=0.06, tau=0.3)
-        self.skill_rating = self.glicko.create_rating()
-        self.skill_rating_games = []
-        
-        #EVO
-        self.current_fitness = self.skill_rating.mu
-        #############################
-        
         self.main = nn.Sequential(
             # input is (nc) x 64 x 64
             nn.Conv2d(in_channels=self.number_of_colors,
@@ -329,37 +266,6 @@ class Discriminator_light(nn.Module):
     def resurrect(self, random_tag):
         resurrect(self, random_tag)
 
-        
-###################### EVO ############################
-
-    def calc_win_rate(self, disc_decision_on_real, disc_decision_on_fake):
-        #if self.skill_rating_enabled():
-        self.win_rate += (sum((disc_decision_on_real > 0.5).float()) + \
-                          sum((disc_decision_on_fake < 0.5).float())).item() /\
-        (len(disc_decision_on_real) + len(disc_decision_on_fake))
-    
-    
-    #creates a rating object for its adversarial (its opponent in a specific game)
-    #appends (self.win_rate, adv.skill_rating) to its skill_rating_games []
-    def calc_skill_rating(self, adversarial):
-        rating = self.glicko.create_rating(mu=adversarial.skill_rating.mu,\
-                                           phi=adversarial.skill_rating.phi, sigma=adversarial.skill_rating.sigma)
-        
-        self.skill_rating_games.append((self.win_rate, rating))
-    
-    #assigns a skill_rating to self, and resets own skill_rating_games table (got the skill rating from all those stored games played)
-    def finish_calc_skill_rating(self):
-        #if len(self.skill_rating_games) == 0:
-            #logger.warning("no games to update the skill rating")
-            #return
-        #logger.debug("finish_calc_skill_rating {self.skill_rating_games}")
-        self.skill_rating = self.glicko.rate(self.skill_rating, self.skill_rating_games)
-        self.skill_rating_games = []
-        
-#######################################################
-
-
-
 
 class Discriminator_PReLU(nn.Module):
 
@@ -374,24 +280,12 @@ class Discriminator_PReLU(nn.Module):
         self.number_of_colors = number_of_colors
         self.real_error = 1.
         self.gen_error_map = {}
-        #self.current_fitness = 0.
+        self.current_fitness = 0.
         self.encounter_trace = []  # ((type, id, training_trace, match score))
         self.tag_trace = [self.random_tag]
         self.autoimmunity = autoimmunity
         # TODO: Gaussian noise injection
         # self.noise = GaussianNoise()
-        
-        ########## EVO ############
-        
-        self.win_rate = 0
-        self.glicko = glicko2.Glicko2(mu=1500, phi=350, sigma=0.06, tau=0.3)
-        self.skill_rating = self.glicko.create_rating()
-        self.skill_rating_games = []
-        
-        #EVO
-        self.current_fitness = self.skill_rating.mu
-        #############################
-        
         self.main = nn.Sequential(
             # input is (nc) x 64 x 64
             nn.Conv2d(in_channels=self.number_of_colors,
@@ -454,32 +348,3 @@ class Discriminator_PReLU(nn.Module):
 
     def resurrect(self, random_tag):
         resurrect(self, random_tag)
-
-        
-###################### EVO ############################
-
-    def calc_win_rate(self, disc_decision_on_real, disc_decision_on_fake):
-        #if self.skill_rating_enabled():
-        self.win_rate += (sum((disc_decision_on_real > 0.5).float()) + \
-                          sum((disc_decision_on_fake < 0.5).float())).item() /\
-        (len(disc_decision_on_real) + len(disc_decision_on_fake))
-    
-    
-    #creates a rating object for its adversarial (its opponent in a specific game)
-    #appends (self.win_rate, adv.skill_rating) to its skill_rating_games []
-    def calc_skill_rating(self, adversarial):
-        rating = self.glicko.create_rating(mu=adversarial.skill_rating.mu,\
-                                           phi=adversarial.skill_rating.phi, sigma=adversarial.skill_rating.sigma)
-        
-        self.skill_rating_games.append((self.win_rate, rating))
-        
-    #assigns a skill_rating to self, and resets own skill_rating_games table (got the skill rating from all those stored games played)
-    def finish_calc_skill_rating(self):
-        #if len(self.skill_rating_games) == 0:
-            #logger.warning("no games to update the skill rating")
-            #return
-        #logger.debug("finish_calc_skill_rating {self.skill_rating_games}")
-        self.skill_rating = self.glicko.rate(self.skill_rating, self.skill_rating_games)
-        self.skill_rating_games = []
-        
-#######################################################

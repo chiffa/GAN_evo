@@ -16,7 +16,7 @@ from configs import current_dataset as _dataset
 import os
 
 
-trace_dump_file = '../run_trace_bis.csv'
+trace_dump_file = 'run_trace_bis.csv'
 backflow_log = 'backflow.csv'
 
 bruteforce_gen2disc = {}
@@ -31,25 +31,25 @@ encounter_record = {}
 
 master_fid_map = {}
 
+master_is_map = {}                                                              
+
 disc_phases = {}
 
 
 def stitch_run_traces(run_trace_diretory, filter):
 
+    
     files_to_stitch = [os.path.abspath(join(run_trace_diretory, f)) for f in listdir(
                        run_trace_diretory)
                        if (isfile(join(run_trace_diretory, f))
                            and f[:9] == 'run_trace'
                            and f != trace_dump_file)]
-
-    # for f in listdir(run_trace_diretory):
-    #     print(f)
-    #     print(isfile(join(run_trace_diretory, f)))
-
+    
     print("stitching dataset %s. Found to stitch: %s" % (_dataset, files_to_stitch))
     print("stitching datasets into %s" % os.path.abspath(trace_dump_file))
 
     with open(trace_dump_file, 'w') as outfile:
+        print('FILE NAME: ',os.path.abspath(trace_dump_file))
         for fname in files_to_stitch:
             if filter not in fname:
                 continue
@@ -123,18 +123,22 @@ def extract_bruteforce_data(bruteforce_run):
     except:
         # print('old format timing')
         pass
+    
+    is_collector  = []
     fid_collector = []
     tag_collector = []
+    
     for data_dump_row in bruteforce_run[1]:
         if data_dump_row[0] == 'sampled images from':
-            fid_collector.append(float(data_dump_row[-1]))
+            is_collector.append(float(data_dump_row[-1]))                                     
+            fid_collector.append(float(data_dump_row[-2]))
             tag_collector.append(data_dump_row[2])
         if data_dump_row[0] == 'post-cross-train and match:':
             # print('parsing bruteforce')
             bruteforce_gen2disc[data_dump_row[4]] = data_dump_row[3]
             bruteforce_disc2addchars[data_dump_row[3]] = bruteforce_run[0][2:4]
 
-    return fid_collector, tag_collector, duration
+    return is_collector, fid_collector, tag_collector, duration                               
 
 
 def extract_evo_data(chain_evolve_run):
@@ -147,8 +151,12 @@ def extract_evo_data(chain_evolve_run):
         # print('old format timing')
         pass
     # print('duration corrected:', duration)
+    
     final_pathogens_list = chain_evolve_run[-2][0][3]
     final_pathogens_list = final_pathogens_list[1:-1].split(', ')
+    
+    
+    is_collector  = [-1]*len(final_pathogens_list)
     fid_collector = [-1]*len(final_pathogens_list)
     tag_collector = ["None"]*len(final_pathogens_list)
 
@@ -156,9 +164,14 @@ def extract_evo_data(chain_evolve_run):
 
     for entry in chain_evolve_run[-2][1:-1]:  # here we are pulling hte data from the last run alone
 
+        #print('chain_evolve_run[-2][1:-1]: ',chain_evolve_run[-2][1:-1])
+        #print('entry: ', entry)
+        
         if entry[0] == 'sampled images from':
             # print(entry)
-            fid_collector[int(entry[1])] = float(entry[-1])
+                        
+            is_collector[int(entry[1])]  = float(entry[-1])
+            fid_collector[int(entry[1])] = float(entry[-2])
             tag_collector[int(entry[1])] = entry[2]
 
     # parameters =
@@ -169,7 +182,8 @@ def extract_evo_data(chain_evolve_run):
         for entry in sub_run[1:-1]:
 
             if entry[0] == 'sampled images from':
-                master_fid_map[entry[2]] = float(entry[-1])
+                master_fid_map[entry[2]] = float(entry[-2])
+                master_is_map[entry[2]]  = float(entry[-2]) 
 
             if entry[0] in ['infection attempt:', 'pre-train:']:
                 pre_train_buffer = entry
@@ -194,7 +208,7 @@ def extract_evo_data(chain_evolve_run):
     #
     # raise Exception('other debug')
 
-    return fid_collector, tag_collector, duration
+    return is_collector, fid_collector, tag_collector, duration
 
 
 def extract_battle_royale_data(battle_royale_run):
@@ -222,7 +236,7 @@ def extract_battle_royale_data(battle_royale_run):
     return gen_index, disc_index, real_error_matrix, gen_error_matrix
 
 
-def render_fid_performances(attribution_map):
+def render_fid_is_performances(attribution_map):
 
     def draw_p_vals_table(_dataset):
         p_matrix = np.ones((len(_dataset), len(_dataset)))
@@ -255,6 +269,7 @@ def render_fid_performances(attribution_map):
     def draw_box_plot(_dataset):
         flatten = lambda l: [item for sublist in l for item in sublist]
 
+        
         for name, data in zip(method_names, _dataset):
             load = [name_remap(name), '&',
                     '%.2f' % np.median(data), '&',
@@ -263,52 +278,122 @@ def render_fid_performances(attribution_map):
                     '%d' % len(data), '\\\\']
             print(' '.join(load))
 
-        plt.boxplot(_dataset)
+        plt.boxplot(_dataset)   #4 locs bec the dataset has 4 columns (first pass)
         x_pad = [[_i+1  # +random.random()/10.
                   for _ in range(len(_data))]
                  for _i, _data in enumerate(_dataset)]
+        
+        
         plt.scatter(flatten(x_pad), flatten(_dataset), c='k')
         locs, labels = plt.xticks()
+        locs = [1,2,3,4]
+        #print('locs: ', locs)
+        #print('labels: ', labels)
+        
         _method_names = [name_remap(method) for method in method_names]
+        
         plt.xticks(locs, _method_names)
         plt.xticks(rotation=45, rotation_mode="anchor", ha="right")
-        plt.ylabel('FID')
 
 
     method_names = []
     best_fids_achieved = []
     all_fids_achieved = []
     exec_times = []
+    
+    best_is_achieved = []
+    all_is_achieved = []
 
     for i, (key, value) in enumerate(attribution_map.items()):
+                
         method_names.append(' '.join(key))
         best_fids_achieved.append([])
         exec_times.append([])
         all_fids_achieved.append([])
-        for sub_key, (exec_time, fids, tags) in value.items():
+        
+        best_is_achieved.append([])
+        all_is_achieved.append([])
+        
+        for sub_key, (exec_time, fids, is_scores, tags) in value.items():
+            
+            
             best_fids_achieved[i].append(min(fids))
+            best_is_achieved[i].append(max(is_scores))
+            
             exec_times[i].append(exec_time)
             all_fids_achieved[i] += fids
+            all_is_achieved[i]   += is_scores
 
+            
+            
     plt.title('Minimum FID achieved per run by a method')
+    plt.ylabel('FID')
     draw_box_plot(best_fids_achieved)
-    plt.show()
-
+    #plt.show()
+    plt.savefig("./post_analysis_images/Min_fid_achieved.png")
+    plt.clf()
+    
+    plt.title('Maximum IS achieved per run by a method')
+    plt.ylabel('IS')
+    draw_box_plot(best_is_achieved)
+    #plt.show()
+    plt.savefig("./post_analysis_images/Max_is_achieved.png")
+    plt.clf()
+        
+    
+    
     plt.title('Relative performance of methods for best FID achieved')
     draw_p_vals_table(best_fids_achieved)
-    plt.show()
+    #plt.show()
+    plt.savefig("./post_analysis_images/rel_fids_per_method.png")
+    plt.clf()
+    
+    plt.title('Relative performance of methods for best IS achieved')
+    draw_p_vals_table(best_is_achieved)
+    #plt.show()
+    plt.savefig("./post_analysis_images/rel_is_per_method.png")
+    plt.clf()
 
+
+    
     plt.title('FID of all generators per method')
+    plt.ylabel('FID')
     draw_box_plot(all_fids_achieved)
-    plt.show()
-
+    #plt.show()
+    plt.savefig("./post_analysis_images/Fid_all_gens_per_method.png")
+    plt.clf()
+    
+    plt.title('IS of all generators per method')
+    plt.ylabel('IS')
+    draw_box_plot(all_is_achieved)
+    #plt.show()
+    plt.savefig("./post_analysis_images/Is_all_gens_per_method.png")
+    plt.clf()
+    
+    
+    
     plt.title('Relative performance of methods overall')
     draw_p_vals_table(all_fids_achieved)
-    plt.show()
+    #plt.show()
+    plt.savefig("./post_analysis_images/rel_fid_overall.png")
+    plt.clf()
 
+    plt.title('Relative performance of methods overall')
+    draw_p_vals_table(all_is_achieved)
+    #plt.show()
+    plt.savefig("./post_analysis_images/rel_is_overall.png")
+    plt.clf()
+    
+    
+    
     plt.title('Single run time for each method')
+    plt.ylabel('Run time')
     draw_box_plot(exec_times)
-    plt.show()
+    #plt.show()
+    plt.savefig("./post_analysis_images/runtime_per_method.png")
+    plt.clf()
+    
+    
 
     plt.title('Best FID per run vs run time')
     # c_pad = [[i/len(exec_times)]*len(_data) for i, _data in enumerate(exec_times)]
@@ -317,30 +402,60 @@ def render_fid_performances(attribution_map):
     plt.legend()
     plt.xlabel('run time (mins)')
     plt.ylabel('minimal FID achieved')
-    plt.show()
+    #plt.show()
+    plt.savefig("./post_analysis_images/best_fid_vs_runtime.png")
+    plt.clf()
+    
+    plt.title('Best IS per run vs run time')
+    # c_pad = [[i/len(exec_times)]*len(_data) for i, _data in enumerate(exec_times)]
+    for i, lab in enumerate(method_names):
+        plt.scatter(exec_times[i], best_is_achieved[i], label=name_remap(lab))
+    plt.legend()
+    plt.xlabel('run time (mins)')
+    plt.ylabel('maximum IS achieved')
+    #plt.show()
+    plt.savefig("./post_analysis_images/best_is_vs_runtime.png")
+    plt.clf()
+    
+    
 
 
-def pull_best_fid_tags(attribtution_map):
+def pull_best_fid_is_tags(attribtution_map):
     method_names = []
     best_fid_gen_tags = []
-    select_disc_tags = []
+    best_is_gen_tags = []
+    select_disc_fid_tags = []
+    select_disc_is_tags = []
 
     for i, (key, value) in enumerate(attribution_map.items()):
         method_names.append(' '.join(key))
         best_fid_gen_tags.append([])
-        for sub_key, (exec_time, fids, tags) in value.items():
-            fids = np.array(fids)
+        best_is_gen_tags.append([])
+        for sub_key, (exec_time, fids, is_scores, tags) in value.items():
+            
+            fids = np.array(fids)            
             min_loc = np.argmin(fids)
             best_fid_gen_tags[i].append(tags[min_loc])
+            
+            is_scores = np.array(is_scores)
+            max_loc = np.argmax(is_scores)
+            best_is_gen_tags[i].append(tags[max_loc])
 
     # pprint(bruteforce_gen2disc)
 
     for method, load in zip(method_names, best_fid_gen_tags):
         if 'brute-force' in method:
-            for best_brute_force_tag in load:
-               select_disc_tags.append(bruteforce_gen2disc[best_brute_force_tag])
+            for best_fid_brute_force_tag in load:
+                select_disc_fid_tags.append(bruteforce_gen2disc[best_fid_brute_force_tag])
 
-    return method_names, best_fid_gen_tags, select_disc_tags
+                
+    for method, load in zip(method_names, best_is_gen_tags):
+        if 'brute-force' in method:
+            for best_is_brute_force_tag in load:
+                select_disc_is_tags.append(bruteforce_gen2disc[best_is_brute_force_tag])    
+    
+    
+    return method_names, best_fid_gen_tags, best_is_gen_tags, select_disc_fid_tags, select_disc_is_tags
 
 
 def buffer_gen_disc_fid_tags(best_fid_gen_tags, select_disc_tags):
@@ -480,10 +595,12 @@ def render_relative_performances(gen_index, disc_index,
     plt.xticks(locs, method_names)
     plt.yscale('log')
     plt.xticks(rotation=90)
-    plt.show()
+    #plt.show()
+    plt.savefig('./post_analysis_images/render_relative_perf')
+    plt.clf()
 
 # CURRENTPASS: [complexity] cyclomatic complexity=28 (!)
-def render_training_history(method_names, best_fid_gen_tags):
+def render_training_history(method_names):          # SECOND ARGUMENT "best_fids_..." deleted (not needed)
 
     type_map = {0: 'X',
                 1: '*',
@@ -493,27 +610,27 @@ def render_training_history(method_names, best_fid_gen_tags):
     colors_map = {1: 'k',
                   2: 'b'}
 
-    def render_fid_progression(method, gen_tags_trace):
+    def render_score_progression(method, gen_tags_trace):
 
-        plt.title(name_remap[method])
+        plt.title(name_remap(method)) #  (method) instead of [method]
 
         cmap = plt.get_cmap('RdYlGn')
         # print('gtt', gen_tags_trace)
         # print('gtt[0]', gen_tags_trace[0])
         # print('gtt[0][0]', gen_tags_trace[0][0])
-        fids_per_line = [gen_line[0][-1] for gen_line in gen_tags_trace]
+        scores_per_line = [gen_line[0][-1] for gen_line in gen_tags_trace]
         # print('fpl', fids_per_line)
 
-        fids_per_line = np.array(fids_per_line)
+        scores_per_line = np.array(scores_per_line)
 
-        lines_colors = (fids_per_line - np.min(fids_per_line)) /\
-                       (np.max(fids_per_line) - np.min(fids_per_line))
+        lines_colors = (scores_per_line - np.min(scores_per_line)) /\
+                       (np.max(scores_per_line) - np.min(scores_per_line))
 
-        lines_colors = np.array(range(len(fids_per_line))) / float(len(fids_per_line))
+        lines_colors = np.array(range(len(scores_per_line))) / float(len(scores_per_line))
 
-        argsort = np.argsort(-fids_per_line)
+        argsort = np.argsort(-scores_per_line)
 
-        lines_colors = [cmap(fid) for fid in lines_colors[argsort]]
+        lines_colors = [cmap(score) for score in lines_colors[argsort]]
 
         type_idx_map = {}
         c = 0
@@ -527,9 +644,9 @@ def render_training_history(method_names, best_fid_gen_tags):
 
         for l_color, gen_line in zip(lines_colors, gen_tags_trace):
             root = gen_line[0][0]
-            fids = [fid for _, _, _, _, fid in reversed(gen_line)]
-            xs = range(len(fids))
-            plt.plot(xs, fids,
+            scores = [score for _, _, _, _, score in reversed(gen_line)]
+            xs = range(len(scores))
+            plt.plot(xs, scores,
                      # label=root,
                      c=l_color,
                      # linewidth=3
@@ -568,14 +685,14 @@ def render_training_history(method_names, best_fid_gen_tags):
 
             # print(xs, fids)
 
-            for _x, _f, _t, _c in zip(xs, fids, type_list, color_list):
+            for _x, _s, _t, _c in zip(xs, scores, type_list, color_list):
 
                 if _t not in shown_t or _c not in shown_c:
                     shown_t.append(_t)
                     shown_c.append(_c)
 
                     # secondary_label_buffer.append(
-                    plt.plot(_x, _f, marker=_t, c=_c,
+                    plt.plot(_x, _s, marker=_t, c=_c,
                              markersize=8,
                          # label='%s, %s' % (c_t_annotation_map[_t], c_t_annotation_map[_c])
                          )
@@ -584,7 +701,7 @@ def render_training_history(method_names, best_fid_gen_tags):
                     #                                                   c_t_annotation_map[_c]))
 
                 else:
-                    plt.plot(_x, _f, marker=_t, c=_c, markersize=8)
+                    plt.plot(_x, _s, marker=_t, c=_c, markersize=8)
 
             # TODO: add the relative performance wrt competition as well as
             # the lane of the  disc.
@@ -593,7 +710,7 @@ def render_training_history(method_names, best_fid_gen_tags):
         if len(c_t_annotation_map.keys()) == 0:
             # print('problem detected')
             pass
-        plt.ylabel('FID')
+        #plt.ylabel('FID or IS')
         plt.xlabel('encounter')
 
         legend_elements = []
@@ -629,7 +746,9 @@ def render_training_history(method_names, best_fid_gen_tags):
                                   markersize=10))
 
         plt.legend(handles=legend_elements)
-        plt.show()
+        #plt.show()
+        #plt.savefig('./post_analysis_images/final_figs.png')
+        #plt.clf()
 
         # raise Exception('debug')
 
@@ -642,39 +761,52 @@ def render_training_history(method_names, best_fid_gen_tags):
             continue
         method_names.append(' '.join(key))
         run_tags.append([])
-        for sub_key, (exec_time, fids, tags) in value.items():
+        for sub_key, (exec_time, fids, is_scores, tags) in value.items(): #here we collect all tags (not those having the best fids)
             run_tags[-1].append(tags)
 
-    master_tag_trace = []
+    fid_master_tag_trace = []
+    is_master_tag_trace = []
 
     # pprint(run_tags)
 
     for method, tag_sets in zip(method_names, run_tags):
-        local_tag_trace = []
+        fid_local_tag_trace = []
+        is_local_tag_trace = []
 
         # print(method)
 
         # print(tag_sets)
 
         for tag_set in tag_sets:  # we have the last tags performances
-            tag_set_trace = []
+            fid_tag_set_trace = []
+            is_tag_set_trace = []
             tag_set_disc_trace = []
 
             # print(tag_set)
 
             for tag in tag_set:
-                single_tag_trace = []
+                fid_single_tag_trace = []
+                is_single_tag_trace = []
                 temp_tag = tag
 
                 while temp_tag in gen_tag_trace.keys():  # does not enter if the tag is wrong
                     # print(temp_tag)
                     current_disc = gen_tag_trace[temp_tag][1]
-                    single_tag_trace.append([temp_tag,
+                    
+                    fid_single_tag_trace.append([temp_tag,
                                              current_disc,
                                              *encounter_record[current_disc, temp_tag],
-                                             master_fid_map[temp_tag]])
+                                             master_fid_map[temp_tag]])  # and here we add all the fids (not only best ones from argument)
+                    
+                    is_single_tag_trace.append([temp_tag,
+                                             current_disc,
+                                             *encounter_record[current_disc, temp_tag],
+                                             master_is_map[temp_tag]])
+                    
                     temp_tag = gen_tag_trace[temp_tag][0]
-                tag_set_trace.append(single_tag_trace)
+                
+                fid_tag_set_trace.append(fid_single_tag_trace)
+                is_tag_set_trace.append(is_single_tag_trace)
 
                 single_disc_trace = []
                 # print(temp_tag, tag)
@@ -688,11 +820,14 @@ def render_training_history(method_names, best_fid_gen_tags):
 
                 tag_set_disc_trace.append(single_disc_trace)
 
-            local_tag_trace.append([tag_set_trace, tag_set_disc_trace])
-        master_tag_trace.append(local_tag_trace)
+            fid_local_tag_trace.append([fid_tag_set_trace, tag_set_disc_trace])
+            is_local_tag_trace.append([is_tag_set_trace, tag_set_disc_trace])
+            
+        fid_master_tag_trace.append(fid_local_tag_trace)
+        is_master_tag_trace.append(is_local_tag_trace)
 
 
-    for method, method_specific_tag_trace in zip(method_names, master_tag_trace):
+    for method, method_specific_tag_trace in zip(method_names, fid_master_tag_trace):
         for gen_tags_trace, disc_tags_trace in method_specific_tag_trace:
             disc_idx = {}
 
@@ -705,12 +840,35 @@ def render_training_history(method_names, best_fid_gen_tags):
                     # print(entry)
                     # print('\t%s - %s \t %.2e \t %.2e \t %.2f' % tuple(entry))
                     pass
-            render_fid_progression(method, gen_tags_trace)
+            
+            render_score_progression(method, gen_tags_trace)            
+            plt.savefig("./post_analysis_images/fid_progression.png")
+            #plt.ylabel('FID')
+            plt.clf()
+    
+    for method, method_specific_tag_trace in zip(method_names, is_master_tag_trace):
+        for gen_tags_trace, disc_tags_trace in method_specific_tag_trace:
+            disc_idx = {}
+
+            for i, disc_line in enumerate(disc_tags_trace):
+                disc_idx.update(dict((tag, i) for tag in disc_line))
+
+            for gen_tag_line in gen_tags_trace:
+                # print(gen_tag_line[0][0])
+                for entry in reversed(gen_tag_line):
+                    # print(entry)
+                    # print('\t%s - %s \t %.2e \t %.2e \t %.2f' % tuple(entry))
+                    pass
+            
+            render_score_progression(method, gen_tags_trace)
+            plt.savefig("./post_analysis_images/is_progression.png")
+            #plt.ylabel('IS')
+            plt.clf()
 
 
 if __name__ == "__main__":
 
-    stitch_run_traces('..', _dataset)
+    stitch_run_traces('.', _dataset)
 
     run_skip = []
 
@@ -718,7 +876,9 @@ if __name__ == "__main__":
     attribution_map = defaultdict(dict)
 
     collector_list = []
+    
 
+    
     for i_1, entry in enumerate(master_table):
         # print(i_1, entry[0])
         if i_1 in run_skip:
@@ -728,7 +888,7 @@ if __name__ == "__main__":
         for i_2, sub_entry in enumerate(entry[1:-1]):
             # print(sub_entry[0])
             if sub_entry[0][1] == 'brute-force':
-                extracted_fids, final_random_tags, duration = extract_bruteforce_data(sub_entry)
+                extracted_is, extracted_fids, final_random_tags, duration = extract_bruteforce_data(sub_entry)
             elif sub_entry[0][1] == 'chain evolve' \
                 or sub_entry[0][1] == 'chain progression' \
                 or sub_entry[0][1] == 'chain evolve fit reset' \
@@ -736,7 +896,7 @@ if __name__ == "__main__":
                 or sub_entry[0][1] == 'deterministic base round robin 2' \
                 or sub_entry[0][1] == 'stochastic base round robin' \
                 or sub_entry[0][1] == 'homogenous chain progression':
-                extracted_fids, final_random_tags, duration = extract_evo_data(sub_entry)
+                extracted_is, extracted_fids, final_random_tags, duration = extract_evo_data(sub_entry)
             elif sub_entry[0][1] == 'matching from tags':
                 gen_index, disc_index, real_error_matrix, gen_error_matrix = \
                     extract_battle_royale_data(sub_entry)
@@ -744,9 +904,18 @@ if __name__ == "__main__":
             else:
                 # print(sub_entry[0])
                 raise Exception('unknown selection structure: %s' % sub_entry[0][1])
-            attribution_map[(sub_entry[0][1], sub_entry[0][2], sub_entry[0][3])][sub_entry[0][-1]] =\
-                [duration, extracted_fids, final_random_tags]
 
+            #print('attribution_map[(sub_entry[0][1], sub_entry[0][2], sub_entry[0][3])][sub_entry[0][-1]]',\
+            #      attribution_map[(sub_entry[0][1], sub_entry[0][2], sub_entry[0][3])][sub_entry[0][-1]])
+            
+            #print('[duration, extracted_fids, final_random_tags]', [duration, extracted_fids, final_random_tags])
+            
+            
+            attribution_map[(sub_entry[0][1], sub_entry[0][2], sub_entry[0][3])][sub_entry[0][-1]] =\
+                [duration, extracted_fids, extracted_is*100, final_random_tags]
+
+            
+            
             print('\t', i_1, i_2 + 1, sub_entry[0])
             for i_3, sub_sub_entry in enumerate(sub_entry[1:-1]):
                 print('\t\t', i_1, i_2 + 1, i_3 + 1, sub_sub_entry[0])
@@ -755,6 +924,7 @@ if __name__ == "__main__":
 
         print(i_1, entry[-1])
 
+    
     # pprint(collector_list)
 
     # pprint(dict(attribution_map))
@@ -782,12 +952,14 @@ if __name__ == "__main__":
         ('homogenous chain progression 5 5'): 'round-robin with\npopulation jumps'
     }
 
+    
     name_remap = lambda x: _name_remap[x] if x in _name_remap.keys() else x
 
     for key in attribution_map_filter:
         if key in attribution_map.keys():
             del attribution_map[key]
 
+    
     # new_attribution_map = {}
     #
     # for old_name, new_name in name_remap.items():
@@ -795,9 +967,14 @@ if __name__ == "__main__":
     #
     # attribution_map = new_attribution_map
 
-    render_fid_performances(attribution_map)
-
-    method_names, best_fid_gen_tags, select_disc_tags = pull_best_fid_tags(attribution_map)
+    
+    render_fid_is_performances(attribution_map)
+    print('ALL PLOTS FINISHED SUCCESSFULLY')
+    
+    
+    method_names, best_fid_gen_tags, best_is_gen_tags, select_disc_fid_tags, select_disc_is_tags = pull_best_fid_is_tags(attribution_map) 
+    
+    
     # print('select disc tags:', select_disc_tags)
     # print('best fid gen tags:', best_fid_gen_tags)
     # buffer_gen_disc_fid_tags(best_fid_gen_tags, select_disc_tags)
@@ -809,4 +986,5 @@ if __name__ == "__main__":
 
     # print(attribution_map.keys())
 
-    render_training_history(method_names, best_fid_gen_tags)
+    render_training_history(method_names) #, best_fid_gen_tags)  # best_fid_gen_tags NOT USED IN METHOD
+    print('EVERYTHING COMPLETED SUCCESSFULLY')
