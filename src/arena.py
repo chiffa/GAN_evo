@@ -590,7 +590,7 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit
         
         #pathogen_fitness_retriever not needed anymore (we can use .current_fit for generator)
         #pathogens_fitnesses = [pathogen_fitness_retriever(_pathogen) for _pathogen in pathogens_list] 
-        pathogen_fitnesses = [_pathogen.current_fitness for _pathogen in pathogens_list]
+        pathogens_fitnesses = [_pathogen.current_fitness for _pathogen in pathogens_list]
         
         hosts_fitnesses = [_host.current_fitness for _host in hosts_list]
 
@@ -636,10 +636,10 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit
         
         
         hosts_list[current_host_idx].finish_calc_skill_rating()
-        hosts_list[current_host_idx].current_fitness = host.skill_rating.mu
+        hosts_list[current_host_idx].current_fitness = hosts_list[current_host_idx].skill_rating.mu
     
         pathogens_list[current_pathogen_idx].finish_calc_skill_rating()
-        pathogens_list[current_pathogen_idx].current_fitness = pathogen.skill_rating.mu
+        pathogens_list[current_pathogen_idx].current_fitness = pathogens_list[current_host_idx].skill_rating.mu
         
         #####################################################
 
@@ -706,20 +706,20 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit
             ##################### EVO ######################
             
             hosts_list[current_host_idx].finish_calc_skill_rating()                 
-            hosts_list[current_host_idx].current_fitness = host.skill_rating.mu                          
+            hosts_list[current_host_idx].current_fitness = hosts_list[current_host_idx].skill_rating.mu                          
     
             pathogens_list[current_pathogen_idx].finish_calc_skill_rating()
-            pathogens_list[current_pathogen_idx].current_fitness = pathogen.skill_rating.mu
+            pathogens_list[current_pathogen_idx].current_fitness = pathogens_list[current_pathogen_idx].skill_rating.mu
             
             
             arena_match_results = arena.match(timer=timer, commit=False)
             
             
             hosts_list[current_host_idx].finish_calc_skill_rating()                 
-            hosts_list[current_host_idx].current_fitness = host.skill_rating.mu                          
+            hosts_list[current_host_idx].current_fitness = hosts_list[current_host_idx].skill_rating.mu                          
     
             pathogens_list[current_pathogen_idx].finish_calc_skill_rating()
-            pathogens_list[current_pathogen_idx].current_fitness = pathogen.skill_rating.mu
+            pathogens_list[current_pathogen_idx].current_fitness = pathogens_list[current_pathogen_idx].skill_rating.mu
             
             ################################################
             
@@ -1236,7 +1236,7 @@ if __name__ == "__main__":
 
     except Exception as exc:
         try:
-            print('ERROR IN MAIN LOOP, BUT LOGGING CODE BACK FOR DEBUG [Amir]')
+            print('ERROR IN MAIN LOOP, PUT LOGGING CODE BACK FOR DEBUG [Amir]')
             '''           
             dump_test([logger.exception("1. EXCEPTION IN MAIN")])
             dump_test([logger.debug("2. DEBUG IN MAIN")])
