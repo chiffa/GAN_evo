@@ -9,12 +9,7 @@ from src.mongo_interface import pure_disc_from_random_tag
 import io
 from configs import cuda_device
 
-
-######### EVO ###############
-
 from src.glicko2 import glicko2
-
-#############################
 
 
 #Discriminators implementations
@@ -23,7 +18,6 @@ from src.glicko2 import glicko2
 #Storage-ressuraction boilerplate
 
 char_set = string.ascii_uppercase + string.digits
-
 
 
 # TODO: make sure that the saving and resurrection are done to CPU at first and then sent to CUDAs
@@ -117,18 +111,15 @@ class Discriminator(nn.Module):
         self.autoimmunity = autoimmunity
         # TODO: Gaussian noise injection
         # self.noise = GaussianNoise()
-        
-        ########## EVO ############ 
-        
+                
         self.win_rate = 0
         self.glicko = glicko2.Glicko2(mu=1500, phi=350, sigma=0.06, tau=0.3)
         self.skill_rating = self.glicko.create_rating()
         self.skill_rating_games = []
         
-        #EVO
         self.current_fitness = self.skill_rating.mu
-        #############################
         
+        self.adapt = False
         
         self.main = nn.Sequential(
             # input is (nc) x 64 x 64
@@ -202,10 +193,7 @@ class Discriminator(nn.Module):
         resurrect(self, random_tag)
 
         
-###################### EVO ############################
-
     def calc_win_rate(self, disc_decision_on_real, disc_decision_on_fake):
-        #if self.skill_rating_enabled():
         self.win_rate += (sum((disc_decision_on_real > 0.5).float()) + \
                           sum((disc_decision_on_fake < 0.5).float())).item() /\
         (len(disc_decision_on_real) + len(disc_decision_on_fake))
@@ -219,17 +207,11 @@ class Discriminator(nn.Module):
         
         self.skill_rating_games.append((self.win_rate, rating))
 
+    
     #assigns a skill_rating to self, and resets own skill_rating_games table (got the skill rating from all those stored games played)
     def finish_calc_skill_rating(self):
-        #if len(self.skill_rating_games) == 0:
-            #logger.warning("no games to update the skill rating")
-            #return
-        #logger.debug("finish_calc_skill_rating {self.skill_rating_games}")
         self.skill_rating = self.glicko.rate(self.skill_rating, self.skill_rating_games)
         self.skill_rating_games = []
-        
-#######################################################
-
 
 
 
@@ -252,17 +234,15 @@ class Discriminator_light(nn.Module):
         self.autoimmunity = autoimmunity
         # TODO: Gaussian noise injection
         # self.noise = GaussianNoise()
-        
-        ########## EVO ############
-        
+                
         self.win_rate = 0
         self.glicko = glicko2.Glicko2(mu=1500, phi=350, sigma=0.06, tau=0.3)
         self.skill_rating = self.glicko.create_rating()
         self.skill_rating_games = []
         
-        #EVO
         self.current_fitness = self.skill_rating.mu
-        #############################
+        
+        self.adapt = False
         
         self.main = nn.Sequential(
             # input is (nc) x 64 x 64
@@ -329,11 +309,8 @@ class Discriminator_light(nn.Module):
     def resurrect(self, random_tag):
         resurrect(self, random_tag)
 
-        
-###################### EVO ############################
 
     def calc_win_rate(self, disc_decision_on_real, disc_decision_on_fake):
-        #if self.skill_rating_enabled():
         self.win_rate += (sum((disc_decision_on_real > 0.5).float()) + \
                           sum((disc_decision_on_fake < 0.5).float())).item() /\
         (len(disc_decision_on_real) + len(disc_decision_on_fake))
@@ -349,16 +326,9 @@ class Discriminator_light(nn.Module):
     
     #assigns a skill_rating to self, and resets own skill_rating_games table (got the skill rating from all those stored games played)
     def finish_calc_skill_rating(self):
-        #if len(self.skill_rating_games) == 0:
-            #logger.warning("no games to update the skill rating")
-            #return
-        #logger.debug("finish_calc_skill_rating {self.skill_rating_games}")
         self.skill_rating = self.glicko.rate(self.skill_rating, self.skill_rating_games)
         self.skill_rating_games = []
         
-#######################################################
-
-
 
 
 class Discriminator_PReLU(nn.Module):
@@ -381,16 +351,14 @@ class Discriminator_PReLU(nn.Module):
         # TODO: Gaussian noise injection
         # self.noise = GaussianNoise()
         
-        ########## EVO ############
-        
         self.win_rate = 0
         self.glicko = glicko2.Glicko2(mu=1500, phi=350, sigma=0.06, tau=0.3)
         self.skill_rating = self.glicko.create_rating()
         self.skill_rating_games = []
         
-        #EVO
         self.current_fitness = self.skill_rating.mu
-        #############################
+        
+        self.adapt = False
         
         self.main = nn.Sequential(
             # input is (nc) x 64 x 64
@@ -456,10 +424,7 @@ class Discriminator_PReLU(nn.Module):
         resurrect(self, random_tag)
 
         
-###################### EVO ############################
-
     def calc_win_rate(self, disc_decision_on_real, disc_decision_on_fake):
-        #if self.skill_rating_enabled():
         self.win_rate += (sum((disc_decision_on_real > 0.5).float()) + \
                           sum((disc_decision_on_fake < 0.5).float())).item() /\
         (len(disc_decision_on_real) + len(disc_decision_on_fake))
@@ -475,11 +440,6 @@ class Discriminator_PReLU(nn.Module):
         
     #assigns a skill_rating to self, and resets own skill_rating_games table (got the skill rating from all those stored games played)
     def finish_calc_skill_rating(self):
-        #if len(self.skill_rating_games) == 0:
-            #logger.warning("no games to update the skill rating")
-            #return
-        #logger.debug("finish_calc_skill_rating {self.skill_rating_games}")
         self.skill_rating = self.glicko.rate(self.skill_rating, self.skill_rating_games)
         self.skill_rating_games = []
         
-#######################################################

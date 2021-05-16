@@ -9,13 +9,8 @@ from src.mongo_interface import pure_gen_from_random_tag
 import io
 from configs import cuda_device
 
-#import logging
-
-######### EVO ###############
 
 from src.glicko2 import glicko2
-
-#############################
 
 
 
@@ -89,17 +84,14 @@ class Generator(nn.Module):
         self.tag_trace = [self.random_tag]
         self.virulence = virulence
         
-        
-        ########## EVO ############
-                                      
         self.win_rate = 0
         self.glicko = glicko2.Glicko2(mu=1500, phi=350, sigma=0.06, tau=0.3)
         self.skill_rating = self.glicko.create_rating()
         self.skill_rating_games = []
         
-        #EVO
         self.current_fitness = self.skill_rating.mu
-        #############################
+        
+        self.adapt = False
         
         
         self.main = nn.Sequential(
@@ -177,9 +169,7 @@ class Generator(nn.Module):
     def bump_random_tag(self):
         self.random_tag = ''.join(sample(char_set * 10, 10))
         self.tag_trace += [self.random_tag]
-
         
-###################### EVO ############################
 
     #adds (summation) the average win rate of last batch of images
     def calc_win_rate(self, disc_decision_on_fake):
@@ -197,11 +187,6 @@ class Generator(nn.Module):
     
     #assigns a skill_rating to self, and resets own skill_rating_games table (got the skill rating from all those stored games played)
     def finish_calc_skill_rating(self):
-        #if len(self.skill_rating_games) == 0:
-            #logger.warning("no games to update the skill rating")
-            #return
-        #logger.debug("finish_calc_skill_rating {self.skill_rating_games}")
         self.skill_rating = self.glicko.rate(self.skill_rating, self.skill_rating_games)
         self.skill_rating_games = []
         
-#######################################################

@@ -322,7 +322,7 @@ def calculate_is_given_path(path, batch_size, cuda, dims, splits=10):
 def calculate_fid_and_is_given_paths(paths, batch_size, cuda, dims):
     
     fid_value = calculate_fid_given_paths(paths, batch_size, cuda, dims)
-    is_value = calculate_is_given_path(paths[0], batch_size, cuda, dims, splits=10)
+    is_value = calculate_is_given_path(paths[1], batch_size, cuda, dims, splits=10)
     
     return fid_value, is_value
 

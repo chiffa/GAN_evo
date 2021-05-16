@@ -253,7 +253,7 @@ def render_fid_is_performances(attribution_map):
         # norm = mcol.BoundaryNorm([0., 0.01, 0.05, 0.1, 1.], ncolors=256)
         # plt.imshow(p_matrix, cmap='RdBu_r', interpolation=None, norm=norm)
 
-        plt.imshow(ratio_matrix, cmap='RdYlGn', interpolation=None, vmin=0., vmax=2.)
+        plt.imshow(ratio_matrix, cmap='RdYlGn', interpolation=None)#, vmin=0.3, vmax=1.8)
         plt.colorbar()
         stat_sig = np.argwhere(p_matrix < 0.05).T
         plt.scatter(stat_sig[0], stat_sig[1], marker='*', c='k')
@@ -263,7 +263,8 @@ def render_fid_is_performances(attribution_map):
         plt.xticks(range(len(_method_names)), _method_names)
         plt.yticks(range(len(_method_names)), _method_names)
 
-        plt.xticks(rotation=45, rotation_mode="anchor", ha="right")
+        plt.xticks(rotation=30, rotation_mode="anchor", ha="right")
+        plt.tight_layout()
 
 
     def draw_box_plot(_dataset):
@@ -286,14 +287,15 @@ def render_fid_is_performances(attribution_map):
         
         plt.scatter(flatten(x_pad), flatten(_dataset), c='k')
         locs, labels = plt.xticks()
-        locs = [1,2,3,4]
+        #locs = [1,2,3,4]
         #print('locs: ', locs)
         #print('labels: ', labels)
         
         _method_names = [name_remap(method) for method in method_names]
         
         plt.xticks(locs, _method_names)
-        plt.xticks(rotation=45, rotation_mode="anchor", ha="right")
+        plt.xticks(rotation=30, rotation_mode="anchor", ha="right")
+        plt.tight_layout()
 
 
     method_names = []
@@ -345,13 +347,13 @@ def render_fid_is_performances(attribution_map):
     plt.title('Relative performance of methods for best FID achieved')
     draw_p_vals_table(best_fids_achieved)
     #plt.show()
-    plt.savefig("./post_analysis_images/rel_fids_per_method.png")
+    plt.savefig("./post_analysis_images/relative_fid_best.png")
     plt.clf()
     
     plt.title('Relative performance of methods for best IS achieved')
     draw_p_vals_table(best_is_achieved)
-    #plt.show()
-    plt.savefig("./post_analysis_images/rel_is_per_method.png")
+    #plt.imshow(vmin=0.5, vmax=1.5)
+    plt.savefig("./post_analysis_images/relative_is_best.png")
     plt.clf()
 
 
@@ -372,16 +374,16 @@ def render_fid_is_performances(attribution_map):
     
     
     
-    plt.title('Relative performance of methods overall')
+    plt.title('Relative performance of methods overall (in FID terms)')
     draw_p_vals_table(all_fids_achieved)
     #plt.show()
-    plt.savefig("./post_analysis_images/rel_fid_overall.png")
+    plt.savefig("./post_analysis_images/relative_fid_overall.png")
     plt.clf()
 
-    plt.title('Relative performance of methods overall')
+    plt.title('Relative performance of methods overall (in IS terms)')
     draw_p_vals_table(all_is_achieved)
-    #plt.show()
-    plt.savefig("./post_analysis_images/rel_is_overall.png")
+    #plt.imshow(vmin=0.5, vmax=1.5)
+    plt.savefig("./post_analysis_images/relative_is_overall.png")
     plt.clf()
     
     

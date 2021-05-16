@@ -23,6 +23,8 @@ from configs import training_samples_location as _train_samples_dir
 from configs import fid_samples_location as _fid_samples_dir
 
 
+from src.evo_helpers import aneuploidization
+
 #Environment to match and train our gans (can be either disc only or gen only or both)
 #main test environment where the training of GANs is performed
 
@@ -165,29 +167,20 @@ def match_training_round(generator_instance, discriminator_instance,
     if training_epochs < 1:
         dataloader_limiter = int(len(dataloader)*training_epochs)
         training_epochs = 1
-
-    #### EVO ####
             
+    #EVO        
     discriminator_instance.win_rate = 0
     generator_instance.win_rate = 0
                 
     
     for epoch in range(training_epochs):
 
-        
-        #### EVO ####
-            
-        n = 0  #keep track of number of batches, needed afterwards
-            
-        #############
+        #EVO
+        n = 0
         
         for i, data in enumerate(dataloader, 0):
-
-            #### EVO ####
             
             n += 1
-            
-            
             
             if dataloader_limiter is not None and i > dataloader_limiter:
                 break
@@ -279,42 +272,32 @@ def match_training_round(generator_instance, discriminator_instance,
                 match_trace.append([average_disc_error_on_real,
                                     average_disc_error_on_gan])
 
+                #EVO
+                discriminator_instance.calc_win_rate(output_on_real, output_on_fake)
+                
+                #generator_instance.calc_win_rate(output_on_fake)   #not needed unless to see how the gen is doing for debug
+                
+                #EVO -- debug
+                #print("BATCH NUMBER: %s, DISCRIMINATOR: %s with win_rate: %s and current_fitness: %s, \
+                #GENERATOR: %s with win_rate: %s and current_fitness: %s" \
+                #      % (n, discriminator_instance.random_tag, discriminator_instance.win_rate, discriminator_instance.current_fitness,\
+                #         generator_instance.random_tag, generator_instance.win_rate, generator_instance.current_fitness))
+                
+                        
+            
+        #EVO 
+        if match:
+            discriminator_instance.win_rate /= n
+            generator_instance.win_rate = 1 - discriminator_instance.win_rate
+                
 
-            
-            #adds disc's win rate average of each recent batch of images
-            #adds gen's win rate average of each recent batch of images
-            ######################## EVO ############### 
-            
-            discriminator_instance.calc_win_rate(output_on_real, output_on_fake)
-            generator_instance.calc_win_rate(output_on_fake)
-            
-            ############################################
-            #TODO: 10 to 15 matches for each player?
-            
-            
-            
-        #after adding the average win_rate of each batch, we divide by the number of batches to get a global win_rate average
-        #of the whole game(all the images) disc vs gen
-        ############################# EVO ####################################
+    #EVO        
+    if match:
         
-        discriminator_instance.win_rate /= n
-        generator_instance.win_rate = 1 - discriminator_instance.win_rate
+        discriminator_instance.calc_skill_rating(generator_instance)
+        generator_instance.calc_skill_rating(discriminator_instance)
         
-        ######################################################################
-        
-
     
-    #update the skill rating tables according to self's win_rate against each specific opponent's skill rate
-    #after all epochs because we need one 'append' for each adv
-    ############################# EVO ####################################
-        
-    discriminator_instance.calc_skill_rating(generator_instance)
-    generator_instance.calc_skill_rating(discriminator_instance)
-    
-    ######################################################################
-    
-    
-        
     
     # TODO: potential optimization, although not a very potent one.
     # matching requires no real data training.
@@ -395,29 +378,20 @@ class Arena(object):
         self.generator_instance.encounter_trace.append(g_encounter_trace)
 
         #TODO: add the weightings by autoimmunity and virulence
-
         # print('debug: inside match: real_error: %s, false_error: %s' % (trace[0], trace[1]))
 
         
-        
-        ########################### EVO ###################################
-        
-        pathogen_fitness = self.generator_instance.skill_rating.mu
-                
-        
-        #host_fitness, pathogen_fitness = pathogen_host_fitness(trace[0], trace[1])
+        #EVO        
+        pathogen_fitness = self.generator_instance.current_fitness
         self.discriminator_instance.real_error = trace[0]
-
-        ###################################################################
         
         
         
-        # print('debug: inside match: host_fitness: %s, pathogen_fitness: %s' % (host_fitness,
-        #                                                                        pathogen_fitness))
+        # print('debug: inside match: host_fitness: %s, pathogen_fitness: %s' % (host_fitness, pathogen_fitness))
 
         
         # TODO: check for conflict with the decisions made inside the arena module
-        if pathogen_fitness > 1000:                                                      #### EVO
+        if pathogen_fitness > 1200:
             # print('debug: inside match: contamination branch')  # contamination
             '''
             self.generator_instance.fitness_map = {
@@ -425,6 +399,8 @@ class Arena(object):
             self.discriminator_instance.gen_error_map = {self.generator_instance.random_tag:
                                                              trace[1]}
             '''
+            
+            #EVO
             self.generator_instance.fitness_map[self.discriminator_instance.random_tag] = pathogen_fitness
             
             self.discriminator_instance.gen_error_map[self.generator_instance.random_tag] = trace[1] #use tag_trace instead as key?
@@ -432,26 +408,24 @@ class Arena(object):
             #IMPORTANT CHANGES HERE AS WE APPEND TO THE MAPS, AND NOT OVERWRITE (otherwise we were kept with all hosts infected only
             #by same last pathogen, and all pathongens have infected only one same last host (in their maps)).
             
+            #QUESTION: after the above changes, should we empty the fitness_map and gen_error_map each time a child
+            #is generated? -- because otherwise a host will have the pathogens that infected his parents in its gen_error_map 
+            #and would never adapt, same reasoning a pathogen will always be updated if a parent sometime infected some host.
             
-            
+        
+        
         else:  # No contamination
             # print('debug: inside match: no-contamination branch')
             # clear pathogens if exist
             self.generator_instance.fitness_map.pop(self.discriminator_instance.random_tag, None)
             self.discriminator_instance.gen_error_map.pop(self.generator_instance.random_tag, None)
 
-            
-        #################### EVO ####################
         
         
-        self.discriminator_instance.current_fitness = self.discriminator_instance.skill_rating.mu
-        #self.discriminator_instance.current_fitness = cumulative_host_fitness(trace[0],
-        #                                                                      \self.discriminator_instance.gen_error_map.values())  
-        
-        self.generator_instance.current_fitness = self.generator_instance.skill_rating.mu
-        
-        #############################################
-        
+        #EVO -- Not needed
+        #self.discriminator_instance.current_fitness = self.discriminator_instance.skill_rating.mu        
+        #self.generator_instance.current_fitness = self.generator_instance.skill_rating.mu
+                
         
         if commit:
             self.commit_disc_gen_updates()
@@ -537,12 +511,11 @@ class Arena(object):
         self.discriminator_instance.encounter_trace.append(d_encounter_trace)
         self.generator_instance.encounter_trace.append(g_encounter_trace)
 
-       
-        ###################  EVO     
-        
-        #EVO -- CHANGE IN GENERATION HAPPENS HERE
-        #Shouldn't the generation change be after the evaluation(def match() ) of the trained individuals?      
-        
+        #EVO -- should we take this before the train? (perturbations before the learning)
+        aneuploidization(self.generator_instance)
+        aneuploidization(self.discriminator_instance)
+    
+        #EVO -- generation change
         print()
         print('disc: ', self.discriminator_instance.random_tag, '->', end='')
         self.discriminator_instance.bump_random_tag()
@@ -550,8 +523,6 @@ class Arena(object):
         print('gen: ', self.generator_instance.random_tag, '->', end='')
         self.generator_instance.bump_random_tag()
         print(self.generator_instance.random_tag)
-
-        ################
         
         
         if commit:
