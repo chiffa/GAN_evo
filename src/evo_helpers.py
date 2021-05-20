@@ -2,6 +2,7 @@ import random
 import numpy as np
 import os
 import csv
+import torch
 
 from copy import deepcopy
 
@@ -24,9 +25,24 @@ def update_fitnesses(individuals_list): #referenced many times in "arena.py"
         individual.current_fitness = individual.skill_rating.mu
         
         
-        
+#Desired aneuploidization
+def log_normal_aneuploidization(instance): #tested in 504 of "match_and_train.py" in cross_train()
+    
+    new_params = {}
+    mu = 0
+    sigma = 0.5
+    
+    for name, param in instance.named_parameters():
+        new_params[name] = param.clone()
+        if param.dim() == 4:
+            random_tensor = torch.from_numpy(np.random.lognormal(mu, sigma, param.size()))
+            new_params[name] = torch.matmul(new_params[name], random_tensor.float().to('cuda'))
+            param.data.copy_(new_params[name])
+            
+
+    
 #Aneuploid explosion
-def aneuploidization(individual): #510 of "match_and_train.py" in cross_train()
+def aneuploidization(instance): #502 of "match_and_train.py" in cross_train()
     '''
     Input: Individual -- Either a generator or discriminator instance
     Output: Returns nothing -- inplace changes
@@ -38,7 +54,7 @@ def aneuploidization(individual): #510 of "match_and_train.py" in cross_train()
     '''
     #test
     i = 0 
-    for name, params in individual.named_parameters():
+    for name, params in instance.named_parameters():
         i +=1
         dump_evo([i, '  name: ', name])
         dump_evo([i, '  params: ', params])
@@ -57,8 +73,8 @@ def aneuploidization(individual): #510 of "match_and_train.py" in cross_train()
     #with torch.no_grad():
 
     #extract the weight layers (no bias layers)
-    for name, _ in individual.named_parameters():
-        if name.find("weight") != -1 :
+    for name, param in instance.named_parameters():
+        if (name.find("weight") != -1) and (param.dim() == 4):
             weights_layers.append(name)
 
     #randomly select weight layers for possible random change
@@ -79,7 +95,7 @@ def aneuploidization(individual): #510 of "match_and_train.py" in cross_train()
     
     new_params = {}
 
-    for name, params in individual.named_parameters():
+    for name, params in instance.named_parameters():
         new_params[name] = params.clone() #clone the parameters to be able to change later (or add torch.no_grad() ?)
         if name in weight_layers_to_change:
             new_params[name] = params * random.choice([0.5, 2]) #randomly either divide or multiply by 2
@@ -87,7 +103,7 @@ def aneuploidization(individual): #510 of "match_and_train.py" in cross_train()
     
     '''
     #test
-    for name, params in individual.named_parameters():
+    for name, params in instance.named_parameters():
         dump_evo(['name: ', name])
         dump_evo(['params: ', params])
     '''
@@ -101,7 +117,7 @@ def aneuploidization(individual): #510 of "match_and_train.py" in cross_train()
 #initially it was implemented to check for a whole list of pathogens, and returns two lists one containing
 #those who adapted and one those who did not
 #changed due to implementation constrains in arena (now takes only one instance and update the adapt attribute)
-def pathogens_adaptation_check(pathogen): #240 "arena.py" inside cross_train_iteration()
+def pathogens_adaptation_check(pathogen): #716 arena.py
     '''
     Input: Generators list
     Output: Returns nothing -- inplace changes
@@ -136,7 +152,7 @@ def pathogens_adaptation_check(pathogen): #240 "arena.py" inside cross_train_ite
 
 
 #Same reasoning for discriminators
-def hosts_adaptation_check(host): #239 "arena.py" inside cross_train_iteration()
+def hosts_adaptation_check(host): #717 arena.py
     '''
     Input: Hosts list
     Output: Returns nothing -- inplace changes
@@ -149,13 +165,17 @@ def hosts_adaptation_check(host): #239 "arena.py" inside cross_train_iteration()
     
     #for host in hosts_list:
         
-    if bool(host.gen_error_map):#if gen_error_map{} is non-empty (existance of a pathogen's random_tag)
-        host.adapt = False
-        #non_adapted_hosts.append(host)
+    if bool(host.gen_error_map): #if gen_error_map{} is non-empty (existance of a pathogen's random_tag)
+        
+        if host.silent_adaptation == True: #in case of silent adaptation: the host adapt becomes True too
+            host.adapt = True
+        else:
+            host.adapt = False #in case the gen_error_map is non empty and silent is False,then this host was fully infected, & adapt=False
 
     else:
         host.adapt = True #if there isn't a single pathogen in the gen_error_map{}
-        #adapted_hosts.append(host)
+        #host.silent = False
+        
     
     '''
     #test
@@ -177,7 +197,8 @@ def hosts_adaptation_check(host): #239 "arena.py" inside cross_train_iteration()
 #(for instance between the cross_train_iteration and evolve_in_population in chain evolve..) --> so that we only pass the best individuals
 #to be trained and evolve further. (only select before the final cross match..)
 #works for both hosts and pathogens
-def select_best_individuals(individuals_list, proportion=0.5):#tested to work properly in "arena.py" 290, at the end of cross_train_iter()
+def select_best_individuals(individuals_list, proportion=0.5):#tested to work properly in "arena.py" 265, at the end of cross_train_iter()
+                                                               #unused until now
     '''
     Input: List of hosts or pathogens, along with a float number to specify the proportion of individuals we want to keep
     Output: Returns a list containing the proportion of the best individuals
@@ -206,14 +227,15 @@ def select_best_individuals(individuals_list, proportion=0.5):#tested to work pr
 
 
 
-#With a very small probability (1% as of now) of this happening, randomly kill 2/3 of the current generation (huge -natural- catastrophy)
-#with some other more important probability (4% as of now), randomly kill 1/3 of the current generation (could be due to a pandemic
+#With a very small probability (2% as of now) of this happening, randomly kill 2/3 of the current generation (huge -natural- catastrophy)
+#with some other more important probability (8% as of now), randomly kill 1/3 of the current generation (could be due to a pandemic
 #or random destruction or food shortage or again natural catastrophy ..etc)
 #The surviving instances will produce enough children to go back to the initial population size
 #for instance with 3 hosts and 3 pathogens coadapting, we'll have 1 host and 1 pathogen left, and each of them
 #will generate 3 children (copies of parent instance + new random_tag) to give back a fresh new generation of 3 vs 3 (this is for 1% case)
-def bottleneck_effect(hosts_list, pathogens_list):#tested to work properly in "arena.py" 928, inside chain_evolve
+def bottleneck_effect(hosts_list, pathogens_list):#tested to work properly in "arena.py" 967, inside chain_evolve
                                                    #when entered:   a generation (and population) change is going to happen
+                                                    #Unused until now
     '''
     Input: List of hosts, list of pathogens
     Output: Returns a new list of hosts, new list of pathogens
@@ -225,7 +247,7 @@ def bottleneck_effect(hosts_list, pathogens_list):#tested to work properly in "a
     kill_two_thirds_prop = 2/3
     
     possibilities = ['kill_two_thirds', 'kill_one_third', 'kill_no_one']
-    weights = [0.01, 0.04, 0.95]
+    weights = [0.02, 0.08, 0.90]
     choice = random.choices(possibilities, weights)
     
     if choice == 'kill_no_one':
@@ -288,6 +310,87 @@ def bottleneck_process(instances, kill_proportion):
     return new_instances
 
 
-#Important question in 411 "match_and_train" in match()
 
 
+def pathogen_sweeps_3(pathogen): #referenced 4 times inside evolve_in_pop()
+    
+    if pathogen.adapt == False:
+        dump_evo(['Pathogen', pathogen.random_tag, 'has not adapted (even silently) to any of its environments \
+                 with fitness value', pathogen.current_fitness])
+    
+    #If we're here then the pathogen adapted for sure, just need to figure out silently or fully
+    #If parent was not adapted
+    elif pathogen.adapted_parent == False:
+        if pathogen.silent_adaptation == True:
+            dump_evo(['Pathogen', pathogen.random_tag, 'became silently adapted, but has not fully adapted \
+                     to any of its environments, with fitness map', pathogen.fitness_map])
+        else:
+            dump_evo(['Pathogen', pathogen.random_tag, 'full adaptation by means of Hard Sweeps, with fitness map ', \
+                     pathogen.fitness_map])
+    
+    #If both instance and parent adapted (silently or fully, we still dont know)       
+    elif pathogen.silent_parent == True:
+        if pathogen.silent_adaptation == True:
+            dump_evo(['Pathogen', pathogen.random_tag, 'is still silently adapted, has not fully adapted to any \
+                     of its environments, with fitness map', pathogen.fitness_map])
+        else:
+            dump_evo(['Pathogen', pathogen.random_tag, 'full adaptation by means of Soft sweeps \
+                     (Standing Genetic Variation) with fitness map', pathogen.fitness_map])
+    
+    #Parent fully adapted already
+    else:
+        dump_evo(['Pathogen', pathogen.random_tag, 'was already fully adapted with fitness map', pathogen.fitness_map])
+        
+        
+def host_sweeps_3(host): #referenced 4 times inside evolve_in_pop()
+    
+    if host.adapt == False:
+        dump_evo(['Host', host.random_tag, 'has not adapted to its environments \
+                 with fitness value ', host.current_fitness])
+    
+    #host adapted (either silently or fully)
+    #if its parent was not adapted
+    elif host.adapted_parent == False:
+        if host.silent_adaptation == True:
+            dump_evo(['Host', host.random_tag, 'became silently adapted, but has not fully adapted \
+                     to any of its environments, with gen error map', host.gen_error_map])
+        else:
+            dump_evo(['Host', host.random_tag, 'full adaptation by means of Hard Sweeps, with gen error map', \
+                     host.gen_error_map])
+    
+    #both the current host and its parent were adapted
+    #if the parent was silently adapted
+    elif host.silent_parent == True:
+        if host.silent_adaptation == True:
+            dump_evo(['Host', host.random_tag, 'is still silently adapted, has not fully adapted to any \
+                     of its environments, with gen error map', host.gen_error_map])
+        else:
+            dump_evo(['Host', host.random_tag, 'full adaptation by means of Soft sweeps \
+                     (Standing Genetic Variation) with gen error map', host.gen_error_map])
+    
+    #parent already fully adapted
+    else:
+        dump_evo(['Host', host.random_tag, 'was already fully adapted with gen error map', host.gen_error_map])
+
+
+
+#def full_adaptation_check(instance):        
+#    return (instance.adapt == True) and (instance.silent_adaptation == False):
+                       
+#pathogen fully adapted <--> (.adapt == True) & (.silent == False)
+#host fully adapted     <--> (.adapt == True) & (.silent == False)
+# --> we already have this verified inside the sweeps functions
+
+
+
+#made changes inside the bump_random_tag() to deal with all the features we added
+
+
+#Intermediate and sweeps checks (updating the ".adapt" and ".silent_adaptation" attributes)
+#performed only inside the evolve_in_population() (no inside cross_train_it() or round_robin_it()..)
+#because that is where we use the weights to match() the instances alike against each other, update their fitnesses and test
+#for infection (silent, full, no infection ..), and this is done after a cross_train_it() or round_robin_it()
+
+#The thing now is that these checks are performed after the first and only cross_train() inside cross_train_it(), which 
+#does already "number of population" generation changes --> so we will be testing adaptation each "size of opponent population" generations
+# -- cross_train also at the in infection part of evolve_in_pop() --

@@ -23,7 +23,7 @@ from configs import training_samples_location as _train_samples_dir
 from configs import fid_samples_location as _fid_samples_dir
 
 
-from src.evo_helpers import aneuploidization
+from src.evo_helpers import aneuploidization, log_normal_aneuploidization
 
 #Environment to match and train our gans (can be either disc only or gen only or both)
 #main test environment where the training of GANs is performed
@@ -168,9 +168,10 @@ def match_training_round(generator_instance, discriminator_instance,
         dataloader_limiter = int(len(dataloader)*training_epochs)
         training_epochs = 1
             
-    #EVO        
-    discriminator_instance.win_rate = 0
-    generator_instance.win_rate = 0
+    #EVO
+    if match:
+        discriminator_instance.win_rate = 0
+        generator_instance.win_rate = 0
                 
     
     for epoch in range(training_epochs):
@@ -275,7 +276,7 @@ def match_training_round(generator_instance, discriminator_instance,
                 #EVO
                 discriminator_instance.calc_win_rate(output_on_real, output_on_fake)
                 
-                #generator_instance.calc_win_rate(output_on_fake)   #not needed unless to see how the gen is doing for debug
+                generator_instance.calc_win_rate(output_on_fake)   #not needed unless to see how the gen is doing for debug
                 
                 #EVO -- debug
                 #print("BATCH NUMBER: %s, DISCRIMINATOR: %s with win_rate: %s and current_fitness: %s, \
@@ -391,7 +392,7 @@ class Arena(object):
 
         
         # TODO: check for conflict with the decisions made inside the arena module
-        if pathogen_fitness > 1200:
+        if pathogen_fitness > 1250:
             # print('debug: inside match: contamination branch')  # contamination
             '''
             self.generator_instance.fitness_map = {
@@ -400,31 +401,17 @@ class Arena(object):
                                                              trace[1]}
             '''
             
-            #EVO
+            #EVO -- now appending (no more assignment of last)
             self.generator_instance.fitness_map[self.discriminator_instance.random_tag] = pathogen_fitness
             
             self.discriminator_instance.gen_error_map[self.generator_instance.random_tag] = trace[1] #use tag_trace instead as key?
-            
-            #IMPORTANT CHANGES HERE AS WE APPEND TO THE MAPS, AND NOT OVERWRITE (otherwise we were kept with all hosts infected only
-            #by same last pathogen, and all pathongens have infected only one same last host (in their maps)).
-            
-            #QUESTION: after the above changes, should we empty the fitness_map and gen_error_map each time a child
-            #is generated? -- because otherwise a host will have the pathogens that infected his parents in its gen_error_map 
-            #and would never adapt, same reasoning a pathogen will always be updated if a parent sometime infected some host.
-            
-        
+                        
         
         else:  # No contamination
             # print('debug: inside match: no-contamination branch')
             # clear pathogens if exist
             self.generator_instance.fitness_map.pop(self.discriminator_instance.random_tag, None)
             self.discriminator_instance.gen_error_map.pop(self.generator_instance.random_tag, None)
-
-        
-        
-        #EVO -- Not needed
-        #self.discriminator_instance.current_fitness = self.discriminator_instance.skill_rating.mu        
-        #self.generator_instance.current_fitness = self.generator_instance.skill_rating.mu
                 
         
         if commit:
@@ -512,8 +499,10 @@ class Arena(object):
         self.generator_instance.encounter_trace.append(g_encounter_trace)
 
         #EVO -- should we take this before the train? (perturbations before the learning)
-        aneuploidization(self.generator_instance)
-        aneuploidization(self.discriminator_instance)
+        #aneuploidization(self.generator_instance)
+        #aneuploidization(self.discriminator_instance)
+        log_normal_aneuploidization(self.generator_instance)
+        log_normal_aneuploidization(self.discriminator_instance)
     
         #EVO -- generation change
         print()

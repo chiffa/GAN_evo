@@ -84,6 +84,7 @@ class Generator(nn.Module):
         self.tag_trace = [self.random_tag]
         self.virulence = virulence
         
+        #EVO
         self.win_rate = 0
         self.glicko = glicko2.Glicko2(mu=1500, phi=350, sigma=0.06, tau=0.3)
         self.skill_rating = self.glicko.create_rating()
@@ -92,7 +93,10 @@ class Generator(nn.Module):
         self.current_fitness = self.skill_rating.mu
         
         self.adapt = False
-        
+        self.adapted_parent = False
+        self.silent_adaptation = False
+        self.silent_parent = False
+        # ----       
         
         self.main = nn.Sequential(
             # input is Z, going into a convolution
@@ -165,10 +169,19 @@ class Generator(nn.Module):
     def resurrect(self, random_tag):
         return resurrect(self, random_tag)
 
-
+    #EVO
     def bump_random_tag(self):
+        temp_a = self.adapt #save adaptation of parent-to-be
+        temp_s = self.silent_parent #save whether the parent-to-be was silently adapted
+        
         self.random_tag = ''.join(sample(char_set * 10, 10))
         self.tag_trace += [self.random_tag]
+        
+        self.adapt = False
+        self.adapted_parent = temp_a
+        self.silent_adaptation = False
+        self.silent_parent = temp_s
+        self.fitness_map.clear()
         
 
     #adds (summation) the average win rate of last batch of images

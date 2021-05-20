@@ -120,6 +120,9 @@ class Discriminator(nn.Module):
         self.current_fitness = self.skill_rating.mu
         
         self.adapt = False
+        self.adapted_parent = False
+        self.silent_adaptation = False
+        self.silent_parent = False
         
         self.main = nn.Sequential(
             # input is (nc) x 64 x 64
@@ -185,9 +188,19 @@ class Discriminator(nn.Module):
     def size_on_disc(self):
         return count_parameters(self.main)
 
+    #EVO
     def bump_random_tag(self):
+        temp_a = self.adapt #save adaptation of parent-to-be
+        temp_s = self.silent_parent #save whether the parent-to-be was silently adapted
+        
         self.random_tag = ''.join(sample(char_set * 10, 10))
         self.tag_trace += [self.random_tag]
+        
+        self.adapt = False
+        self.adapted_parent = temp_a
+        self.silent_adaptation = False
+        self.silent_parent = temp_s
+        self.gen_error_map.clear()
 
     def resurrect(self, random_tag):
         resurrect(self, random_tag)
@@ -243,6 +256,9 @@ class Discriminator_light(nn.Module):
         self.current_fitness = self.skill_rating.mu
         
         self.adapt = False
+        self.adapted_parent = False
+        self.silent_adaptation = False
+        self.silent_parent = False
         
         self.main = nn.Sequential(
             # input is (nc) x 64 x 64
@@ -302,9 +318,19 @@ class Discriminator_light(nn.Module):
     def size_on_disc(self):
         return count_parameters(self.main)
 
+    #EVO
     def bump_random_tag(self):
+        temp_a = self.adapt #save adaptation of parent-to-be
+        temp_s = self.silent_parent #save whether the parent-to-be was silently adapted
+        
         self.random_tag = ''.join(sample(char_set * 10, 10))
         self.tag_trace += [self.random_tag]
+        
+        self.adapt = False
+        self.adapted_parent = temp_a
+        self.silent_adaptation = False
+        self.silent_parent = temp_s
+        self.gen_error_map.clear()
 
     def resurrect(self, random_tag):
         resurrect(self, random_tag)
@@ -359,6 +385,9 @@ class Discriminator_PReLU(nn.Module):
         self.current_fitness = self.skill_rating.mu
         
         self.adapt = False
+        self.adapted_parent = False
+        self.silent_adaptation = False
+        self.silent_parent = False
         
         self.main = nn.Sequential(
             # input is (nc) x 64 x 64
@@ -416,9 +445,19 @@ class Discriminator_PReLU(nn.Module):
     def size_on_disc(self):
         return count_parameters(self.main)
 
+    #EVO
     def bump_random_tag(self):
+        temp_a = self.adapt #save adaptation of parent-to-be
+        temp_s = self.silent_parent #save whether the parent-to-be was silently adapted
+        
         self.random_tag = ''.join(sample(char_set * 10, 10))
         self.tag_trace += [self.random_tag]
+        
+        self.adapt = False
+        self.adapted_parent = temp_a
+        self.silent_adaptation = False
+        self.silent_parent = temp_s
+        self.gen_error_map.clear()
 
     def resurrect(self, random_tag):
         resurrect(self, random_tag)
