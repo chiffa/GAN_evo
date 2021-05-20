@@ -692,7 +692,7 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit
 
         
         #EVO
-        if arena.generator_instance.current_fitness > 1250:
+        if arena.generator_instance.current_fitness > 1200:
             
             
             #infection
@@ -946,37 +946,18 @@ def chain_evolve(individuals_per_species, starting_cluster):
 
     timer = StopWatch()
     
-    cross_train_iteration(hosts, pathogens, 'light', 1, timer=timer)
-    evolve_in_population(hosts['light'], pathogens, default_budget, timer=timer)
+    cross_train_iteration(hosts, pathogens, 'base', 1, timer=timer)
+    evolve_in_population(hosts['base'], pathogens, default_budget, timer=timer)
+    cross_train_iteration(hosts, pathogens, 'base', 1, timer=timer)
+    evolve_in_population(hosts['base'], pathogens, default_budget, timer=timer)
+    cross_train_iteration(hosts, pathogens, 'base', 1, timer=timer)
+    evolve_in_population(hosts['base'], pathogens, default_budget, timer=timer)
     
-    
-    '''    
-    #EVO -- bottleneck test
-    dump_evo(["OLD HOSTS"])
-    dump_evo(['hosts: ', [(host.random_tag, host.tag_trace, host.current_fitness) for host in hosts['light']]])
-        
-    dump_evo(["------------------------------------------"])
-    dump_evo(["OLD PATHOGENS"])
-    
-    dump_evo(['pathogens: ', [(pathogen.random_tag, pathogen.tag_trace, pathogen.current_fitness) for pathogen in pathogens]])
-    
-    dump_evo(["****************************************************************************************"])
-    '''
     
     #EVO -- bottleneck_effect function test -- works as expected
     #hosts['light'], pathogens = bottleneck_effect(hosts['light'], pathogens)
     
-    '''
-    dump_evo(["****************************************************************************************"])
-    
-    dump_evo(["NEW HOSTS"])
-    dump_evo(['hosts: ', [(host.random_tag, host.tag_trace, host.current_fitness) for host in hosts['light']]])
-        
-    dump_evo(["------------------------------------------"])
-    dump_evo(["NEW PATHOGENS"])
-    
-    dump_evo(['pathogens: ', [(pathogen.random_tag, pathogen.tag_trace, pathogen.current_fitness) for pathogen in pathogens]])
-    '''    
+      
     
         
     #cross_train_iteration(hosts, pathogens, 'light', 1, timer=timer)
@@ -1266,46 +1247,35 @@ if __name__ == "__main__":
         # chain_progression(5, 5)
         # chain_progression(5, 5)
 
-        chain_evolve(3,3)
         
+        chain_evolve(5, 5) # this is where we implemented the new features of our work (inside evolve_in_pop()) 
+        dump_test(['CHAIN EVOLVE COMPLETED']) #composed of 3 cross_train_it() and 3 evolve_in_pop() one after the other
+        
+        chain_evolve_with_fitness_reset(3, 3) # here 3 by 3 too, but each time with different disc type (above only the 'base' type)
+        dump_test(['CHAIN EVOLVE WITH FITNESS RESET COMPLETED'])
+        
+        round_robin_randomized(3, 3)
+        dump_test(['ROUND ROBIN RANDOMIZED COMPLETED'])
+        
+        round_robin_deterministic(3, 3)
+        dump_test(['ROUND ROBIN DETERMINISTIC COMPLETED'])
+        
+        brute_force_training(3, 3)
+        dump_test(['BRUTE FORCE TRAINING COMPLETED'])
                         
         '''
-        chain_evolve_with_fitness_reset(3, 3)
-        dump_test(['CHAIN EVOLVE WITH FITNESS RESET 3 COMPLETED'])
-        chain_evolve_with_fitness_reset(3, 3)
-        dump_test(['CHAIN EVOLVE WITH FITNESS RESET 4 COMPLETED'])
-        chain_evolve_with_fitness_reset(3, 3)
-        dump_test(['CHAIN EVOLVE WITH FITNESS RESET 5 COMPLETED'])
-
-        # chain_evolve(3, 3)
-        # chain_evolve(3, 3)
-        # chain_evolve(3, 3)
-        # chain_evolve(3, 3)
-        # chain_evolve(3, 3)
         
         dump_test(['ROUND ROBIN RANDOMIZED 1 STARTED'])
         round_robin_randomized(5, 5)
         dump_test(['ROUND ROBIN RANDOMIZED 1 COMPLETED'])
         round_robin_randomized(5, 5)
         dump_test(['ROUND ROBIN RANDOMIZED 2 COMPLETED'])
-        round_robin_randomized(5, 5)
-        dump_test(['ROUND ROBIN RANDOMIZED 3 COMPLETED'])
-        round_robin_randomized(5, 5)
-        dump_test(['ROUND ROBIN RANDOMIZED 4 COMPLETED'])
-        round_robin_randomized(5, 5)
-        dump_test(['ROUND ROBIN RANDOMIZED 5 COMPLETED'])
 
         dump_test(['ROUND ROBIN DETERMINISTIC 1 STARTED'])
         round_robin_deterministic(5, 5)
         dump_test(['ROUND ROBIN DETERMINISTIC 1 COMPLETED'])
         round_robin_deterministic(5, 5)
         dump_test(['ROUND ROBIN DETERMINISTIC 2 COMPLETED'])
-        round_robin_deterministic(5, 5)
-        dump_test(['ROUND ROBIN DETERMINISTIC 3 COMPLETED'])
-        round_robin_deterministic(5, 5)
-        dump_test(['ROUND ROBIN DETERMINISTIC 4 COMPLETED'])
-        round_robin_deterministic(5, 5)
-        dump_test(['ROUND ROBIN DETERMINISTIC 5 COMPLETED'])
 
         dump_test(['BRUTE FORCE TRAINING 1 STARTED'])
         brute_force_training(10, 15)

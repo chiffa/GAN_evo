@@ -23,7 +23,7 @@ from configs import training_samples_location as _train_samples_dir
 from configs import fid_samples_location as _fid_samples_dir
 
 
-from src.evo_helpers import aneuploidization, log_normal_aneuploidization
+from src.evo_helpers import aneuploidization, log_normal_aneuploidization, dump_evo
 
 #Environment to match and train our gans (can be either disc only or gen only or both)
 #main test environment where the training of GANs is performed
@@ -195,8 +195,13 @@ def match_training_round(generator_instance, discriminator_instance,
             real_cpu = data[0].to(device)
             _batch_size = real_cpu.size(0)
             label = torch.full((_batch_size,), real_label, device=device, dtype=torch.float32)
-
-            output_on_real = discriminator_instance(real_cpu)
+            
+            #EVO -- perturb the real input of the discriminator
+            perturbation = torch.normal(mean=0, std=0.2, size = real_cpu.size()).to(device)
+            perturbed_input = real_cpu + perturbation
+            
+            
+            output_on_real = discriminator_instance(perturbed_input)
 
             errD_real = criterion(output_on_real, label)
 
@@ -392,7 +397,7 @@ class Arena(object):
 
         
         # TODO: check for conflict with the decisions made inside the arena module
-        if pathogen_fitness > 1250:
+        if pathogen_fitness > 1200:
             # print('debug: inside match: contamination branch')  # contamination
             '''
             self.generator_instance.fitness_map = {
