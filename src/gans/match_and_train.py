@@ -197,11 +197,11 @@ def match_training_round(generator_instance, discriminator_instance,
             label = torch.full((_batch_size,), real_label, device=device, dtype=torch.float32)
             
             #EVO -- perturb the real input of the discriminator
-            perturbation = torch.normal(mean=0, std=0.2, size = real_cpu.size()).to(device)
-            perturbed_input = real_cpu + perturbation
+            #perturbation = torch.normal(mean=0, std=0.2, size = real_cpu.size()).to(device)
+            #perturbed_input = real_cpu + perturbation.detach()
             
             
-            output_on_real = discriminator_instance(perturbed_input)
+            output_on_real = discriminator_instance(real_cpu) #perturbed_input
 
             errD_real = criterion(output_on_real, label)
 
@@ -281,7 +281,7 @@ def match_training_round(generator_instance, discriminator_instance,
                 #EVO
                 discriminator_instance.calc_win_rate(output_on_real, output_on_fake)
                 
-                generator_instance.calc_win_rate(output_on_fake)   #not needed unless to see how the gen is doing for debug
+                #generator_instance.calc_win_rate(output_on_fake)   #not needed unless to see how the gen is doing for debug
                 
                 #EVO -- debug
                 #print("BATCH NUMBER: %s, DISCRIMINATOR: %s with win_rate: %s and current_fitness: %s, \
@@ -397,7 +397,7 @@ class Arena(object):
 
         
         # TODO: check for conflict with the decisions made inside the arena module
-        if pathogen_fitness > 1200:
+        if pathogen_fitness > 1100:
             # print('debug: inside match: contamination branch')  # contamination
             '''
             self.generator_instance.fitness_map = {
@@ -407,16 +407,16 @@ class Arena(object):
             '''
             
             #EVO -- now appending (no more assignment of last)
-            self.generator_instance.fitness_map[self.discriminator_instance.random_tag] = pathogen_fitness
+            self.generator_instance.fitness_map[self.discriminator_instance] = pathogen_fitness #used to be instance.random_tag
             
-            self.discriminator_instance.gen_error_map[self.generator_instance.random_tag] = trace[1] #use tag_trace instead as key?
+            self.discriminator_instance.gen_error_map[self.generator_instance] = trace[1] #used to be instance.random_tag
                         
         
         else:  # No contamination
             # print('debug: inside match: no-contamination branch')
             # clear pathogens if exist
-            self.generator_instance.fitness_map.pop(self.discriminator_instance.random_tag, None)
-            self.discriminator_instance.gen_error_map.pop(self.generator_instance.random_tag, None)
+            self.generator_instance.fitness_map.pop(self.discriminator_instance, None) #used to be instance.random_tag
+            self.discriminator_instance.gen_error_map.pop(self.generator_instance, None) #used to be instance.random_tag
                 
         
         if commit:
@@ -506,8 +506,8 @@ class Arena(object):
         #EVO -- should we take this before the train? (perturbations before the learning)
         #aneuploidization(self.generator_instance)
         #aneuploidization(self.discriminator_instance)
-        log_normal_aneuploidization(self.generator_instance)
-        log_normal_aneuploidization(self.discriminator_instance)
+        #log_normal_aneuploidization(self.generator_instance)
+        #log_normal_aneuploidization(self.discriminator_instance)
     
         #EVO -- generation change
         print()

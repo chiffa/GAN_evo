@@ -914,7 +914,7 @@ if __name__ == "__main__":
             
             
             attribution_map[(sub_entry[0][1], sub_entry[0][2], sub_entry[0][3])][sub_entry[0][-1]] =\
-                [duration, extracted_fids, extracted_is*100, final_random_tags]
+                [duration, extracted_fids, extracted_is, final_random_tags]
 
             
             

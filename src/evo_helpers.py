@@ -17,6 +17,11 @@ def dump_evo(payload_list):
         writer = csv.writer(destination, delimiter='\t')
         writer.writerow(payload_list)
         
+        
+#Change representation of gen_error_map and fitness_map to be able to store it (in save_pure_..)
+def map_transform(instance_map):
+    return {key.random_tag: value for key, value in instance_map.items()}
+
 
 #fitness updates -- works for both hosts and pathogens         
 def update_fitnesses(individuals_list): #referenced many times in "arena.py"
@@ -32,12 +37,13 @@ def log_normal_aneuploidization(instance): #tested in 504 of "match_and_train.py
     mu = 0
     sigma = 0.5
     
-    for name, param in instance.named_parameters():
-        new_params[name] = param.clone()
-        if param.dim() == 4:
-            random_tensor = torch.from_numpy(np.random.lognormal(mu, sigma, param.size()))
-            new_params[name] = torch.matmul(new_params[name], random_tensor.float().to('cuda'))
-            param.data.copy_(new_params[name])
+    with torch.no_grad():
+        for name, param in instance.named_parameters():
+            new_params[name] = param.clone()
+            if param.dim() == 4:
+                random_tensor = torch.from_numpy(np.random.lognormal(mu, sigma, param.size()))
+                new_params[name] = torch.matmul(new_params[name], random_tensor.float().to('cuda'))
+                param.data.copy_(new_params[name])
             
 
     
@@ -72,10 +78,11 @@ def aneuploidization(instance): #502 of "match_and_train.py" in cross_train()
 
     #with torch.no_grad():
 
-    #extract the weight layers (no bias layers)
-    for name, param in instance.named_parameters():
-        if (name.find("weight") != -1) and (param.dim() == 4):
-            weights_layers.append(name)
+    with torch.no_grad():
+        #extract the weight layers (no bias layers)
+        for name, param in instance.named_parameters():
+            if (name.find("weight") != -1) and (param.dim() == 4):
+                weights_layers.append(name)
 
     #randomly select weight layers for possible random change
     #Given the network structure, containing always 8 or 9 weight layers, and the proportions chosen manually above, 
@@ -95,11 +102,12 @@ def aneuploidization(instance): #502 of "match_and_train.py" in cross_train()
     
     new_params = {}
 
-    for name, params in instance.named_parameters():
-        new_params[name] = params.clone() #clone the parameters to be able to change later (or add torch.no_grad() ?)
-        if name in weight_layers_to_change:
-            new_params[name] = params * random.choice([0.5, 2]) #randomly either divide or multiply by 2
-            params.data.copy_(new_params[name]) #copy back the newly muted parameters
+    with torch.no_grad():
+        for name, params in instance.named_parameters():
+            new_params[name] = params.clone() #clone the parameters to be able to change later (or add torch.no_grad() ?)
+            if name in weight_layers_to_change:
+                new_params[name] = params * random.choice([0.5, 2]) #randomly either divide or multiply by 2
+                params.data.copy_(new_params[name]) #copy back the newly muted parameters
     
     '''
     #test
@@ -315,62 +323,76 @@ def bottleneck_process(instances, kill_proportion):
 def pathogen_sweeps_3(pathogen): #referenced 4 times inside evolve_in_pop()
     
     if pathogen.adapt == False:
-        dump_evo(['Pathogen', pathogen.random_tag, 'has not adapted (even silently) to any of its environments \
-                 with fitness value', pathogen.current_fitness])
+        dump_evo(['Pathogen', pathogen.random_tag, 'has not adapted to any of its environments with fitness value',\
+                   pathogen.current_fitness, 'and fitness map',\
+                   [(key.random_tag, value) for key, value in pathogen.fitness_map.items()]])
     
     #If we're here then the pathogen adapted for sure, just need to figure out silently or fully
     #If parent was not adapted
     elif pathogen.adapted_parent == False:
         if pathogen.silent_adaptation == True:
-            dump_evo(['Pathogen', pathogen.random_tag, 'became silently adapted, but has not fully adapted \
-                     to any of its environments, with fitness map', pathogen.fitness_map])
+            dump_evo(['Pathogen', pathogen.random_tag, 'became silently adapted, but has not fully adapted to any of its environments,\
+            with fitness map', [(key.random_tag, value) for key, value in pathogen.fitness_map.items()], 'and current fitness',\
+                     pathogen.current_fitness])
         else:
             dump_evo(['Pathogen', pathogen.random_tag, 'full adaptation by means of Hard Sweeps, with fitness map ', \
-                     pathogen.fitness_map])
+                     [(key.random_tag, value) for key, value in pathogen.fitness_map.items()], 'and current fitness',\
+                     pathogen.current_fitness])
     
     #If both instance and parent adapted (silently or fully, we still dont know)       
     elif pathogen.silent_parent == True:
         if pathogen.silent_adaptation == True:
-            dump_evo(['Pathogen', pathogen.random_tag, 'is still silently adapted, has not fully adapted to any \
-                     of its environments, with fitness map', pathogen.fitness_map])
+            dump_evo(['Pathogen', pathogen.random_tag, 'is still silently adapted, has not fully adapted to any of its environments, with\
+            fitness map', [(key.random_tag, value) for key, value in pathogen.fitness_map.items()], 'and current fitness',\
+                      pathogen.current_fitness])
+            
         else:
-            dump_evo(['Pathogen', pathogen.random_tag, 'full adaptation by means of Soft sweeps \
-                     (Standing Genetic Variation) with fitness map', pathogen.fitness_map])
+            dump_evo(['Pathogen', pathogen.random_tag, 'full adaptation by means of Soft sweeps (by Standing Genetic Variation) with\
+            fitness map', [(key.random_tag, value) for key, value in pathogen.fitness_map.items()], 'and current fitness',\
+                     pathogen.current_fitness])
     
     #Parent fully adapted already
     else:
-        dump_evo(['Pathogen', pathogen.random_tag, 'was already fully adapted with fitness map', pathogen.fitness_map])
+        dump_evo(['Pathogen', pathogen.random_tag, 'was already fully adapted with fitness map',\
+                  [(key.random_tag, value) for key, value in pathogen.fitness_map.items()], 'and current fitness',\
+                 pathogen.current_fitness])
         
         
 def host_sweeps_3(host): #referenced 4 times inside evolve_in_pop()
     
     if host.adapt == False:
-        dump_evo(['Host', host.random_tag, 'has not adapted to its environments \
-                 with fitness value ', host.current_fitness])
+        dump_evo(['Host', host.random_tag, 'has not adapted to its environments with fitness value ', host.current_fitness,\
+                 'and gen error map', [(key.random_tag, value) for key, value in host.gen_error_map.items()]])
     
     #host adapted (either silently or fully)
     #if its parent was not adapted
     elif host.adapted_parent == False:
         if host.silent_adaptation == True:
-            dump_evo(['Host', host.random_tag, 'became silently adapted, but has not fully adapted \
-                     to any of its environments, with gen error map', host.gen_error_map])
+            dump_evo(['Host', host.random_tag, 'became silently adapted, but has not fully adapted to any of its environments, with\
+            gen error map', [(key.random_tag, value) for key, value in host.gen_error_map.items()], 'and current fitness',\
+                     host.current_fitness])
         else:
             dump_evo(['Host', host.random_tag, 'full adaptation by means of Hard Sweeps, with gen error map', \
-                     host.gen_error_map])
+                     [(key.random_tag, value) for key, value in host.gen_error_map.items()], 'and current fitness',\
+                     host.current_fitness])
     
     #both the current host and its parent were adapted
     #if the parent was silently adapted
     elif host.silent_parent == True:
         if host.silent_adaptation == True:
-            dump_evo(['Host', host.random_tag, 'is still silently adapted, has not fully adapted to any \
-                     of its environments, with gen error map', host.gen_error_map])
+            dump_evo(['Host', host.random_tag, 'is still silently adapted, has not fully adapted to any of its environments, with \
+            gen error map', [(key.random_tag, value) for key, value in host.gen_error_map.items()], 'and current fitness',\
+                     host.current_fitness])
         else:
-            dump_evo(['Host', host.random_tag, 'full adaptation by means of Soft sweeps \
-                     (Standing Genetic Variation) with gen error map', host.gen_error_map])
+            dump_evo(['Host', host.random_tag, 'full adaptation by means of Soft sweeps (Standing Genetic Variation) with \
+            gen error map', [(key.random_tag, value) for key, value in host.gen_error_map.items()], 'and current fitness',\
+                     host.current_fitness])
     
     #parent already fully adapted
     else:
-        dump_evo(['Host', host.random_tag, 'was already fully adapted with gen error map', host.gen_error_map])
+        dump_evo(['Host', host.random_tag, 'was already fully adapted with gen error map',\
+                 [(key.random_tag, value) for key, value in host.gen_error_map.items()], 'and current fitness',\
+                 host.current_fitness])
 
 
 

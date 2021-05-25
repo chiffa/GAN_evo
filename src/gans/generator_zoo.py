@@ -12,6 +12,8 @@ from configs import cuda_device
 
 from src.glicko2 import glicko2
 
+from src.evo_helpers import map_transform
+
 
 
 #Generator's implementation
@@ -31,12 +33,13 @@ def generate_hyperparameter_key(_self):
     return key
 
 
+#EVO -- map_transform
 def save(_self):
     _self.to(torch.device('cpu'))
     key = _self.generate_hyperparameter_key()
     payload = {'encounter_trace': _self.encounter_trace,
                'gen_state': pickle.dumps(_self.state_dict()),
-               'fitness_map': _self.fitness_map}
+               'fitness_map': map_transform(_self.fitness_map)}
 
     key.update(payload)
     _self.to(torch.device(cuda_device))

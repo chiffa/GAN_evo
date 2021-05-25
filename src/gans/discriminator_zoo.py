@@ -11,6 +11,8 @@ from configs import cuda_device
 
 from src.glicko2 import glicko2
 
+from src.evo_helpers import map_transform
+
 
 #Discriminators implementations
 
@@ -29,14 +31,14 @@ def generate_hyperparameter_key(_self):
            'disc_latent_params': _self.discriminator_latent_maps}
     return key
 
-
+#EVO -- map_transform
 def storage_representation(_self):
     _self.to(torch.device('cpu'))
     key = _self.generate_hyperparameter_key()
     payload = {'encounter_trace': _self.encounter_trace,
                 'disc_state': pickle.dumps(_self.state_dict()),
                 'self_error': _self.real_error,
-                'gen_error_map': _self.gen_error_map,
+                'gen_error_map': map_transform(_self.gen_error_map),
                 # TODO: Map needs to include both the generator errors and virulence factors.
                 'current_fitness': _self.current_fitness}
 
@@ -44,6 +46,7 @@ def storage_representation(_self):
     _self.to(torch.device(cuda_device))
 
     return key
+
 
 
 def resurrect(_self, random_tag):
