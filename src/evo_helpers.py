@@ -18,7 +18,7 @@ def dump_evo(payload_list):
         writer.writerow(payload_list)
         
         
-#Change representation of gen_error_map and fitness_map to be able to store it (in save_pure_..)
+#not used anymore
 def map_transform(instance_map):
     return {key.random_tag: value for key, value in instance_map.items()}
 
@@ -130,7 +130,7 @@ def pathogens_adaptation_check(pathogen): #716 arena.py
     Input: Generators list
     Output: Returns nothing -- inplace changes
     
-    Updates the ".adapt" attribute of each pathogen depending on its fitness map
+    Updates the ".infected_someone" attribute of each pathogen depending on its fitness map
     '''
     
     #adapted_pathogens = []
@@ -138,11 +138,11 @@ def pathogens_adaptation_check(pathogen): #716 arena.py
     
         
     if not bool(pathogen.fitness_map):#if fitness_map{} is empty
-        pathogen.adapt = False
+        pathogen.infected_someone = False
         #non_adapted_pathogens.append(pathogen)#Careful, we are adding the random tags, not the instances
 
     else:
-        pathogen.adapt = True #if there is at least one host in the fitness_map{}
+        pathogen.infected_someone = True #if there is at least one host in the fitness_map{}
         #adapted_pathogens.append(pathogen)
             
     '''
@@ -165,7 +165,7 @@ def hosts_adaptation_check(host): #717 arena.py
     Input: Hosts list
     Output: Returns nothing -- inplace changes
     
-    Updates the ".adapt" attribute of each host depending on its gen error map
+    Updates the ".silent_map" attribute of each host depending on its gen error map
     '''
     
     #adapted_hosts = []
@@ -175,13 +175,14 @@ def hosts_adaptation_check(host): #717 arena.py
         
     if bool(host.gen_error_map): #if gen_error_map{} is non-empty (existance of a pathogen's random_tag)
         
-        if host.silent_adaptation == True: #in case of silent adaptation: the host adapt becomes True too
-            host.adapt = True
+        if host.coadaptation == True: #in case of silent adaptation: the host adapt becomes True too
+            host.silent_map = True
         else:
-            host.adapt = False #in case the gen_error_map is non empty and silent is False,then this host was fully infected, & adapt=False
+            host.silent_map = False #in case the gen_error_map is non empty and silent is False,
+                                    #then this host was fully infected, & adapt=False
 
     else:
-        host.adapt = True #if there isn't a single pathogen in the gen_error_map{}
+        host.silent_map = True #if there isn't a single pathogen in the gen_error_map{}
         #host.silent = False
         
     
@@ -320,99 +321,149 @@ def bottleneck_process(instances, kill_proportion):
 
 
 
-def pathogen_sweeps_3(pathogen): #referenced 4 times inside evolve_in_pop()
+def pathogen_non_adapted_parent(pathogen):
     
-    if pathogen.adapt == False:
-        dump_evo(['Pathogen', pathogen.random_tag, 'has not adapted to any of its environments with fitness value',\
-                   pathogen.current_fitness, 'and fitness map',\
-                   [(key.random_tag, value) for key, value in pathogen.fitness_map.items()]])
+    if pathogen.infected_someone == False:        
+        dump_evo(['Pathogen', pathogen.random_tag, 'has not fully adapted to any of its environments with fitness value',\
+                  pathogen.current_fitness, 'and fitness map',\
+                  pathogen.fitness_map, '- both child and parent did not even infect any one -',\
+                  'with key:', pathogen.key])
+        
+    elif pathogen.coadaptation == False:
+        dump_evo(['Pathogen', pathogen.random_tag, 'full adaptation by means of Hard Sweeps, with fitness map ', \
+                  pathogen.fitness_map, 'and current fitness',\
+                  pathogen.current_fitness, 'with key:', pathogen.key])
+    else:
+        dump_evo(['Pathogen', pathogen.random_tag, 'became coadapted, but has not fully adapted to any of its environments,\
+                   with fitness map', pathogen.fitness_map,\
+                  'and current fitness', pathogen.current_fitness, '- parent did not even infect any one -', 'with key:', pathogen.key])
+
+        
+def pathogen_coadapted(pathogen):
     
-    #If we're here then the pathogen adapted for sure, just need to figure out silently or fully
-    #If parent was not adapted
-    elif pathogen.adapted_parent == False:
-        if pathogen.silent_adaptation == True:
-            dump_evo(['Pathogen', pathogen.random_tag, 'became silently adapted, but has not fully adapted to any of its environments,\
-            with fitness map', [(key.random_tag, value) for key, value in pathogen.fitness_map.items()], 'and current fitness',\
-                     pathogen.current_fitness])
-        else:
-            dump_evo(['Pathogen', pathogen.random_tag, 'full adaptation by means of Hard Sweeps, with fitness map ', \
-                     [(key.random_tag, value) for key, value in pathogen.fitness_map.items()], 'and current fitness',\
-                     pathogen.current_fitness])
+    if pathogen.parent_coadaptation == False:
+        dump_evo(['Pathogen', pathogen.random_tag, 'became coadapted, but has not fully adapted to any of its environments,\
+                   with fitness map', pathogen.fitness_map,\
+                  'and current fitness', pathogen.current_fitness, '- parent was fully adapted though -', 'with key:', pathogen.key])
     
-    #If both instance and parent adapted (silently or fully, we still dont know)       
-    elif pathogen.silent_parent == True:
-        if pathogen.silent_adaptation == True:
-            dump_evo(['Pathogen', pathogen.random_tag, 'is still silently adapted, has not fully adapted to any of its environments, with\
-            fitness map', [(key.random_tag, value) for key, value in pathogen.fitness_map.items()], 'and current fitness',\
-                      pathogen.current_fitness])
+    else:
+        dump_evo(['Pathogen', pathogen.random_tag, 'is still coadapted, has not fully adapted to any of its environments, with\
+                   fitness map', pathogen.fitness_map, 'and current fitness',\
+                  pathogen.current_fitness, 'with key:', pathogen.key])
+
+        
+def pathogen_non_coadapted(pathogen):
+    
+    if pathogen.parent_coadaptation == False:     
+        dump_evo(['Pathogen', pathogen.random_tag, '(and parent) already fully adapted with fitness map',\
+                  pathogen.fitness_map, 'and current fitness',\
+                  pathogen.current_fitness, 'with key:', pathogen.key])
+
+    else:
+        dump_evo(['Pathogen', pathogen.random_tag, 'full adaptation by means of Soft sweeps (by Standing Genetic Variation)\
+                  with fitness map', pathogen.fitness_map,\
+                  'and current fitness', pathogen.current_fitness, 'with key:', pathogen.key])
+
+        
+def pathogen_adapted_child_and_parent(pathogen):
+    
+    if pathogen.coadaptation == False:
+        pathogen_non_coadapted(pathogen)
+        
+    else:
+        pathogen_coadapted(pathogen)
+        
+
+def pathogen_sweeps(pathogen): #referenced 3 times inside evolve_in_pop()
+    
+    if pathogen.parent_infected_someone == False:
+        pathogen_non_adapted_parent(pathogen)
             
-        else:
-            dump_evo(['Pathogen', pathogen.random_tag, 'full adaptation by means of Soft sweeps (by Standing Genetic Variation) with\
-            fitness map', [(key.random_tag, value) for key, value in pathogen.fitness_map.items()], 'and current fitness',\
-                     pathogen.current_fitness])
+    elif pathogen.infected_someone:
+        pathogen_adapted_child_and_parent(pathogen)
     
-    #Parent fully adapted already
     else:
-        dump_evo(['Pathogen', pathogen.random_tag, 'was already fully adapted with fitness map',\
-                  [(key.random_tag, value) for key, value in pathogen.fitness_map.items()], 'and current fitness',\
-                 pathogen.current_fitness])
+        dump_evo(['Pathogen', pathogen.random_tag, 'has not fully adapted to any of its environments with fitness value',\
+                  pathogen.current_fitness, 'and fitness map',\
+                  pathogen.fitness_map, '- has not even infected any host, parent infected someone though -',\
+                  'with key', pathogen.key])
         
         
-def host_sweeps_3(host): #referenced 4 times inside evolve_in_pop()
+
+def host_non_adapted_parent(host):
     
-    if host.adapt == False:
-        dump_evo(['Host', host.random_tag, 'has not adapted to its environments with fitness value ', host.current_fitness,\
-                 'and gen error map', [(key.random_tag, value) for key, value in host.gen_error_map.items()]])
-    
-    #host adapted (either silently or fully)
-    #if its parent was not adapted
-    elif host.adapted_parent == False:
-        if host.silent_adaptation == True:
-            dump_evo(['Host', host.random_tag, 'became silently adapted, but has not fully adapted to any of its environments, with\
-            gen error map', [(key.random_tag, value) for key, value in host.gen_error_map.items()], 'and current fitness',\
-                     host.current_fitness])
-        else:
-            dump_evo(['Host', host.random_tag, 'full adaptation by means of Hard Sweeps, with gen error map', \
-                     [(key.random_tag, value) for key, value in host.gen_error_map.items()], 'and current fitness',\
-                     host.current_fitness])
-    
-    #both the current host and its parent were adapted
-    #if the parent was silently adapted
-    elif host.silent_parent == True:
-        if host.silent_adaptation == True:
-            dump_evo(['Host', host.random_tag, 'is still silently adapted, has not fully adapted to any of its environments, with \
-            gen error map', [(key.random_tag, value) for key, value in host.gen_error_map.items()], 'and current fitness',\
-                     host.current_fitness])
-        else:
-            dump_evo(['Host', host.random_tag, 'full adaptation by means of Soft sweeps (Standing Genetic Variation) with \
-            gen error map', [(key.random_tag, value) for key, value in host.gen_error_map.items()], 'and current fitness',\
-                     host.current_fitness])
-    
-    #parent already fully adapted
+    if host.silent_map == False:        
+        dump_evo(['Host', host.random_tag, 'has not fully adapted to any of its environments with fitness value',\
+                  host.current_fitness, 'and gen error map',\
+                  host.gen_error_map, '- both child and parent did not even have a silent map -',\
+                  'with key:', host.key])
+        
+    elif host.coadaptation == False:
+        dump_evo(['Host', host.random_tag, 'full adaptation by means of Hard Sweeps, with gen error map ', \
+                  host.gen_error_map, 'and current fitness',\
+                  host.current_fitness, 'with key:', host.key])
     else:
-        dump_evo(['Host', host.random_tag, 'was already fully adapted with gen error map',\
-                 [(key.random_tag, value) for key, value in host.gen_error_map.items()], 'and current fitness',\
-                 host.current_fitness])
+        dump_evo(['Host', host.random_tag, 'became coadapted, but has not fully adapted to any of its environments,\
+                   with gen error map', host.gen_error_map,\
+                  'and current fitness', host.current_fitness, '- parent did not even have a silent map -', 'with key:', host.key])
 
+        
+def host_coadapted(host):
+    
+    if host.parent_coadaptation == False:
+        dump_evo(['Host', host.random_tag, 'became coadapted, but has not fully adapted to any of its environments,\
+                   with gen error map', host.gen_error_map,\
+                  'and current fitness', host.current_fitness, '- parent was fully adapted though-', 'with key:', host.key])
+    
+    else:
+        dump_evo(['Host', host.random_tag, 'is still coadapted, has not fully adapted to any of its environments, with\
+                   gen error map', host.gen_error_map, 'and current fitness',\
+                  host.current_fitness, 'with key:', host.key])
 
+        
+def host_non_coadapted(host):
+    
+    if host.parent_coadaptation == False:        
+        dump_evo(['Host', host.random_tag, '(and parent) already fully adapted with gen error map',\
+                  host.gen_error_map, 'and current fitness',\
+                  host.current_fitness, 'with key:', host.key])
 
-#def full_adaptation_check(instance):        
-#    return (instance.adapt == True) and (instance.silent_adaptation == False):
-                       
-#pathogen fully adapted <--> (.adapt == True) & (.silent == False)
-#host fully adapted     <--> (.adapt == True) & (.silent == False)
-# --> we already have this verified inside the sweeps functions
+    else:
+        dump_evo(['Host', host.random_tag, 'full adaptation by means of Soft sweeps (by Standing Genetic Variation)\
+                  with gen error map', host.gen_error_map,\
+                  'and current fitness', host.current_fitness, 'with key:', host.key])
 
+        
+def host_adapted_child_and_parent(host):
+    
+    if host.coadaptation == False:
+        host_non_coadapted(host)
+        
+    else:
+        host_coadapted(host)
+        
 
+def host_sweeps(host): #referenced 3 times inside evolve_in_pop()
+    
+    if host.parent_silent_map == False:
+        host_non_adapted_parent(host)
+            
+    elif host.silent_map:
+        host_adapted_child_and_parent(host)
+    
+    else:
+        dump_evo(['Host', host.random_tag, 'has not fully adapted to any of its environments with fitness value',\
+                  host.current_fitness, 'and gen error map',\
+                  host.gen_error_map, '- did not even have a silent map, parent had a silent map though -',\
+                  'with key:', host.key])
+    
+    
+#.coadaptation: True for both hosts and pathogens when we have a silent infection, in other words we consider that both instances 
+#coadapted when the pathogen silently infected the host (see conditions in arena for a silent infection)
 
-#made changes inside the bump_random_tag() to deal with all the features we added
+#.infected_someone: True for pathogen when it has infected some host (silently or fully) --> has a host in its fitness map
+#.silent_map: True for host when it was not infected (has no pathogen in its gen error map) or was infected silently.
 
-
-#Intermediate and sweeps checks (updating the ".adapt" and ".silent_adaptation" attributes)
-#performed only inside the evolve_in_population() (no inside cross_train_it() or round_robin_it()..)
-#because that is where we use the weights to match() the instances alike against each other, update their fitnesses and test
-#for infection (silent, full, no infection ..), and this is done after a cross_train_it() or round_robin_it()
-
-#The thing now is that these checks are performed after the first and only cross_train() inside cross_train_it(), which 
-#does already "number of population" generation changes --> so we will be testing adaptation each "size of opponent population" generations
-# -- cross_train also at the in infection part of evolve_in_pop() --
+#pathogen fully adapted <--> (.infected_someone == True) & (.coadaptation == False)
+#host fully adapted     <--> (.silent_map == True) & (.coadaptation == False)
+# --> Everything verified to work as expected inside the sweeps functions

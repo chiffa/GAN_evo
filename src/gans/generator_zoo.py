@@ -12,7 +12,9 @@ from configs import cuda_device
 
 from src.glicko2 import glicko2
 
-from src.evo_helpers import map_transform
+#from src.evo_helpers import map_transform
+
+import uuid
 
 
 
@@ -39,7 +41,7 @@ def save(_self):
     key = _self.generate_hyperparameter_key()
     payload = {'encounter_trace': _self.encounter_trace,
                'gen_state': pickle.dumps(_self.state_dict()),
-               'fitness_map': map_transform(_self.fitness_map)}
+               'fitness_map': _self.fitness_map}
 
     key.update(payload)
     _self.to(torch.device(cuda_device))
@@ -95,10 +97,13 @@ class Generator(nn.Module):
         
         self.current_fitness = self.skill_rating.mu
         
-        self.adapt = False
-        self.adapted_parent = False
-        self.silent_adaptation = False
-        self.silent_parent = False
+        self.infected_someone = False
+        self.parent_infected_someone = False
+        self.coadaptation = False
+        self.parent_coadaptation = False
+        
+        self.key = uuid.uuid4().hex
+        
         # ----       
         
         self.main = nn.Sequential(
@@ -174,16 +179,16 @@ class Generator(nn.Module):
 
     #EVO
     def bump_random_tag(self):
-        temp_a = self.adapt #save adaptation of parent-to-be
-        temp_s = self.silent_parent #save whether the parent-to-be was silently adapted
+        temp_a = self.infected_someone #save adaptation of parent-to-be
+        temp_c = self.coadaptation #save whether the parent-to-be was silently adapted
         
         self.random_tag = ''.join(sample(char_set * 10, 10))
         self.tag_trace += [self.random_tag]
         
-        self.adapt = False
-        self.adapted_parent = temp_a
-        self.silent_adaptation = False
-        self.silent_parent = temp_s
+        self.infected_someone = False
+        self.parent_infected_someone = temp_a
+        self.coadaptation = False
+        self.parent_coadaptation = temp_c
         self.fitness_map.clear()
         
 

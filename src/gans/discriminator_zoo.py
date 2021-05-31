@@ -11,7 +11,9 @@ from configs import cuda_device
 
 from src.glicko2 import glicko2
 
-from src.evo_helpers import map_transform
+#from src.evo_helpers import map_transform
+
+import uuid
 
 
 #Discriminators implementations
@@ -31,14 +33,14 @@ def generate_hyperparameter_key(_self):
            'disc_latent_params': _self.discriminator_latent_maps}
     return key
 
-#EVO -- map_transform
+
 def storage_representation(_self):
     _self.to(torch.device('cpu'))
     key = _self.generate_hyperparameter_key()
     payload = {'encounter_trace': _self.encounter_trace,
                 'disc_state': pickle.dumps(_self.state_dict()),
                 'self_error': _self.real_error,
-                'gen_error_map': map_transform(_self.gen_error_map),
+                'gen_error_map': _self.gen_error_map,
                 # TODO: Map needs to include both the generator errors and virulence factors.
                 'current_fitness': _self.current_fitness}
 
@@ -122,10 +124,12 @@ class Discriminator(nn.Module):
         
         self.current_fitness = self.skill_rating.mu
         
-        self.adapt = False
-        self.adapted_parent = False
-        self.silent_adaptation = False
-        self.silent_parent = False
+        self.silent_map = False
+        self.parent_silent_map = False
+        self.coadaptation = False
+        self.parent_coadaptation = False
+        
+        self.key = uuid.uuid4().hex
         
         self.main = nn.Sequential(
             # input is (nc) x 64 x 64
@@ -193,16 +197,16 @@ class Discriminator(nn.Module):
 
     #EVO
     def bump_random_tag(self):
-        temp_a = self.adapt #save adaptation of parent-to-be
-        temp_s = self.silent_parent #save whether the parent-to-be was silently adapted
+        temp_a = self.silent_map #save adaptation of parent-to-be
+        temp_c = self.coadaptation #save whether the parent-to-be was silently adapted
         
         self.random_tag = ''.join(sample(char_set * 10, 10))
         self.tag_trace += [self.random_tag]
         
-        self.adapt = False
-        self.adapted_parent = temp_a
-        self.silent_adaptation = False
-        self.silent_parent = temp_s
+        self.silent_map = False
+        self.parent_silent_map = temp_a
+        self.coadaptation = False
+        self.parent_coadaptation = temp_c
         self.gen_error_map.clear()
 
     def resurrect(self, random_tag):
@@ -258,10 +262,12 @@ class Discriminator_light(nn.Module):
         
         self.current_fitness = self.skill_rating.mu
         
-        self.adapt = False
-        self.adapted_parent = False
-        self.silent_adaptation = False
-        self.silent_parent = False
+        self.silent_map = False
+        self.parent_silent_map = False
+        self.coadaptation = False
+        self.parent_coadaptation = False
+        
+        self.key = uuid.uuid4().hex
         
         self.main = nn.Sequential(
             # input is (nc) x 64 x 64
@@ -323,16 +329,16 @@ class Discriminator_light(nn.Module):
 
     #EVO
     def bump_random_tag(self):
-        temp_a = self.adapt #save adaptation of parent-to-be
-        temp_s = self.silent_parent #save whether the parent-to-be was silently adapted
+        temp_a = self.silent_map #save adaptation of parent-to-be
+        temp_c = self.coadaptation #save whether the parent-to-be was silently adapted
         
         self.random_tag = ''.join(sample(char_set * 10, 10))
         self.tag_trace += [self.random_tag]
         
-        self.adapt = False
-        self.adapted_parent = temp_a
-        self.silent_adaptation = False
-        self.silent_parent = temp_s
+        self.silent_map = False
+        self.parent_silent_map = temp_a
+        self.coadaptation = False
+        self.parent_coadaptation = temp_c
         self.gen_error_map.clear()
 
     def resurrect(self, random_tag):
@@ -387,10 +393,12 @@ class Discriminator_PReLU(nn.Module):
         
         self.current_fitness = self.skill_rating.mu
         
-        self.adapt = False
-        self.adapted_parent = False
-        self.silent_adaptation = False
-        self.silent_parent = False
+        self.silent_map = False
+        self.parent_silent_map = False
+        self.coadaptation = False
+        self.parent_coadaptation = False
+        
+        self.key = uuid.uuid4().hex
         
         self.main = nn.Sequential(
             # input is (nc) x 64 x 64
@@ -450,16 +458,16 @@ class Discriminator_PReLU(nn.Module):
 
     #EVO
     def bump_random_tag(self):
-        temp_a = self.adapt #save adaptation of parent-to-be
-        temp_s = self.silent_parent #save whether the parent-to-be was silently adapted
+        temp_a = self.silent_map #save adaptation of parent-to-be
+        temp_c = self.coadaptation #save whether the parent-to-be was silently adapted
         
         self.random_tag = ''.join(sample(char_set * 10, 10))
         self.tag_trace += [self.random_tag]
         
-        self.adapt = False
-        self.adapted_parent = temp_a
-        self.silent_adaptation = False
-        self.silent_parent = temp_s
+        self.silent_map = False
+        self.parent_silent_map = temp_a
+        self.coadaptation = False
+        self.parent_coadaptation = temp_c
         self.gen_error_map.clear()
 
     def resurrect(self, random_tag):

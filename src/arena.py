@@ -22,7 +22,7 @@ import smtplib
 
 
 from src.evo_helpers import hosts_adaptation_check, pathogens_adaptation_check, update_fitnesses, select_best_individuals,\
-                            bottleneck_effect, dump_evo, pathogen_sweeps_3, host_sweeps_3
+                            bottleneck_effect, dump_evo, pathogen_sweeps, host_sweeps
 
 
 #Main Environment, where natural evolution algorithm is implemented
@@ -193,13 +193,13 @@ def cross_train_iteration(hosts, pathogens, host_type_selector, epochs=1, timer=
         dump_trace(['1/ INITIALLY'])
         dump_trace(['DISCRIMINATOR INDEX:', host_no, 'WITH RANDOM TAG:', host.random_tag, 'WIN RATE:', host.win_rate,\
                    'CURRENT FITNESS:', host.current_fitness, 'SKILL RATING TABLE:', host.skill_rating_games,\
-                   'AND GEN ERROR MAP:', [(key.random_tag, value) for key, value in host.gen_error_map.items()],\
-                   'TAG TRACE:', host.tag_trace])
+                   'AND GEN ERROR MAP:', host.gen_error_map,\
+                   'TAG TRACE:', host.tag_trace, 'UNIQUE KEY:', host.key])
         
         dump_trace(['GENERATOR INDEX: ', pathogen_no, ' WITH RANDOM TAG: ', pathogen.random_tag, ' WIN RATE: ', pathogen.win_rate,\
                    ' CURRENT FITNESS: ', pathogen.current_fitness, ' SKILL RATING TABLE: ', pathogen.skill_rating_games,\
-                   ' AND GEN FITNESS MAP: ', [(key.random_tag, value) for key, value in pathogen.fitness_map.items()],\
-                    'TAG TRACE: ', pathogen.tag_trace])
+                   ' AND GEN FITNESS MAP: ', pathogen.fitness_map,\
+                    'TAG TRACE: ', pathogen.tag_trace, 'UNIQUE KEY:', pathogen.key])
         
         
         arena.sample_images()
@@ -272,19 +272,17 @@ def cross_train_iteration(hosts, pathogens, host_type_selector, epochs=1, timer=
     #EVO -- debug/test loop only
     dump_trace(['2/ AFTER TWO SKILL RATING UPDATES IN CROSS_TRAIN_ITERATION'])
     
-    for host in hosts[host_type_selector]:
-        
+    for host in hosts[host_type_selector]:        
         dump_trace(['DISCRIMINATOR WITH RANDOM TAG: ', host.random_tag, ' WIN RATE: ', host.win_rate,\
                    ' CURRENT FITNESS: ', host.current_fitness, ' SKILL RATING TABLE: ', host.skill_rating_games,\
-                   ' AND GEN ERROR MAP: ', [(key.random_tag, value) for key, value in host.gen_error_map.items()],\
-                    'TAG TRACE: ', host.tag_trace])
+                   ' AND GEN ERROR MAP: ', host.gen_error_map,\
+                    'TAG TRACE: ', host.tag_trace, 'UNIQUE KEY:', host.key])
     
-    for pathogen in pathogens:
-        
+    for pathogen in pathogens:       
         dump_trace(['GENERATOR INDEX WITH RANDOM TAG: ', pathogen.random_tag, ' WIN RATE: ', pathogen.win_rate,\
                    ' CURRENT FITNESS: ', pathogen.current_fitness, ' SKILL RATING TABLE: ', pathogen.skill_rating_games,\
-                   ' AND GEN FITNESS MAP: ', [(key.random_tag, value) for key, value in pathogen.fitness_map.items()],\
-                    'TAG TRACE: ', pathogen.tag_trace])    
+                   ' AND GEN FITNESS MAP: ', pathogen.fitness_map,\
+                    'TAG TRACE: ', pathogen.tag_trace, 'UNIQUE KEY:', pathogen.key])
     
     
     
@@ -328,6 +326,22 @@ def round_robin_iteration(hosts, pathogens, host_type_selector, epochs=1,
         repeats = int(rounds/len(generator_list))
         generator = generator_list*repeats
 
+    
+    dump_trace(['1/ INITIALLY IN ROUND ROBIN ITERATION'])
+    
+    for host in hosts[host_type_selector]:        
+        dump_trace(['DISCRIMINATOR WITH RANDOM TAG: ', host.random_tag, ' WIN RATE: ', host.win_rate,\
+                   ' CURRENT FITNESS: ', host.current_fitness, ' SKILL RATING TABLE: ', host.skill_rating_games,\
+                   ' AND GEN ERROR MAP: ', host.gen_error_map,\
+                    'TAG TRACE: ', host.tag_trace, 'UNIQUE KEY:', host.key])
+    
+    for pathogen in pathogens:       
+        dump_trace(['GENERATOR INDEX WITH RANDOM TAG: ', pathogen.random_tag, ' WIN RATE: ', pathogen.win_rate,\
+                   ' CURRENT FITNESS: ', pathogen.current_fitness, ' SKILL RATING TABLE: ', pathogen.skill_rating_games,\
+                   ' AND GEN FITNESS MAP: ', pathogen.fitness_map,\
+                    'TAG TRACE: ', pathogen.tag_trace, 'UNIQUE KEY:', pathogen.key])
+    
+    
     for host_no, pathogen_no in generator:
 
         host = hosts[host_type_selector][host_no]
@@ -408,6 +422,21 @@ def round_robin_iteration(hosts, pathogens, host_type_selector, epochs=1,
     update_fitnesses(hosts[host_type_selector])
     update_fitnesses(pathogens)
     
+    
+    dump_trace(['2/ LASTLY IN ROUND ROBIN ITERATION'])
+    
+    for host in hosts[host_type_selector]:        
+        dump_trace(['DISCRIMINATOR WITH RANDOM TAG: ', host.random_tag, ' WIN RATE: ', host.win_rate,\
+                   ' CURRENT FITNESS: ', host.current_fitness, ' SKILL RATING TABLE: ', host.skill_rating_games,\
+                   ' AND GEN ERROR MAP: ', host.gen_error_map,\
+                    'TAG TRACE: ', host.tag_trace, 'UNIQUE KEY:', host.key])
+    
+    for pathogen in pathogens:       
+        dump_trace(['GENERATOR INDEX WITH RANDOM TAG: ', pathogen.random_tag, ' WIN RATE: ', pathogen.win_rate,\
+                   ' CURRENT FITNESS: ', pathogen.current_fitness, ' SKILL RATING TABLE: ', pathogen.skill_rating_games,\
+                   ' AND GEN FITNESS MAP: ', pathogen.fitness_map,\
+                    'TAG TRACE: ', pathogen.tag_trace, 'UNIQUE KEY:', pathogen.key])
+        
     
     for host in hosts[host_type_selector]:
         print('host', host.random_tag, host.current_fitness, host.gen_error_map)
@@ -627,24 +656,6 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit
                   discriminator_instance=hosts_list[current_host_idx],
                   generator_optimizer_partial=gen_opt_part,
                   discriminator_optimizer_partial=disc_opt_part)
-
-        
-        
-        #EVO -- debug
-        dump_trace(['1/ INSIDE EVOLVE IN POPULATION, INTIAL STATE'])
-        dump_trace(['DISCRIMINATOR INDEX: ', current_host_idx, ' WITH RANDOM TAG: ', hosts_list[current_host_idx].random_tag,\
-                    ' WIN RATE: ', hosts_list[current_host_idx].win_rate, ' CURRENT FITNESS:',\
-                    hosts_list[current_host_idx].current_fitness, ' SKILL RATING TABLE: ',\
-                    hosts_list[current_host_idx].skill_rating_games,' AND GEN ERROR MAP: ',\
-                    [(key.random_tag, value) for key, value in hosts_list[current_host_idx].gen_error_map.items()],\
-                    'TAG TRACE: ', hosts_list[current_host_idx].tag_trace])
-        
-        dump_trace(['GENERATOR INDEX: ', current_pathogen_idx, ' WITH RANDOM TAG: ', pathogens_list[current_pathogen_idx].random_tag,\
-                    ' WIN RATE: ', pathogens_list[current_pathogen_idx].win_rate,' CURRENT FITNESS: ',\
-                    pathogens_list[current_pathogen_idx].current_fitness, ' SKILL RATING TABLE: ',\
-                    pathogens_list[current_pathogen_idx].skill_rating_games,' AND GEN FITNESS MAP: ',\
-                    [(key.random_tag, value) for key, value in pathogens_list[current_pathogen_idx].fitness_map.items()],\
-                    'TAG TRACE: ', pathogens_list[current_pathogen_idx].tag_trace])
         
         
         
@@ -661,20 +672,21 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit
         
         
         #EVO -- debug
-        dump_trace(['2/ AFTER FIRST SKILL RATING UPDATE'])
+        dump_trace(['1/ INSIDE EVOLVE IN POP, AFTER FIRST SKILL RATING UPDATE'])
         dump_trace(['DISCRIMINATOR INDEX: ', current_host_idx, ' WITH RANDOM TAG: ', hosts_list[current_host_idx].random_tag,\
                     ' WIN RATE: ', hosts_list[current_host_idx].win_rate, ' CURRENT FITNESS:',\
                     hosts_list[current_host_idx].current_fitness, ' SKILL RATING TABLE: ',\
                     hosts_list[current_host_idx].skill_rating_games,' AND GEN ERROR MAP: ',\
-                    [(key.random_tag, value) for key, value in hosts_list[current_host_idx].gen_error_map.items()],\
-                    'TAG TRACE: ', hosts_list[current_host_idx].tag_trace])
+                    hosts_list[current_host_idx].gen_error_map,\
+                    'TAG TRACE: ', hosts_list[current_host_idx].tag_trace, 'UNIQUE KEY:', hosts_list[current_host_idx].key])
         
         dump_trace(['GENERATOR INDEX: ', current_pathogen_idx, ' WITH RANDOM TAG: ', pathogens_list[current_pathogen_idx].random_tag,\
                     ' WIN RATE: ', pathogens_list[current_pathogen_idx].win_rate,' CURRENT FITNESS: ',\
                     pathogens_list[current_pathogen_idx].current_fitness, ' SKILL RATING TABLE: ',\
                     pathogens_list[current_pathogen_idx].skill_rating_games,' AND GEN FITNESS MAP: ',\
-                    [(key.random_tag, value) for key, value in pathogens_list[current_pathogen_idx].fitness_map.items()],\
-                    'TAG TRACE: ', pathogens_list[current_pathogen_idx].tag_trace])
+                    pathogens_list[current_pathogen_idx].fitness_map,\
+                    'TAG TRACE: ', pathogens_list[current_pathogen_idx].tag_trace,\
+                    pathogens_list[current_pathogen_idx].key])
         
         
         
@@ -707,41 +719,43 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit
 
             dump_trace(['infection successful, current host state:',
                         host_idx_2_pathogens_carried[current_host_idx],
-                        [(key.random_tag, value) for key, value in arena.discriminator_instance.gen_error_map.items()],
+                        arena.discriminator_instance.gen_error_map,
                         current_host_idx,
                         arena.discriminator_instance.current_fitness])
 
-            if arena.discriminator_instance.current_fitness > 1600\
-            or arena.discriminator_instance.real_error > 0.2:
-                
+            #EVO
+            if arena.discriminator_instance.current_fitness > arena.generator_instance.current_fitness + 150:
+            
+            #or arena.generator_instance.current_fitness < 1400:
+            #or arena.discriminator_instance.real_error > 0.2
                 
                 #EVO
-                arena.generator_instance.silent_adaptation = True
-                arena.discriminator_instance.silent_adaptation = True
+                arena.generator_instance.coadaptation = True
+                arena.discriminator_instance.coadaptation = True
                 
                 pathogens_adaptation_check(arena.generator_instance)
                 hosts_adaptation_check(arena.discriminator_instance)
                 
-                pathogen_sweeps_3(arena.generator_instance)
-                host_sweeps_3(arena.discriminator_instance)
+                pathogen_sweeps(arena.generator_instance)
+                host_sweeps(arena.discriminator_instance)
                 
                 
                 #immune system is not bothered
                 # print('debug: pop evolve: silent infection')
                 dump_trace(['silent infection'])
-                arena.cross_train(timer=timer, commit=False)#gen_only=True, 
+                arena.cross_train(gen_only=True, timer=timer, commit=False)#EVO -- used to train both with previous conditions
                 i += 0.5
             else:
                 
                 #EVO
-                arena.generator_instance.silent_adaptation = False
-                arena.discriminator_instance.silent_adaptation = False
+                arena.generator_instance.coadaptation = False
+                arena.discriminator_instance.coadaptation = False
                 
                 pathogens_adaptation_check(arena.generator_instance)
                 hosts_adaptation_check(arena.discriminator_instance)
                 
-                pathogen_sweeps_3(arena.generator_instance)
-                host_sweeps_3(arena.discriminator_instance)
+                pathogen_sweeps(arena.generator_instance)
+                host_sweeps(arena.discriminator_instance)
                 
                 
                 #immune sytem is active and competitive evolution happens:
@@ -804,8 +818,8 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit
             pathogens_adaptation_check(arena.generator_instance)
             hosts_adaptation_check(arena.discriminator_instance)
 
-            pathogen_sweeps_3(arena.generator_instance)
-            host_sweeps_3(arena.discriminator_instance)
+            pathogen_sweeps(arena.generator_instance)
+            host_sweeps(arena.discriminator_instance)
             
             '''
             #instead of the one we excluded for consistency reasons
@@ -832,7 +846,7 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit
             
             dump_trace(['infection failed, current host state:',
                         host_idx_2_pathogens_carried[current_host_idx],
-                        [(key.random_tag, value) for key, value in arena.discriminator_instance.gen_error_map.items()],
+                        arena.discriminator_instance.gen_error_map,
                         current_host_idx,
                         arena.discriminator_instance.current_fitness])
 
@@ -876,20 +890,20 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit
     
     
     #EVO -- debug loop
-    dump_trace(['3/ BEFORE THE LAST SKILL RATING UPDATE'])
+    dump_trace(['2/ AFTER INFECTION PART AND FINAL CROSS MATCH'])
     for (host_no, host) in enumerate(hosts_list):
         dump_trace(['DISCRIMINATOR INDEX: ', host_no, ' WITH RANDOM TAG: ', host.random_tag, ' WIN RATE: ', host.win_rate,\
                    ' CURRENT FITNESS: ', host.current_fitness, ' SKILL RATING TABLE: ', host.skill_rating_games,\
-                   ' AND GEN ERROR MAP: ', [(key.random_tag, value) for key, value in host.gen_error_map.items()],\
-                    'TAG TRACE: ', host.tag_trace])
+                   ' AND GEN ERROR MAP: ', host.gen_error_map,\
+                    'TAG TRACE: ', host.tag_trace, 'UNIQUE KEY:', host.key])
         
     for (pathogen_no, pathogen) in enumerate(pathogens_list):
         dump_trace(['GENERATOR INDEX: ', pathogen_no, ' WITH RANDOM TAG: ', pathogen.random_tag, ' WIN RATE: ', pathogen.win_rate,\
                    ' CURRENT FITNESS: ', pathogen.current_fitness, ' SKILL RATING TABLE: ', pathogen.skill_rating_games,\
-                   ' AND GEN FITNESS MAP: ', [(key.random_tag, value) for key, value in pathogen.fitness_map.items()],\
-                    'TAG TRACE: ', pathogen.tag_trace])
+                   ' AND GEN FITNESS MAP: ', pathogen.fitness_map,\
+                    'TAG TRACE: ', pathogen.tag_trace, 'UNIQUE KEY:', pathogen.key])
                     
-                    
+
     #EVO
     update_fitnesses(hosts_list)
     update_fitnesses(pathogens_list)
@@ -899,18 +913,18 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit
     
     
     #EVO -- debug loop
-    dump_trace(['4/ AFTER THE LAST SKILL RATING UPDATE'])
+    dump_trace(['3/ LAST UPDATE IN EVOLVE IN POP'])
     for (host_no, host) in enumerate(hosts_list):
         dump_trace(['DISCRIMINATOR INDEX: ', host_no, ' WITH RANDOM TAG: ', host.random_tag, ' WIN RATE: ', host.win_rate,\
                    ' CURRENT FITNESS: ', host.current_fitness, ' SKILL RATING TABLE: ', host.skill_rating_games,\
-                   ' AND GEN ERROR MAP: ', [(key.random_tag, value) for key, value in host.gen_error_map.items()],\
-                    'TAG TRACE: ', host.tag_trace])
+                   ' AND GEN ERROR MAP: ', host.gen_error_map,\
+                    'TAG TRACE: ', host.tag_trace, 'UNIQUE KEY:', host.key])
         
     for (pathogen_no, pathogen) in enumerate(pathogens_list):
         dump_trace(['GENERATOR INDEX: ', pathogen_no, ' WITH RANDOM TAG: ', pathogen.random_tag, ' WIN RATE: ', pathogen.win_rate,\
                    ' CURRENT FITNESS: ', pathogen.current_fitness, ' SKILL RATING TABLE: ', pathogen.skill_rating_games,\
-                   ' AND GEN FITNESS MAP: ', [(key.random_tag, value) for key, value in pathogen.fitness_map.items()],\
-                    'TAG TRACE: ', pathogen.tag_trace])
+                   ' AND GEN FITNESS MAP: ', pathogen.fitness_map,\
+                    'TAG TRACE: ', pathogen.tag_trace, 'UNIQUE KEY:', pathogen.key])
     
     
     for host in hosts_list:
@@ -934,14 +948,14 @@ def chain_evolve(individuals_per_species, starting_cluster):
     timer = StopWatch()
     
     dump_evo(['*********************** FIRST CROSS TRAIN AND EVOLVE IN POP RESULTS *****************************'])
-    cross_train_iteration(hosts, pathogens, 'light', 2, timer=timer)
+    cross_train_iteration(hosts, pathogens, 'light', 5, timer=timer)
     evolve_in_population(hosts['light'], pathogens, default_budget, timer=timer)
     dump_evo(['*********************** SECOND CROSS TRAIN AND EVOLVE IN POP RESULTS *****************************'])
-    cross_train_iteration(hosts, pathogens, 'light', 2, timer=timer)
-    evolve_in_population(hosts['light'], pathogens, default_budget, timer=timer)
+    cross_train_iteration(hosts, pathogens, 'PreLU', 5, timer=timer)
+    evolve_in_population(hosts['PreLU'], pathogens, default_budget, timer=timer)
     dump_evo(['*********************** THIRD CROSS TRAIN AND EVOLVE IN POP RESULTS *****************************'])
-    cross_train_iteration(hosts, pathogens, 'light', 2, timer=timer)
-    evolve_in_population(hosts['light'], pathogens, default_budget, timer=timer)
+    cross_train_iteration(hosts, pathogens, 'base', 10, timer=timer)
+    evolve_in_population(hosts['base'], pathogens, default_budget, timer=timer)
     
     
     #EVO -- bottleneck_effect function test -- works as expected
@@ -1026,6 +1040,23 @@ def brute_force_training(restarts, epochs):
     print('bruteforcing starts')
     hosts = spawn_host_population(restarts)['base']
     pathogens = spawn_pathogen_population(restarts)
+    
+    
+    dump_trace(['1/ INITIALLY IN BRUTE FORCE TRAINING'])
+    
+    for host in hosts:
+        dump_trace(['DISCRIMINATOR WITH RANDOM TAG: ', host.random_tag, ' WIN RATE: ', host.win_rate,\
+                   ' CURRENT FITNESS: ', host.current_fitness, ' SKILL RATING TABLE: ', host.skill_rating_games,\
+                   ' AND GEN ERROR MAP: ', host.gen_error_map,\
+                    'TAG TRACE: ', host.tag_trace, 'UNIQUE KEY:', host.key])
+    
+    for pathogen in pathogens:
+        dump_trace(['GENERATOR INDEX WITH RANDOM TAG: ', pathogen.random_tag, ' WIN RATE: ', pathogen.win_rate,\
+                   ' CURRENT FITNESS: ', pathogen.current_fitness, ' SKILL RATING TABLE: ', pathogen.skill_rating_games,\
+                   ' AND GEN FITNESS MAP: ', pathogen.fitness_map,\
+                    'TAG TRACE: ', pathogen.tag_trace, 'UNIQUE KEY:', pathogen.key])
+    
+    
 
     for (host_no, host), (pathogen_no, pathogen) in zip(enumerate(hosts), enumerate(pathogens)):
 
@@ -1075,10 +1106,40 @@ def brute_force_training(restarts, epochs):
             arena_match_results[0], arena_match_results[1]))
 
     
+    dump_trace(['2/ AFTER BRUTE FORCE LOOP IN BRUTE FORCE TRAINING'])
+    
+    for host in hosts:
+        dump_trace(['DISCRIMINATOR WITH RANDOM TAG: ', host.random_tag, ' WIN RATE: ', host.win_rate,\
+                   ' CURRENT FITNESS: ', host.current_fitness, ' SKILL RATING TABLE: ', host.skill_rating_games,\
+                   ' AND GEN ERROR MAP: ', host.gen_error_map,\
+                    'TAG TRACE: ', host.tag_trace, 'UNIQUE KEY:', host.key])
+    
+    for pathogen in pathogens:
+        dump_trace(['GENERATOR INDEX WITH RANDOM TAG: ', pathogen.random_tag, ' WIN RATE: ', pathogen.win_rate,\
+                   ' CURRENT FITNESS: ', pathogen.current_fitness, ' SKILL RATING TABLE: ', pathogen.skill_rating_games,\
+                   ' AND GEN FITNESS MAP: ', pathogen.fitness_map,\
+                    'TAG TRACE: ', pathogen.tag_trace, 'UNIQUE KEY:', pathogen.key])
+    
+    
 
     #EVO
     update_fitnesses(hosts)
     update_fitnesses(pathogens) 
+    
+    
+    dump_trace(['3/ LASTLY IN BRUTE FORCE TRAINING (AFTER SKILL RATING UPDATE)'])
+    
+    for host in hosts:
+        dump_trace(['DISCRIMINATOR WITH RANDOM TAG: ', host.random_tag, ' WIN RATE: ', host.win_rate,\
+                   ' CURRENT FITNESS: ', host.current_fitness, ' SKILL RATING TABLE: ', host.skill_rating_games,\
+                   ' AND GEN ERROR MAP: ', host.gen_error_map,\
+                    'TAG TRACE: ', host.tag_trace, 'UNIQUE KEY:', host.key])
+    
+    for pathogen in pathogens:
+        dump_trace(['GENERATOR INDEX WITH RANDOM TAG: ', pathogen.random_tag, ' WIN RATE: ', pathogen.win_rate,\
+                   ' CURRENT FITNESS: ', pathogen.current_fitness, ' SKILL RATING TABLE: ', pathogen.skill_rating_games,\
+                   ' AND GEN FITNESS MAP: ', pathogen.fitness_map,\
+                    'TAG TRACE: ', pathogen.tag_trace, 'UNIQUE KEY:', pathogen.key])
     
     
     
@@ -1237,7 +1298,7 @@ if __name__ == "__main__":
 
         
         chain_evolve(5, 3) # this is where we implemented the new features of our work (inside evolve_in_pop())         
-        dump_test(['CHAIN EVOLVE COMPLETED']) #composed of 3 cross_train_it() and 3 evolve_in_pop() one after the other
+        #dump_test(['CHAIN EVOLVE COMPLETED']) #composed of 3 cross_train_it() and 3 evolve_in_pop() one after the other
         
         '''
         chain_evolve_with_fitness_reset(3, 3) # here 3 by 3 too, but each time with different disc type (above only the 'base' type)

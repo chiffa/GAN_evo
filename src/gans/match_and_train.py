@@ -407,16 +407,16 @@ class Arena(object):
             '''
             
             #EVO -- now appending (no more assignment of last)
-            self.generator_instance.fitness_map[self.discriminator_instance] = pathogen_fitness #used to be instance.random_tag
+            self.generator_instance.fitness_map[self.discriminator_instance.key] = pathogen_fitness
             
-            self.discriminator_instance.gen_error_map[self.generator_instance] = trace[1] #used to be instance.random_tag
+            self.discriminator_instance.gen_error_map[self.generator_instance.key] = trace[1]
                         
         
         else:  # No contamination
             # print('debug: inside match: no-contamination branch')
             # clear pathogens if exist
-            self.generator_instance.fitness_map.pop(self.discriminator_instance, None) #used to be instance.random_tag
-            self.discriminator_instance.gen_error_map.pop(self.generator_instance, None) #used to be instance.random_tag
+            self.generator_instance.fitness_map.pop(self.discriminator_instance.key, None)
+            self.discriminator_instance.gen_error_map.pop(self.generator_instance.key, None)
                 
         
         if commit:
