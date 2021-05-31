@@ -49,7 +49,7 @@ def stitch_run_traces(run_trace_diretory, filter):
     print("stitching datasets into %s" % os.path.abspath(trace_dump_file))
 
     with open(trace_dump_file, 'w') as outfile:
-        print('FILE NAME: ',os.path.abspath(trace_dump_file))
+        #print('FILE NAME: ',os.path.abspath(trace_dump_file))
         for fname in files_to_stitch:
             if filter not in fname:
                 continue
@@ -161,7 +161,9 @@ def extract_evo_data(chain_evolve_run):
     tag_collector = ["None"]*len(final_pathogens_list)
 
     pre_train_buffer = []
-
+    
+    
+    
     for entry in chain_evolve_run[-2][1:-1]:  # here we are pulling hte data from the last run alone
 
         #print('chain_evolve_run[-2][1:-1]: ',chain_evolve_run[-2][1:-1])
@@ -180,10 +182,11 @@ def extract_evo_data(chain_evolve_run):
 
     for sub_run in chain_evolve_run[1:-1]:
         for entry in sub_run[1:-1]:
-
+            
+            
             if entry[0] == 'sampled images from':
                 master_fid_map[entry[2]] = float(entry[-2])
-                master_is_map[entry[2]]  = float(entry[-2]) 
+                master_is_map[entry[2]]  = float(entry[-1])
 
             if entry[0] in ['infection attempt:', 'pre-train:']:
                 pre_train_buffer = entry
@@ -305,6 +308,8 @@ def render_fid_is_performances(attribution_map):
     
     best_is_achieved = []
     all_is_achieved = []
+    
+    #print('attribution_map.items()', attribution_map.items())
 
     for i, (key, value) in enumerate(attribution_map.items()):
                 
@@ -318,7 +323,6 @@ def render_fid_is_performances(attribution_map):
         
         for sub_key, (exec_time, fids, is_scores, tags) in value.items():
             
-            
             best_fids_achieved[i].append(min(fids))
             best_is_achieved[i].append(max(is_scores))
             
@@ -326,7 +330,10 @@ def render_fid_is_performances(attribution_map):
             all_fids_achieved[i] += fids
             all_is_achieved[i]   += is_scores
 
-            
+    #print('best_fids_achieved: ', best_fids_achieved)
+    #print('best_is_achieved: ', best_is_achieved)
+    #print('all_fids_achieved: ', all_fids_achieved)
+    #print('all_is_achieved: ', all_is_achieved)
             
     plt.title('Minimum FID achieved per run by a method')
     plt.ylabel('FID')
@@ -912,11 +919,17 @@ if __name__ == "__main__":
             
             #print('[duration, extracted_fids, final_random_tags]', [duration, extracted_fids, final_random_tags])
             
+            print('extracted_fids', extracted_fids)
+            print('extracted_is', extracted_is)
+            print('')
+            print('')
             
             attribution_map[(sub_entry[0][1], sub_entry[0][2], sub_entry[0][3])][sub_entry[0][-1]] =\
                 [duration, extracted_fids, extracted_is, final_random_tags]
 
             
+            #print('attribution_map[(sub_entry[0][1], sub_entry[0][2], sub_entry[0][3])][sub_entry[0][-1]]',\
+                 #attribution_map[(sub_entry[0][1], sub_entry[0][2], sub_entry[0][3])][sub_entry[0][-1]])
             
             print('\t', i_1, i_2 + 1, sub_entry[0])
             for i_3, sub_sub_entry in enumerate(sub_entry[1:-1]):
