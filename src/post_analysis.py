@@ -29,6 +29,9 @@ disc_tag_trace = {}  # Maps the random tag to its previous state and gen that ch
 
 encounter_record = {}
 
+#EVO
+master_fit_map = {}
+
 master_fid_map = {}
 
 master_is_map = {}                                                              
@@ -159,7 +162,11 @@ def extract_evo_data(chain_evolve_run):
     is_collector  = [-1]*len(final_pathogens_list)
     fid_collector = [-1]*len(final_pathogens_list)
     tag_collector = ["None"]*len(final_pathogens_list)
+    
+    #EVO
+    fit_collector = [-1]*len(final_pathogens_list)
 
+    
     pre_train_buffer = []
     
     
@@ -171,10 +178,12 @@ def extract_evo_data(chain_evolve_run):
         
         if entry[0] == 'sampled images from':
             # print(entry)
-                        
-            is_collector[int(entry[1])]  = float(entry[-1])
-            fid_collector[int(entry[1])] = float(entry[-2])
+                 
+            fit_collector[int(entry[1])] = float(entry[-1]) #EVO   
+            is_collector[int(entry[1])]  = float(entry[-2])
+            fid_collector[int(entry[1])] = float(entry[-3])
             tag_collector[int(entry[1])] = entry[2]
+            
 
     # parameters =
     # in cross-train: 4 / -3
@@ -185,8 +194,9 @@ def extract_evo_data(chain_evolve_run):
             
             
             if entry[0] == 'sampled images from':
-                master_fid_map[entry[2]] = float(entry[-2])
-                master_is_map[entry[2]]  = float(entry[-1])
+                master_fid_map[entry[2]] = float(entry[-3])
+                master_is_map[entry[2]]  = float(entry[-2])
+                master_fit_map[entry[2]] = float(entry[-1])
 
             if entry[0] in ['infection attempt:', 'pre-train:']:
                 pre_train_buffer = entry
@@ -211,7 +221,7 @@ def extract_evo_data(chain_evolve_run):
     #
     # raise Exception('other debug')
 
-    return is_collector, fid_collector, tag_collector, duration
+    return fit_collector, is_collector, fid_collector, tag_collector, duration
 
 
 def extract_battle_royale_data(battle_royale_run):
@@ -321,7 +331,7 @@ def render_fid_is_performances(attribution_map):
         best_is_achieved.append([])
         all_is_achieved.append([])
         
-        for sub_key, (exec_time, fids, is_scores, tags) in value.items():
+        for sub_key, (exec_time, fids, is_scores, fitnesses, tags) in value.items():#EVO -- only modif in this method
             
             best_fids_achieved[i].append(min(fids))
             best_is_achieved[i].append(max(is_scores))
@@ -440,7 +450,7 @@ def pull_best_fid_is_tags(attribtution_map):
         method_names.append(' '.join(key))
         best_fid_gen_tags.append([])
         best_is_gen_tags.append([])
-        for sub_key, (exec_time, fids, is_scores, tags) in value.items():
+        for sub_key, (exec_time, fids, is_scores, fitnesses, tags) in value.items():#EVO -- only modif in this method
             
             fids = np.array(fids)            
             min_loc = np.argmin(fids)
@@ -759,8 +769,192 @@ def render_training_history(method_names):          # SECOND ARGUMENT "best_fids
         #plt.savefig('./post_analysis_images/final_figs.png')
         #plt.clf()
 
-        # raise Exception('debug')
+        # raise Exception('debug')    
+        
+        
+        
+        
+        
+        
+        
+        
+        
+    #EVO
+    ##########################################################################################################################        
+        
+        
+    def render_fitness_progression(method, gen_tags_trace):
 
+        plt.title(name_remap(method)) #  (method) instead of [method]
+
+        cmap = plt.get_cmap('plasma')
+        # print('gtt', gen_tags_trace)
+        # print('gtt[0]', gen_tags_trace[0])
+        # print('gtt[0][0]', gen_tags_trace[0][0])
+        scores_per_line = [gen_line[0][-1] for gen_line in gen_tags_trace]
+        # print('fpl', fids_per_line)
+
+        scores_per_line = np.array(scores_per_line)
+
+        lines_colors = (scores_per_line - np.min(scores_per_line)) /\
+                       (np.max(scores_per_line) - np.min(scores_per_line))
+
+        lines_colors = np.array(range(len(scores_per_line))) / float(len(scores_per_line))
+
+        argsort = np.argsort(-scores_per_line)
+
+        lines_colors = [cmap(score) for score in lines_colors[argsort]]
+
+        type_idx_map = {}
+        c = 0
+
+        c_t_annotation_map = {}
+        shown_c = []
+        shown_t = []
+
+        secondary_label_buffer = []
+        secondary_label_buffer_2 = []
+        
+        
+        for l_color, gen_line in zip(lines_colors, gen_tags_trace):
+            
+            
+            print('gen_line', gen_line)
+            
+            
+            root = gen_line[0][0]
+            scores = [score for _, _, _, _, score in reversed(gen_line)]
+            xs = range(len(scores))
+            plt.plot(xs, scores,
+                     # label=root,
+                     c=l_color,
+                     # linewidth=3
+                     )
+
+            print('root ', root)
+            print('scores ', scores)
+            
+            
+            disc_state = [disc_phases[disc_tag] for _, disc_tag, _, _, _ in gen_line]
+            # print(disc_state)
+            color_list = []
+            type_list = []
+            t = 0
+            c_mem = ''
+            cross_train_counter = 0
+            # print('new train')
+
+            
+            print('disc_state', disc_state)
+            
+            
+            for state in reversed(disc_state):
+                # print('\ts', state)
+                
+                
+                print('state', state)
+                
+                
+                if state[0] == 'cross-train':
+                    cross_train_counter += 1
+                if state[1] is not None and c_mem != state[1] \
+                        or cross_train_counter % 6 == 0:  # temporary
+                    cross_train_counter = 1
+                    # print('xt', c_mem, '->', state[1], ':', t)
+                    t += 1
+                    c_mem = state[1]
+                    c_t_annotation_map[type_map[t]] = c_mem
+                # print('\tt', c_mem, ':', t)
+                type_list.append(type_map[t])
+
+                if state[0] not in type_idx_map.keys():
+                    # print('xc', state[0], '! in', type_idx_map.keys())
+                    c += 1
+                    type_idx_map[state[0]] = c
+                    c_t_annotation_map[colors_map[type_idx_map[state[0]]]] = state[0]
+                # print('\tc', state[0], ':', type_idx_map[state[0]])
+                color_list.append(colors_map[type_idx_map[state[0]]])
+
+            
+            print('type_list', type_list)
+            print('c_t_annotation_map', c_t_annotation_map)
+            print('color_list', color_list)
+            
+            
+            '''
+
+            for _x, _s, _t, _c in zip(xs, scores, type_list, color_list):
+
+                if _t not in shown_t or _c not in shown_c:
+                    shown_t.append(_t)
+                    shown_c.append(_c)
+
+                    # secondary_label_buffer.append(
+                    plt.plot(_x, _s, marker=_t, c=_c,
+                             markersize=8,
+                         # label='%s, %s' % (c_t_annotation_map[_t], c_t_annotation_map[_c])
+                         )
+                    # )
+                    # secondary_label_buffer_2.append('%s, %s' % (c_t_annotation_map[_t],
+                    #                                                   c_t_annotation_map[_c]))
+
+                else:
+                    plt.plot(_x, _s, marker=_t, c=_c, markersize=8)
+
+            # TODO: add the relative performance wrt competition as well as
+            # the lane of the  disc.
+
+        
+        # pprint(c_t_annotation_map)
+        if len(c_t_annotation_map.keys()) == 0:
+            # print('problem detected')
+            pass
+        #plt.ylabel('FID or IS')
+        plt.xlabel('encounter')
+
+        legend_elements = []
+        all_types = []
+        all_colors = []
+
+        for elt in type_map.values():
+            if elt in c_t_annotation_map.keys() and elt not in all_types:
+                all_types.append(elt)
+                legend_elements.append(Line2D([0], [0],
+                                  marker=elt,
+                                  color='w',
+                                  label=c_t_annotation_map[elt],
+                                  markerfacecolor='k',
+                                  markersize=10))
+
+        if len(all_types) == 0:
+            legend_elements.append(Line2D([0], [0],
+                                  marker='x',
+                                  color='w',
+                                  label='base',
+                                  markerfacecolor='k',
+                                  markersize=10))
+
+        for elt in colors_map.values():
+            if elt in c_t_annotation_map.keys():
+                # print('color legend elt:', elt)
+                legend_elements.append(Line2D([0], [0],
+                                  marker='s',
+                                  color='w',
+                                  label=c_t_annotation_map[elt],
+                                  markerfacecolor=elt,
+                                  markersize=10))
+
+        plt.legend(handles=legend_elements)        
+        '''        
+        
+    ##########################################################################################################################
+    
+        
+        
+               
+    
+        
+    
 
     method_names = []
     run_tags = []
@@ -770,37 +964,63 @@ def render_training_history(method_names):          # SECOND ARGUMENT "best_fids
             continue
         method_names.append(' '.join(key))
         run_tags.append([])
-        for sub_key, (exec_time, fids, is_scores, tags) in value.items(): #here we collect all tags (not those having the best fids)
+        for sub_key, (exec_time, fids, is_scores, fitnesses, tags) in value.items(): #here we collect all tags
             run_tags[-1].append(tags)
+            #print('value.items() ', value.items())#EVO
+            #print('sub_key ', sub_key)#EVO
+            #print('exec_time ', exec_time)#EVO
+            #print('fids ', fids)#EVO
+            #print('is_scores ', is_scores)#EVO
+            #print('tags ', tags)#EVO
+            #print('fitnesses ', fitnesses)
+    
+    #print('run_tags: ', run_tags)#EVO
 
+    fit_master_tag_trace = []#EVO
     fid_master_tag_trace = []
     is_master_tag_trace = []
 
-    # pprint(run_tags)
+    #pprint(run_tags)
 
     for method, tag_sets in zip(method_names, run_tags):
+        
+        fit_local_tag_trace = []#EVO
         fid_local_tag_trace = []
         is_local_tag_trace = []
 
-        # print(method)
+        #print(method)#EVO
 
-        # print(tag_sets)
+        #print(tag_sets)#EVO
 
         for tag_set in tag_sets:  # we have the last tags performances
+            
+            fit_tag_set_trace = []#EVO
             fid_tag_set_trace = []
             is_tag_set_trace = []
             tag_set_disc_trace = []
 
-            # print(tag_set)
+            #print('tag_set', tag_set)#EVO
 
             for tag in tag_set:
+                
+                fit_single_tag_trace = []#EVO
                 fid_single_tag_trace = []
                 is_single_tag_trace = []
                 temp_tag = tag
+                
 
                 while temp_tag in gen_tag_trace.keys():  # does not enter if the tag is wrong
-                    # print(temp_tag)
+                    
+                    #print('temp_tag ', temp_tag)#EVO
+                    
+                    #print('gen_tag_trace ', gen_tag_trace)#EVO
+                    #print('gen_tag_trace.keys() ', gen_tag_trace.keys())#EVO
+                    
                     current_disc = gen_tag_trace[temp_tag][1]
+                    
+                    #print('current_disc ', current_disc)#EVO
+                    
+                    #print('encounter_record[current_disc, temp_tag] ', encounter_record[current_disc, temp_tag])#EVO
                     
                     fid_single_tag_trace.append([temp_tag,
                                              current_disc,
@@ -812,10 +1032,28 @@ def render_training_history(method_names):          # SECOND ARGUMENT "best_fids
                                              *encounter_record[current_disc, temp_tag],
                                              master_is_map[temp_tag]])
                     
+                    #EVO -- think about this
+                    fit_single_tag_trace.append([temp_tag,
+                                             current_disc,
+                                             *encounter_record[current_disc, temp_tag],
+                                             master_fit_map[temp_tag]])
+                    
+                    
                     temp_tag = gen_tag_trace[temp_tag][0]
+                    
+                    #print('fit_single_tag_trace ', fit_single_tag_trace)#EVO
+                    #print('fid_single_tag_trace ', fid_single_tag_trace)#EVO
+                    #print('is_single_tag_trace ', is_single_tag_trace)#EVO
+                    #print('temp_tag ', temp_tag)#EVO
                 
+                fit_tag_set_trace.append(fit_single_tag_trace)
                 fid_tag_set_trace.append(fid_single_tag_trace)
                 is_tag_set_trace.append(is_single_tag_trace)
+                
+                #print('fit_tag_set_trace', fit_tag_set_trace)#EVO
+                #print('fid_tag_set_trace', fid_tag_set_trace)#EVO
+                #print('is_tag_set_trace', is_tag_set_trace)#EVO
+                
 
                 single_disc_trace = []
                 # print(temp_tag, tag)
@@ -829,16 +1067,23 @@ def render_training_history(method_names):          # SECOND ARGUMENT "best_fids
 
                 tag_set_disc_trace.append(single_disc_trace)
 
+            fit_local_tag_trace.append([fit_tag_set_trace, tag_set_disc_trace])
             fid_local_tag_trace.append([fid_tag_set_trace, tag_set_disc_trace])
             is_local_tag_trace.append([is_tag_set_trace, tag_set_disc_trace])
             
+        fit_master_tag_trace.append(fit_local_tag_trace)
         fid_master_tag_trace.append(fid_local_tag_trace)
         is_master_tag_trace.append(is_local_tag_trace)
-
-
+        
+        
     for method, method_specific_tag_trace in zip(method_names, fid_master_tag_trace):
         for gen_tags_trace, disc_tags_trace in method_specific_tag_trace:
             disc_idx = {}
+            
+            #print('method', method)#EVO
+            #print('gen_tags_trace', gen_tags_trace)#EVO
+            
+            #print('method_specific_tag_trace', method_specific_tag_trace)#EVO
 
             for i, disc_line in enumerate(disc_tags_trace):
                 disc_idx.update(dict((tag, i) for tag in disc_line))
@@ -850,9 +1095,12 @@ def render_training_history(method_names):          # SECOND ARGUMENT "best_fids
                     # print('\t%s - %s \t %.2e \t %.2e \t %.2f' % tuple(entry))
                     pass
             
-            render_score_progression(method, gen_tags_trace)            
+            #print('gen_tags_trace', gen_tags_trace)#EVO
+            #print('disc_tags_trace', disc_tags_trace)#EVO
+            
+            render_score_progression(method, gen_tags_trace)
+            plt.ylabel('FID')
             plt.savefig("./post_analysis_images/fid_progression.png")
-            #plt.ylabel('FID')
             plt.clf()
     
     for method, method_specific_tag_trace in zip(method_names, is_master_tag_trace):
@@ -869,12 +1117,41 @@ def render_training_history(method_names):          # SECOND ARGUMENT "best_fids
                     # print('\t%s - %s \t %.2e \t %.2e \t %.2f' % tuple(entry))
                     pass
             
+            
             render_score_progression(method, gen_tags_trace)
+            plt.ylabel('IS')
             plt.savefig("./post_analysis_images/is_progression.png")
-            #plt.ylabel('IS')
             plt.clf()
 
 
+            
+    #EVO -- fitness here
+    for method, method_specific_tag_trace in zip(method_names, fit_master_tag_trace):
+        
+        if method.startswith('chain evolve'):
+            
+            for gen_tags_trace, disc_tags_trace in method_specific_tag_trace:
+                disc_idx = {}
+
+                for i, disc_line in enumerate(disc_tags_trace):
+                    disc_idx.update(dict((tag, i) for tag in disc_line))
+
+                for gen_tag_line in gen_tags_trace:
+                    # print(gen_tag_line[0][0])
+                    for entry in reversed(gen_tag_line):
+                        # print(entry)
+                        # print('\t%s - %s \t %.2e \t %.2e \t %.2f' % tuple(entry))
+                        pass         
+
+                #print('gen_tags_trace: ', gen_tags_trace)
+                
+                render_fitness_progression(method, gen_tags_trace)
+                plt.ylabel('FITNESS')
+                plt.savefig("./post_analysis_images/fit_progression.png")
+                plt.clf()
+
+                
+            
 if __name__ == "__main__":
 
     stitch_run_traces('.', _dataset)
@@ -905,7 +1182,7 @@ if __name__ == "__main__":
                 or sub_entry[0][1] == 'deterministic base round robin 2' \
                 or sub_entry[0][1] == 'stochastic base round robin' \
                 or sub_entry[0][1] == 'homogenous chain progression':
-                extracted_is, extracted_fids, final_random_tags, duration = extract_evo_data(sub_entry)
+                extracted_fitnesses, extracted_is, extracted_fids, final_random_tags, duration = extract_evo_data(sub_entry)
             elif sub_entry[0][1] == 'matching from tags':
                 gen_index, disc_index, real_error_matrix, gen_error_matrix = \
                     extract_battle_royale_data(sub_entry)
@@ -919,13 +1196,8 @@ if __name__ == "__main__":
             
             #print('[duration, extracted_fids, final_random_tags]', [duration, extracted_fids, final_random_tags])
             
-            print('extracted_fids', extracted_fids)
-            print('extracted_is', extracted_is)
-            print('')
-            print('')
-            
             attribution_map[(sub_entry[0][1], sub_entry[0][2], sub_entry[0][3])][sub_entry[0][-1]] =\
-                [duration, extracted_fids, extracted_is, final_random_tags]
+                [duration, extracted_fids, extracted_is, extracted_fitnesses, final_random_tags]
 
             
             #print('attribution_map[(sub_entry[0][1], sub_entry[0][2], sub_entry[0][3])][sub_entry[0][-1]]',\

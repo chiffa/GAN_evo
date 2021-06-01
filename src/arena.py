@@ -185,6 +185,11 @@ def cross_train_iteration(hosts, pathogens, host_type_selector, epochs=1, timer=
                     arena.generator_instance.random_tag, ])
         
         
+        #EVO -- added here to save correct state of each parent in cross_train(), needed before going into evolve in pop
+        pathogens_adaptation_check(pathogen)
+        hosts_adaptation_check(host)
+        
+        
         arena.cross_train(epochs, timer=timer, commit=False)
         #EVO -- a fresh new generation starts its journey from here (with many attribute values reset --not the fitness)
                 
@@ -207,7 +212,7 @@ def cross_train_iteration(hosts, pathogens, host_type_selector, epochs=1, timer=
         current_fid, current_is = calc_single_fid_is(arena.generator_instance.random_tag)
         dump_trace(['sampled images from',
                     pathogen_no,
-                    arena.generator_instance.random_tag, current_fid, current_is])
+                    arena.generator_instance.random_tag, current_fid, current_is, arena.generator_instance.current_fitness])
 
         arena_match_results = arena.match(commit=False)
         #here the skill rating tables are ready --> need to compute and update fitness next
@@ -365,7 +370,7 @@ def round_robin_iteration(hosts, pathogens, host_type_selector, epochs=1,
         current_fid, current_is = calc_single_fid_is(arena.generator_instance.random_tag)
         dump_trace(['sampled images from',
                     pathogen_no,
-                    arena.generator_instance.random_tag, current_fid, current_is])
+                    arena.generator_instance.random_tag, current_fid, current_is, arena.generator_instance.current_fitness])
 
         arena_match_results = arena.match(timer=timer, commit=False)
 
@@ -768,7 +773,7 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit
             current_fid, current_is = calc_single_fid_is(arena.generator_instance.random_tag)
 
             dump_trace(['sampled images from', current_pathogen_idx,
-                        arena.generator_instance.random_tag, current_fid, current_is])
+                        arena.generator_instance.random_tag, current_fid, current_is, arena.generator_instance.current_fitness])
             
             
             arena_match_results = arena.match(timer=timer, commit=False)
@@ -875,7 +880,7 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit
             dump_trace(['sampled images from',
                         pathogen_no,
                         arena.generator_instance.random_tag,
-                        current_fid, current_is])
+                        current_fid, current_is, arena.generator_instance.current_fitness])
 
             encountered_pathogens.append(pathogen)
 
@@ -1084,7 +1089,7 @@ def brute_force_training(restarts, epochs):
         dump_trace(['sampled images from',
                     pathogen_no,
                     arena.generator_instance.random_tag,
-                    current_fid, current_is])
+                    current_fid, current_is, arena.generator_instance.current_fitness])
 
         timer.start()
 
@@ -1296,11 +1301,14 @@ if __name__ == "__main__":
         # chain_progression(5, 5)
         # chain_progression(5, 5)
 
-        dump_evo(['first chain evolve 3,3'])
-        chain_evolve(3, 3)
-        dump_evo(['second chain evolve 3,3'])
+        #dump_evo(['first chain evolve 3,3'])
         chain_evolve(3, 3)
         
+        #dump_evo(['second chain evolve 3,3'])
+        #chain_evolve(3, 3)
+        
+        
+        '''
         dump_evo(['first chain evolve with fit reset 3,3'])
         chain_evolve_with_fitness_reset(3,3)
         dump_evo(['second chain evolve with fit reset 3,3'])
@@ -1323,7 +1331,7 @@ if __name__ == "__main__":
         
         
         
-        '''
+        
         chain_evolve_with_fitness_reset(3, 3) # here 3 by 3 too, but each time with different disc type (above only the 'base' type)
         dump_test(['CHAIN EVOLVE WITH FITNESS RESET COMPLETED'])
         
