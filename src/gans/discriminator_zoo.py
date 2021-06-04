@@ -131,6 +131,8 @@ class Discriminator(nn.Module):
         
         self.key = uuid.uuid4().hex
         
+        self.state = 'No adaptation'
+        
         self.main = nn.Sequential(
             # input is (nc) x 64 x 64
             nn.Conv2d(in_channels=self.number_of_colors,
@@ -269,6 +271,8 @@ class Discriminator_light(nn.Module):
         
         self.key = uuid.uuid4().hex
         
+        self.state = 'No adaptation'
+        
         self.main = nn.Sequential(
             # input is (nc) x 64 x 64
             nn.Conv2d(in_channels=self.number_of_colors,
@@ -399,6 +403,8 @@ class Discriminator_PReLU(nn.Module):
         self.parent_coadaptation = False
         
         self.key = uuid.uuid4().hex
+        
+        self.state = 'No adaptation'
         
         self.main = nn.Sequential(
             # input is (nc) x 64 x 64

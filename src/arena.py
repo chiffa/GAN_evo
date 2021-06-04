@@ -186,8 +186,8 @@ def cross_train_iteration(hosts, pathogens, host_type_selector, epochs=1, timer=
         
         
         #EVO -- added here to save correct state of each parent in cross_train(), needed before going into evolve in pop
-        pathogens_adaptation_check(pathogen)
-        hosts_adaptation_check(host)
+        #pathogens_adaptation_check(pathogen)
+        #hosts_adaptation_check(host)
         
         
         arena.cross_train(epochs, timer=timer, commit=False)
@@ -212,8 +212,18 @@ def cross_train_iteration(hosts, pathogens, host_type_selector, epochs=1, timer=
         current_fid, current_is = calc_single_fid_is(arena.generator_instance.random_tag)
         dump_trace(['sampled images from',
                     pathogen_no,
-                    arena.generator_instance.random_tag, current_fid, current_is, arena.generator_instance.current_fitness])
+                    arena.generator_instance.random_tag, current_fid, current_is, arena.generator_instance.current_fitness,\
+                    arena.generator_instance.state])
 
+        #EVOOOOOOOOOOOO
+        dump_trace(['against host',
+                    host_no,
+                    arena.discriminator_instance.random_tag, arena.discriminator_instance.current_fitness,\
+                    arena.discriminator_instance.state])
+        
+        
+        
+        
         arena_match_results = arena.match(commit=False)
         #here the skill rating tables are ready --> need to compute and update fitness next
 
@@ -370,8 +380,18 @@ def round_robin_iteration(hosts, pathogens, host_type_selector, epochs=1,
         current_fid, current_is = calc_single_fid_is(arena.generator_instance.random_tag)
         dump_trace(['sampled images from',
                     pathogen_no,
-                    arena.generator_instance.random_tag, current_fid, current_is, arena.generator_instance.current_fitness])
+                    arena.generator_instance.random_tag, current_fid, current_is, arena.generator_instance.current_fitness,\
+                    arena.generator_instance.state])
 
+        
+        #EVOOOOOOOOOOOO
+        dump_trace(['against host',
+                    host_no,
+                    arena.discriminator_instance.random_tag, arena.discriminator_instance.current_fitness,\
+                    arena.discriminator_instance.state])
+        
+        
+        
         arena_match_results = arena.match(timer=timer, commit=False)
 
         dump_trace(['post-cross-train and match:',
@@ -773,7 +793,20 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit
             current_fid, current_is = calc_single_fid_is(arena.generator_instance.random_tag)
 
             dump_trace(['sampled images from', current_pathogen_idx,
-                        arena.generator_instance.random_tag, current_fid, current_is, arena.generator_instance.current_fitness])
+                        arena.generator_instance.random_tag, current_fid, current_is, arena.generator_instance.current_fitness,\
+                        arena.generator_instance.state])
+            
+            
+            
+            #EVOOOOOOOOOOOO
+            dump_trace(['against host',
+                        current_host_idx,
+                        arena.discriminator_instance.random_tag, arena.discriminator_instance.current_fitness,\
+                        arena.discriminator_instance.state])
+            
+            
+            
+            
             
             
             arena_match_results = arena.match(timer=timer, commit=False)
@@ -880,8 +913,19 @@ def evolve_in_population(hosts_list, pathogens_list, pathogen_epochs_budget, fit
             dump_trace(['sampled images from',
                         pathogen_no,
                         arena.generator_instance.random_tag,
-                        current_fid, current_is, arena.generator_instance.current_fitness])
+                        current_fid, current_is, arena.generator_instance.current_fitness, arena.generator_instance.state])
 
+            
+            
+            #EVOOOOOOOOOOOO
+            dump_trace(['against host',
+                        host_no,
+                        arena.discriminator_instance.random_tag, arena.discriminator_instance.current_fitness,\
+                        arena.discriminator_instance.state])
+            
+            
+            
+            
             encountered_pathogens.append(pathogen)
 
         dump_trace(['final cross-match:',
@@ -952,14 +996,14 @@ def chain_evolve(individuals_per_species, starting_cluster):
 
     timer = StopWatch()
     
-    #dump_evo(['*********************** FIRST CROSS TRAIN AND EVOLVE IN POP RESULTS *****************************'])
-    cross_train_iteration(hosts, pathogens, 'light', 1, timer=timer)
+    dump_evo(['*********************** FIRST CROSS TRAIN AND EVOLVE IN POP RESULTS *****************************'])
+    cross_train_iteration(hosts, pathogens, 'light', 5, timer=timer)
     evolve_in_population(hosts['light'], pathogens, default_budget, timer=timer)
-    #dump_evo(['*********************** SECOND CROSS TRAIN AND EVOLVE IN POP RESULTS *****************************'])
-    cross_train_iteration(hosts, pathogens, 'PreLU', 1, timer=timer)
+    dump_evo(['*********************** SECOND CROSS TRAIN AND EVOLVE IN POP RESULTS *****************************'])
+    cross_train_iteration(hosts, pathogens, 'PreLU', 5, timer=timer)
     evolve_in_population(hosts['PreLU'], pathogens, default_budget, timer=timer)
-    #dump_evo(['*********************** THIRD CROSS TRAIN AND EVOLVE IN POP RESULTS *****************************'])
-    cross_train_iteration(hosts, pathogens, 'base', 1, timer=timer)
+    dump_evo(['*********************** THIRD CROSS TRAIN AND EVOLVE IN POP RESULTS *****************************'])
+    cross_train_iteration(hosts, pathogens, 'base', 10, timer=timer)
     evolve_in_population(hosts['base'], pathogens, default_budget, timer=timer)
     
     
@@ -1089,8 +1133,21 @@ def brute_force_training(restarts, epochs):
         dump_trace(['sampled images from',
                     pathogen_no,
                     arena.generator_instance.random_tag,
-                    current_fid, current_is, arena.generator_instance.current_fitness])
+                    current_fid, current_is, arena.generator_instance.current_fitness, arena.generator_instance.state])
 
+        
+        
+        
+        #EVOOOOOOOOOOOO
+        dump_trace(['against host',
+                    host_no,
+                    arena.discriminator_instance.random_tag, arena.discriminator_instance.current_fitness,\
+                    arena.discriminator_instance.state])
+        
+        
+        
+        
+        
         timer.start()
 
         arena_match_results = arena.match()
@@ -1302,7 +1359,7 @@ if __name__ == "__main__":
         # chain_progression(5, 5)
 
         #dump_evo(['first chain evolve 3,3'])
-        chain_evolve(3, 3)
+        chain_evolve(5, 5)
         
         #dump_evo(['second chain evolve 3,3'])
         #chain_evolve(3, 3)

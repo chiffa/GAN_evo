@@ -30,13 +30,23 @@ disc_tag_trace = {}  # Maps the random tag to its previous state and gen that ch
 encounter_record = {}
 
 #EVO
-master_fit_map = {}
+master_gen_fit_map = {}
+
+master_disc_fit_map = {}
+
+#soft_sweeps = {} #EVO - SWEEPS_BOXPLOTS
+#hard_sweeps = {} #EVO - SWEEPS_BOXPLOTS
+
 
 master_fid_map = {}
 
-master_is_map = {}                                                              
+master_is_map = {}
 
 disc_phases = {}
+
+
+#EVOOOO
+#sweeps = {}
 
 
 def stitch_run_traces(run_trace_diretory, filter):
@@ -159,32 +169,149 @@ def extract_evo_data(chain_evolve_run):
     final_pathogens_list = final_pathogens_list[1:-1].split(', ')
     
     
-    is_collector  = [-1]*len(final_pathogens_list)
-    fid_collector = [-1]*len(final_pathogens_list)
-    tag_collector = ["None"]*len(final_pathogens_list)
+    
+    gen_sweeps = {}
+    disc_sweeps = {}
+    
     
     #EVO
-    fit_collector = [-1]*len(final_pathogens_list)
+    final_hosts_list = chain_evolve_run[-2][0][2]
+    final_hosts_list = final_hosts_list[1:-1].split(', ')
+        
+    #print('chain_evolve_run[-2][0]', chain_evolve_run[-2][0])
+    
+    #print('')
+    #print('')
+    #print('')
+    #print('final_pathogens_list ', final_pathogens_list)
+        
+    #print('final_hosts_list ', final_hosts_list)
+    #print('')
+    
+    
+    
+    
+    
+    
+    
+    is_collector  = [-1]*len(final_pathogens_list)
+    fid_collector = [-1]*len(final_pathogens_list)
+    gen_tag_collector = ["None"]*len(final_pathogens_list)
+    
+    
+    disc_tag_collector = ["None"]*len(final_hosts_list)
+    
+    #EVO
+    gen_fit_collector = [-1]*len(final_pathogens_list)
+    disc_fit_collector = [-1]*len(final_hosts_list)
 
     
     pre_train_buffer = []
     
+    #print('chain_evolve_run[-2][1:-1]: ',chain_evolve_run[-2][1:-1])
     
-    
-    for entry in chain_evolve_run[-2][1:-1]:  # here we are pulling hte data from the last run alone
+    for entry in chain_evolve_run[-2][1:-1]:  # here we are pulling the data from the last run alone
 
-        #print('chain_evolve_run[-2][1:-1]: ',chain_evolve_run[-2][1:-1])
+        
         #print('entry: ', entry)
+        
         
         if entry[0] == 'sampled images from':
             # print(entry)
                  
-            fit_collector[int(entry[1])] = float(entry[-1]) #EVO   
-            is_collector[int(entry[1])]  = float(entry[-2])
-            fid_collector[int(entry[1])] = float(entry[-3])
-            tag_collector[int(entry[1])] = entry[2]
+            gen_fit_collector[int(entry[1])] = float(entry[-2]) #EVO   
+            is_collector[int(entry[1])]  = float(entry[-3])
+            fid_collector[int(entry[1])] = float(entry[-4])
+            gen_tag_collector[int(entry[1])] = entry[2]
             
-
+        #EVOOOO
+        if entry[0] == 'against host':
+            
+            disc_fit_collector[int(entry[1])] = float(entry[-2]) #EVO
+            
+            disc_tag_collector[int(entry[1])] = entry[2]
+     
+    
+    
+    #EVO
+    #print('gen_tag_collector', gen_tag_collector)
+    #print('disc_tag_collector', disc_tag_collector)
+            
+    #print('')
+    
+    #EVOO        
+    #print('gen_fit_collector: ', gen_fit_collector)
+    #print('disc_fit_collector: ', disc_fit_collector)
+    
+    #print('')
+    #print('')
+    
+    #With veeeeery small probability if disc was never chosen -- we should implement the same for the gens !
+    for i in range(len(disc_fit_collector)):
+        if disc_fit_collector[i] == -1:
+                        
+            for entry in chain_evolve_run[-2][1:-1]:
+                #print('entry: ', entry)
+                if entry[0] == 'current tag/fitness tables':
+                    #print('entry[3]: ', entry[3])
+                    #print('entry[3][i]: ', float((entry[3][1:-2]).split(', ')[i]))
+                    disc_fit_collector[i] = float((entry[3][1:-1]).split(', ')[i])
+                    
+                                
+    
+    #Same thing when collecting the random tags
+    for i in range(len(disc_tag_collector)):
+        if disc_tag_collector[i] == 'None':
+            
+            for entry in chain_evolve_run[-2][1:-1]:
+                if entry[0] == 'current tag/fitness tables':#(entry[1][1:-2]).split(', ')[i]
+                    #print('entry ', entry)
+                    
+                    #print('entry[1][i]: ', ((entry[1][1:-1]).split(', ')[i])[1:-1]             )
+                                        
+                    disc_tag_collector[i] = ((entry[1][1:-1]).split(', ')[i])[1:-1]
+    
+    
+    
+    #EVOOO -- Same for the generators
+    
+    for i in range(len(gen_fit_collector)):
+        if gen_fit_collector[i] == -1:
+                        
+            for entry in chain_evolve_run[-2][1:-1]:
+                #print('entry: ', entry)
+                if entry[0] == 'current tag/fitness tables':
+                    #print('entry[3]: ', entry[3])
+                    #print('entry[3][i]: ', float((entry[3][1:-2]).split(', ')[i]))
+                    gen_fit_collector[i] = float((entry[4][1:-1]).split(', ')[i])
+                    
+                                
+    
+    for i in range(len(gen_tag_collector)):
+        if gen_tag_collector[i] == 'None':
+            
+            for entry in chain_evolve_run[-2][1:-1]:
+                if entry[0] == 'current tag/fitness tables':#(entry[1][1:-2]).split(', ')[i]
+                    #print('entry ', entry)
+                    
+                    #print('entry[1][i]: ', ((entry[1][1:-1]).split(', ')[i])[1:-1]             )
+                                        
+                    gen_tag_collector[i] = ((entry[2][1:-1]).split(', ')[i])[1:-1]
+    
+    
+    
+    
+    
+    #EVO
+    #print('gen_tag_collector', gen_tag_collector)
+    #print('disc_tag_collector', disc_tag_collector)
+            
+    #EVOO        
+    #print('gen_fit_collector: ', gen_fit_collector)
+    #print('disc_fit_collector: ', disc_fit_collector)
+    
+    
+    
     # parameters =
     # in cross-train: 4 / -3
     # in evo:
@@ -192,11 +319,25 @@ def extract_evo_data(chain_evolve_run):
     for sub_run in chain_evolve_run[1:-1]:
         for entry in sub_run[1:-1]:
             
+            #print('entry ', entry)
+            
+            
+            #EVOOOO
+            if entry[0] == 'against host':
+                master_disc_fit_map[entry[2]] = float(entry[-2])
+                
+                disc_sweeps[entry[2]] = entry[-1]
+            
+            
             
             if entry[0] == 'sampled images from':
-                master_fid_map[entry[2]] = float(entry[-3])
-                master_is_map[entry[2]]  = float(entry[-2])
-                master_fit_map[entry[2]] = float(entry[-1])
+                master_fid_map[entry[2]] = float(entry[-4])
+                master_is_map[entry[2]]  = float(entry[-3])
+                
+                master_gen_fit_map[entry[2]] = float(entry[-2])#EVO
+                
+                gen_sweeps[entry[2]] = entry[-1]#EVO
+                
 
             if entry[0] in ['infection attempt:', 'pre-train:']:
                 pre_train_buffer = entry
@@ -212,6 +353,24 @@ def extract_evo_data(chain_evolve_run):
                 if sub_run[0][1] == 'cross-train':
                     disc_phases[entry[3]][1] = sub_run[0][4]
 
+                    
+    #print('')            
+    
+    #print('master_gen_fit_map', len(master_gen_fit_map), master_gen_fit_map)
+    #print('master_disc_fit_map', len(master_disc_fit_map), master_disc_fit_map)
+    
+    
+    #print('')
+    
+    #print('gen_sweeps', len(gen_sweeps), gen_sweeps)
+    
+    #print('disc_sweeps', len(disc_sweeps), disc_sweeps)
+    
+    #print('')
+    
+            
+            
+            
     #         if 'PYXTR1B9CC' in entry:
     #             print('dbg', entry)
     #             print('dbg ptb', pre_train_buffer)
@@ -221,7 +380,8 @@ def extract_evo_data(chain_evolve_run):
     #
     # raise Exception('other debug')
 
-    return fit_collector, is_collector, fid_collector, tag_collector, duration
+    return disc_fit_collector, gen_fit_collector, is_collector, fid_collector, disc_tag_collector, gen_tag_collector, duration,\
+           disc_sweeps, gen_sweeps
 
 
 def extract_battle_royale_data(battle_royale_run):
@@ -249,7 +409,9 @@ def extract_battle_royale_data(battle_royale_run):
     return gen_index, disc_index, real_error_matrix, gen_error_matrix
 
 
-def render_fid_is_performances(attribution_map):
+
+
+def render_fid_is_performances(attribution_map, gen_soft_sweeps, gen_hard_sweeps, disc_soft_sweeps, disc_hard_sweeps):
 
     def draw_p_vals_table(_dataset):
         p_matrix = np.ones((len(_dataset), len(_dataset)))
@@ -285,18 +447,22 @@ def render_fid_is_performances(attribution_map):
 
         
         for name, data in zip(method_names, _dataset):
+            
+            
             load = [name_remap(name), '&',
                     '%.2f' % np.median(data), '&',
                     '%.2f' % np.mean(data), '&',
                     '%.2f' % np.std(data), '&',
                     '%d' % len(data), '\\\\']
             print(' '.join(load))
-
+            
+        
         plt.boxplot(_dataset)   #4 locs bec the dataset has 4 columns (first pass)
         x_pad = [[_i+1  # +random.random()/10.
                   for _ in range(len(_data))]
                  for _i, _data in enumerate(_dataset)]
         
+                
         
         plt.scatter(flatten(x_pad), flatten(_dataset), c='k')
         locs, labels = plt.xticks()
@@ -330,6 +496,11 @@ def render_fid_is_performances(attribution_map):
         
         best_is_achieved.append([])
         all_is_achieved.append([])
+        
+        
+        #print('value: ', value)#EVO
+        #print('value.items(): ', value.items())#EVO
+        
         
         for sub_key, (exec_time, fids, is_scores, fitnesses, tags) in value.items():#EVO -- only modif in this method
             
@@ -437,9 +608,89 @@ def render_fid_is_performances(attribution_map):
     plt.clf()
     
     
+    
+    
+    
+    ####EVOOOO - SWEEPS PLOTS
+    
+    #GEN
+    sweeps_input_gen = [gen_soft_sweeps, gen_hard_sweeps]
+    
+    plt.title('Dominant Adaptation Modes - Pathogens')
+    plt.ylabel('Count')
+    Sweeps_box_plot(sweeps_input_gen)
+    #plt.show()
+    plt.savefig("./post_analysis_images/Pathogens_Sweeps.png")
+    plt.clf()
+    
+    
+    #DISC
+    sweeps_input_disc = [disc_soft_sweeps, disc_hard_sweeps]
+    
+    plt.title('Dominant Adaptation Modes - Hosts')
+    plt.ylabel('Count')
+    Sweeps_box_plot(sweeps_input_disc)
+    #plt.show()
+    plt.savefig("./post_analysis_images/Hosts_Sweeps.png")
+    plt.clf()
+    
+    
+############################################################################################
 
 
-def pull_best_fid_is_tags(attribtution_map):
+def Sweeps_box_plot(_dataset):
+    
+    flatten = lambda l: [item for sublist in l for item in sublist]
+
+
+    '''
+    for name, data in zip(method_names, _dataset):
+
+        print('name: ', name)
+        print('data: ', data)
+
+        load = [name_remap(name), '&',
+                '%.2f' % np.median(data), '&',
+                '%.2f' % np.mean(data), '&',
+                '%.2f' % np.std(data), '&',
+                '%d' % len(data), '\\\\']
+        print(' '.join(load))
+    '''
+
+
+    #print('_dataset: ', _dataset)#EVO
+
+
+
+    plt.boxplot(_dataset)   #4 locs bec the dataset has 4 columns (first pass)
+    x_pad = [[_i+1  # +random.random()/10.
+              for _ in range(len(_data))]
+             for _i, _data in enumerate(_dataset)]
+
+
+
+    plt.scatter(flatten(x_pad), flatten(_dataset), c='b')
+    locs, labels = plt.xticks()
+    #locs = [1,2,3,4]
+    #print('locs: ', locs)
+    #print('labels: ', labels)
+
+    adaptation_modes = ['Soft Sweeps', 'Hard Sweeps']
+
+    plt.xticks(locs, adaptation_modes)
+    #plt.xticks(rotation=30, rotation_mode="anchor", ha="right")
+    plt.tight_layout()
+
+
+############################################################################################
+    
+    
+    
+    
+    
+    
+
+def pull_best_fid_is_tags(attribution_map):
     method_names = []
     best_fid_gen_tags = []
     best_is_gen_tags = []
@@ -619,7 +870,7 @@ def render_relative_performances(gen_index, disc_index,
     plt.clf()
 
 # CURRENTPASS: [complexity] cyclomatic complexity=28 (!)
-def render_training_history(method_names):          # SECOND ARGUMENT "best_fids_..." deleted (not needed)
+def render_training_history(method_names, disc_sweeps, gen_sweeps):
 
     type_map = {0: 'X',
                 1: '*',
@@ -628,7 +879,32 @@ def render_training_history(method_names):          # SECOND ARGUMENT "best_fids
 
     colors_map = {1: 'k',
                   2: 'b'}
+    
+    
+    
+    #EVO
+    type_map_2 = {'No adaptation': '.',
+                  'Coadaptation' : '*',
+                  'Soft Sweeps'  : 'o',  #EVO- uppercase
+                  'Hard Sweeps'  : 'o'}
+    
+    colors_map_2 = {'No adaptation': 'k',
+                    'Coadaptation' : 'g',
+                    'Soft Sweeps'  : 'b', #EVO- uppercase
+                    'Hard Sweeps'  : 'r'}
+    
 
+    '''
+    #EVOOOOOOOOOOOOOOOOO
+    gen_soft_sweeps = [] #EVO - SWEEPS_BOXPLOTS
+    gen_hard_sweeps = [] #EVO - SWEEPS_BOXPLOTS
+    
+    disc_soft_sweeps = [] #EVO - SWEEPS_BOXPLOTS
+    disc_hard_sweeps = [] #EVO - SWEEPS_BOXPLOTS
+    '''
+    
+    
+    
     def render_score_progression(method, gen_tags_trace):
 
         plt.title(name_remap(method)) #  (method) instead of [method]
@@ -732,6 +1008,7 @@ def render_training_history(method_names):          # SECOND ARGUMENT "best_fids
         #plt.ylabel('FID or IS')
         plt.xlabel('encounter')
 
+        
         legend_elements = []
         all_types = []
         all_colors = []
@@ -744,7 +1021,7 @@ def render_training_history(method_names):          # SECOND ARGUMENT "best_fids
                                   color='w',
                                   label=c_t_annotation_map[elt],
                                   markerfacecolor='k',
-                                  markersize=10))
+                                  markersize=8))
 
         if len(all_types) == 0:
             legend_elements.append(Line2D([0], [0],
@@ -752,7 +1029,7 @@ def render_training_history(method_names):          # SECOND ARGUMENT "best_fids
                                   color='w',
                                   label='base',
                                   markerfacecolor='k',
-                                  markersize=10))
+                                  markersize=8))
 
         for elt in colors_map.values():
             if elt in c_t_annotation_map.keys():
@@ -762,7 +1039,7 @@ def render_training_history(method_names):          # SECOND ARGUMENT "best_fids
                                   color='w',
                                   label=c_t_annotation_map[elt],
                                   markerfacecolor=elt,
-                                  markersize=10))
+                                  markersize=8))
 
         plt.legend(handles=legend_elements)
         #plt.show()
@@ -783,15 +1060,19 @@ def render_training_history(method_names):          # SECOND ARGUMENT "best_fids
     ##########################################################################################################################        
         
         
-    def render_fitness_progression(method, gen_tags_trace):
+    def render_fitness_progression(method, tags_trace, sweeps_data):
 
+        #EVOOO
+        soft_sweeps = []
+        hard_sweeps = []
+        
         plt.title(name_remap(method)) #  (method) instead of [method]
 
         cmap = plt.get_cmap('plasma')
         # print('gtt', gen_tags_trace)
         # print('gtt[0]', gen_tags_trace[0])
         # print('gtt[0][0]', gen_tags_trace[0][0])
-        scores_per_line = [gen_line[0][-1] for gen_line in gen_tags_trace]
+        scores_per_line = [line[0][-1] for line in tags_trace]
         # print('fpl', fids_per_line)
 
         scores_per_line = np.array(scores_per_line)
@@ -816,14 +1097,25 @@ def render_training_history(method_names):          # SECOND ARGUMENT "best_fids
         secondary_label_buffer_2 = []
         
         
-        for l_color, gen_line in zip(lines_colors, gen_tags_trace):
+        
+        
+        
+        
+        
+        for l_color, line in zip(lines_colors, tags_trace):
             
             
-            print('gen_line', gen_line)
             
             
-            root = gen_line[0][0]
-            scores = [score for _, _, _, _, score in reversed(gen_line)]
+            
+            
+            #print('gen_tags_trace ', gen_tags_trace)
+            #print('gen_line ', gen_line)
+            
+            
+            
+            root = line[0][0]
+            scores = [score for _, _, _, _, score in reversed(line)]
             xs = range(len(scores))
             plt.plot(xs, scores,
                      # label=root,
@@ -831,32 +1123,61 @@ def render_training_history(method_names):          # SECOND ARGUMENT "best_fids
                      # linewidth=3
                      )
 
-            print('root ', root)
-            print('scores ', scores)
+            #print('root ', root)
+            #print('scores ', scores)
             
             
-            disc_state = [disc_phases[disc_tag] for _, disc_tag, _, _, _ in gen_line]
+            #disc_state = [disc_phases[disc_tag] for _, disc_tag, _, _, _ in gen_line]
+            
+            #print('disc_phases', disc_phases)
+            
+            
+            #EVO
+            sweeps_state = [sweeps_data[tag] for tag, _, _, _, _ in line]
+            
+            
+            
+            soft_sweeps.append(sweeps_state.count('Soft Sweeps'))   #EVO - SWEEPS_BOXPLOTS // next run with uppercase s of sweeps
+            hard_sweeps.append(sweeps_state.count('Hard Sweeps'))   #EVO - SWEEPS_BOXPLOTS 
+            
+            
+            
             # print(disc_state)
             color_list = []
             type_list = []
-            t = 0
-            c_mem = ''
-            cross_train_counter = 0
+            
+            
+            type_list_2 = []#hedhi twali principale
+            color_list_2 = []#hedhi twali principale
+            
+            
+            t = 0   #potentiellement zeyda
+            c_mem = ''  #potentiellement zeyda
+            cross_train_counter = 0  #potentiellement zeyda
             # print('new train')
-
-            
-            print('disc_state', disc_state)
             
             
-            for state in reversed(disc_state):
+            
+            #print('sweeps_state ', sweeps_state)
+            
+            
+            
+            #gen_index +=1 #EVO - SWEEPS_BOXPLOTS
+            
+            
+            
+            for state in reversed(sweeps_state):
                 # print('\ts', state)
                 
                 
-                print('state', state)
+                #print('state', state)
                 
-                
+                '''
+                #EVO-- edhouma ezouz zeydin
                 if state[0] == 'cross-train':
                     cross_train_counter += 1
+                
+                
                 if state[1] is not None and c_mem != state[1] \
                         or cross_train_counter % 6 == 0:  # temporary
                     cross_train_counter = 1
@@ -864,9 +1185,26 @@ def render_training_history(method_names):          # SECOND ARGUMENT "best_fids
                     t += 1
                     c_mem = state[1]
                     c_t_annotation_map[type_map[t]] = c_mem
+                    
+                    
+                    print('c_mem', c_mem)
+                    print('type_map', type_map)
+                    print('type_map[t]', type_map[t])
+                    print('c_t_annotation_map', c_t_annotation_map)
+                '''    
+                    
+                #EVO    
+                type_list_2.append(type_map_2[state])
+                    
+                    
+                    
                 # print('\tt', c_mem, ':', t)
+                
+                '''
                 type_list.append(type_map[t])
 
+                
+                
                 if state[0] not in type_idx_map.keys():
                     # print('xc', state[0], '! in', type_idx_map.keys())
                     c += 1
@@ -875,15 +1213,18 @@ def render_training_history(method_names):          # SECOND ARGUMENT "best_fids
                 # print('\tc', state[0], ':', type_idx_map[state[0]])
                 color_list.append(colors_map[type_idx_map[state[0]]])
 
+                '''
+                
+                #EVO    
+                color_list_2.append(colors_map_2[state])
             
-            print('type_list', type_list)
-            print('c_t_annotation_map', c_t_annotation_map)
-            print('color_list', color_list)
+            #print('type_list_2', type_list_2)
+            #print('c_t_annotation_map', c_t_annotation_map)
+            #print('color_list_2', color_list_2)
             
             
-            '''
 
-            for _x, _s, _t, _c in zip(xs, scores, type_list, color_list):
+            for _x, _s, _t, _c in zip(xs, scores, type_list_2, color_list_2):
 
                 if _t not in shown_t or _c not in shown_c:
                     shown_t.append(_t)
@@ -903,12 +1244,15 @@ def render_training_history(method_names):          # SECOND ARGUMENT "best_fids
 
             # TODO: add the relative performance wrt competition as well as
             # the lane of the  disc.
+                        
+        
+            
 
         
         # pprint(c_t_annotation_map)
-        if len(c_t_annotation_map.keys()) == 0:
+        #if len(c_t_annotation_map.keys()) == 0: EVOOOOOOOOO
             # print('problem detected')
-            pass
+            #pass
         #plt.ylabel('FID or IS')
         plt.xlabel('encounter')
 
@@ -916,16 +1260,37 @@ def render_training_history(method_names):          # SECOND ARGUMENT "best_fids
         all_types = []
         all_colors = []
 
-        for elt in type_map.values():
-            if elt in c_t_annotation_map.keys() and elt not in all_types:
+        
+        #EVOOOOOOOOOOOOOOOOOOO
+        c_t_annotation_map = {'k.' : 'No Adaptation', 'g*': 'Coadaptation', 'bo': 'Soft Sweeps', 'ro': 'Hard Sweeps'}
+        
+        
+        type_map_3 = {'No adaptation': 'k.',
+                      'Coadaptation' : 'g*',
+                      'Soft Sweeps'  : 'bo',
+                      'Hard Sweeps'  : 'ro'}
+        
+        
+        for elt in type_map_3.values():
+        
+            if elt in c_t_annotation_map and elt not in all_types: #EVOOO
                 all_types.append(elt)
                 legend_elements.append(Line2D([0], [0],
-                                  marker=elt,
-                                  color='w',
+                                  marker=elt[1], #elt
+                                  color=elt[0], #'w'
                                   label=c_t_annotation_map[elt],
-                                  markerfacecolor='k',
-                                  markersize=10))
+                                  markerfacecolor=elt[0], #'k'
+                                  markersize=8))
 
+        plt.legend(handles=legend_elements)
+        
+        
+        
+        
+        
+        
+        #Not happening anyway, our legend maps are created manually and are constant as of now!
+        '''
         if len(all_types) == 0:
             legend_elements.append(Line2D([0], [0],
                                   marker='x',
@@ -934,6 +1299,7 @@ def render_training_history(method_names):          # SECOND ARGUMENT "best_fids
                                   markerfacecolor='k',
                                   markersize=10))
 
+        
         for elt in colors_map.values():
             if elt in c_t_annotation_map.keys():
                 # print('color legend elt:', elt)
@@ -944,9 +1310,9 @@ def render_training_history(method_names):          # SECOND ARGUMENT "best_fids
                                   markerfacecolor=elt,
                                   markersize=10))
 
-        plt.legend(handles=legend_elements)        
-        '''        
-        
+                
+        '''     
+        return soft_sweeps, hard_sweeps
     ##########################################################################################################################
     
         
@@ -957,15 +1323,25 @@ def render_training_history(method_names):          # SECOND ARGUMENT "best_fids
     
 
     method_names = []
-    run_tags = []
+    gen_run_tags = []
+    disc_run_tags = []
 
-    for i, (key, value) in enumerate(attribution_map.items()):
+    
+    #Collecting gen run tags
+    for i, (key, value) in enumerate(gen_attribution_map.items()):
         if key[0] == 'brute-force':
             continue
         method_names.append(' '.join(key))
-        run_tags.append([])
-        for sub_key, (exec_time, fids, is_scores, fitnesses, tags) in value.items(): #here we collect all tags
-            run_tags[-1].append(tags)
+        gen_run_tags.append([])
+        
+        #print('key ', key)
+        #print('value ', value)
+        #print('attribution_map.items() ', attribution_map.items())
+        
+        
+        
+        for sub_key, (exec_time, fids, is_scores, gen_fitnesses, tags) in value.items(): #here we collect all tags
+            gen_run_tags[-1].append(tags)
             #print('value.items() ', value.items())#EVO
             #print('sub_key ', sub_key)#EVO
             #print('exec_time ', exec_time)#EVO
@@ -976,13 +1352,36 @@ def render_training_history(method_names):          # SECOND ARGUMENT "best_fids
     
     #print('run_tags: ', run_tags)#EVO
 
-    fit_master_tag_trace = []#EVO
+    
+    
+    #Collecting disc run tags
+    for i, (key, value) in enumerate(disc_attribution_map.items()):
+        if key[0] == 'brute-force':
+            continue
+        method_names.append(' '.join(key))
+        disc_run_tags.append([])
+        
+        for sub_key, (exec_time, fids, is_scores, disc_fitnesses, tags) in value.items(): #here we collect all tags
+            disc_run_tags[-1].append(tags)
+            
+            
+            
+    #print('gen_run_tags', gen_run_tags)        
+    #print('')
+    #print('disc_run_tags', disc_run_tags)
+    #print('')
+    
+    gen_fit_master_tag_trace = []#EVO
+    disc_fit_master_tag_trace = []#EVO
+    
+    
     fid_master_tag_trace = []
     is_master_tag_trace = []
 
-    #pprint(run_tags)
 
-    for method, tag_sets in zip(method_names, run_tags):
+    #IS, FID & Gen fitnesses
+    ###########################################################################
+    for method, tag_sets in zip(method_names, gen_run_tags):
         
         fit_local_tag_trace = []#EVO
         fid_local_tag_trace = []
@@ -1036,7 +1435,7 @@ def render_training_history(method_names):          # SECOND ARGUMENT "best_fids
                     fit_single_tag_trace.append([temp_tag,
                                              current_disc,
                                              *encounter_record[current_disc, temp_tag],
-                                             master_fit_map[temp_tag]])
+                                             master_gen_fit_map[temp_tag]])
                     
                     
                     temp_tag = gen_tag_trace[temp_tag][0]
@@ -1055,6 +1454,7 @@ def render_training_history(method_names):          # SECOND ARGUMENT "best_fids
                 #print('is_tag_set_trace', is_tag_set_trace)#EVO
                 
 
+                ###################
                 single_disc_trace = []
                 # print(temp_tag, tag)
                 disc_trace_root = gen_tag_trace[tag][1]  # we have a problem where the
@@ -1066,28 +1466,147 @@ def render_training_history(method_names):          # SECOND ARGUMENT "best_fids
                     temp_disc = disc_tag_trace[temp_disc][0]
 
                 tag_set_disc_trace.append(single_disc_trace)
+                
+                ###################
 
             fit_local_tag_trace.append([fit_tag_set_trace, tag_set_disc_trace])
             fid_local_tag_trace.append([fid_tag_set_trace, tag_set_disc_trace])
             is_local_tag_trace.append([is_tag_set_trace, tag_set_disc_trace])
             
-        fit_master_tag_trace.append(fit_local_tag_trace)
+        gen_fit_master_tag_trace.append(fit_local_tag_trace)
         fid_master_tag_trace.append(fid_local_tag_trace)
         is_master_tag_trace.append(is_local_tag_trace)
+    
+    #EVO
+    #print('gen_tag_trace', gen_tag_trace)
+    #print("")
+    #print("gen_fit_master_tag_trace: ", gen_fit_master_tag_trace)
+    #print("")
+    ###########################################################################
+    
+    
+    
+    
+    
+    #Discs fitnesses
+    ###########################################################################
+    for method, tag_sets in zip(method_names, disc_run_tags):
         
-        
+        fit_local_tag_trace = []#EVO
+
+        #print(method)#EVO
+
+        #print(tag_sets)#EVO
+
+        for tag_set in tag_sets:  # we have the last tags performances
+            
+            fit_tag_set_trace = []#EVO
+            
+            
+            ####
+            tag_set_gen_trace = []
+
+            
+            
+            #print('tag_set', tag_set)#EVO
+
+            for tag in tag_set:
+                
+                fit_single_tag_trace = []#EVO
+
+                temp_tag = tag
+                
+
+                while temp_tag in disc_tag_trace.keys():  # does not enter if the tag is wrong
+                    
+                    #print('temp_tag ', temp_tag)#EVO
+                    
+                    #print('gen_tag_trace ', gen_tag_trace)#EVO
+                    #print('gen_tag_trace.keys() ', gen_tag_trace.keys())#EVO
+                    
+                    current_gen = disc_tag_trace[temp_tag][1]
+                    
+                    #print('current_disc ', current_disc)#EVO
+                    
+                    #print('encounter_record[current_disc, temp_tag] ', encounter_record[current_disc, temp_tag])#EVO
+                    '''
+                    fid_single_tag_trace.append([temp_tag,
+                                             current_gen,
+                                             *encounter_record[temp_tag, current_gen],
+                                             master_fid_map[temp_tag]])  # and here we add all the fids (not only best ones from argument)
+                    
+                    is_single_tag_trace.append([temp_tag,
+                                             current_gen,
+                                             *encounter_record[temp_tag, current_gen],
+                                             master_is_map[temp_tag]])
+                    '''
+
+                    fit_single_tag_trace.append([temp_tag,
+                                             current_gen,
+                                             *encounter_record[temp_tag, current_gen],
+                                             master_disc_fit_map[temp_tag]])
+                    
+                    
+                    temp_tag = disc_tag_trace[temp_tag][0]
+                    
+                    #print('fit_single_tag_trace ', fit_single_tag_trace)#EVO
+                    #print('fid_single_tag_trace ', fid_single_tag_trace)#EVO
+                    #print('is_single_tag_trace ', is_single_tag_trace)#EVO
+                    #print('temp_tag ', temp_tag)#EVO
+                
+                fit_tag_set_trace.append(fit_single_tag_trace)
+                #fid_tag_set_trace.append(fid_single_tag_trace)
+                #is_tag_set_trace.append(is_single_tag_trace)
+                
+                #print('fit_tag_set_trace', fit_tag_set_trace)#EVO
+                #print('fid_tag_set_trace', fid_tag_set_trace)#EVO
+                #print('is_tag_set_trace', is_tag_set_trace)#EVO
+                
+
+                ###################
+                single_gen_trace = []
+                # print(temp_tag, tag)
+                gen_trace_root = disc_tag_trace[tag][1]  # we have a problem where the
+                # evolutionary elts that have not evolved in the last round are not used.
+                temp_gen = gen_trace_root
+
+                while temp_gen in gen_tag_trace.keys():
+                    single_gen_trace.append(temp_gen)
+                    temp_gen = gen_tag_trace[temp_gen][0]
+
+                tag_set_gen_trace.append(single_gen_trace)
+
+                ###################
+                
+            fit_local_tag_trace.append([fit_tag_set_trace, tag_set_gen_trace])
+            #fid_local_tag_trace.append([fid_tag_set_trace, tag_set_gen_trace])
+            #is_local_tag_trace.append([is_tag_set_trace, tag_set_gen_trace])
+            
+        disc_fit_master_tag_trace.append(fit_local_tag_trace)
+        #fid_master_tag_trace.append(fid_local_tag_trace)
+        #is_master_tag_trace.append(is_local_tag_trace)
+    
+    
+    
+    ###########################################################################
+    
+    
+    
+    
+    
+    
+    #FID PROGRESSION PLOT
     for method, method_specific_tag_trace in zip(method_names, fid_master_tag_trace):
         for gen_tags_trace, disc_tags_trace in method_specific_tag_trace:
-            disc_idx = {}
             
-            #print('method', method)#EVO
-            #print('gen_tags_trace', gen_tags_trace)#EVO
-            
-            #print('method_specific_tag_trace', method_specific_tag_trace)#EVO
+            #not used
+            disc_idx = {}           
 
             for i, disc_line in enumerate(disc_tags_trace):
                 disc_idx.update(dict((tag, i) for tag in disc_line))
-
+            ####
+            
+            
             for gen_tag_line in gen_tags_trace:
                 # print(gen_tag_line[0][0])
                 for entry in reversed(gen_tag_line):
@@ -1103,13 +1622,17 @@ def render_training_history(method_names):          # SECOND ARGUMENT "best_fids
             plt.savefig("./post_analysis_images/fid_progression.png")
             plt.clf()
     
+    #IS PROGRESSION PLOT
     for method, method_specific_tag_trace in zip(method_names, is_master_tag_trace):
         for gen_tags_trace, disc_tags_trace in method_specific_tag_trace:
+            
+            #not used
             disc_idx = {}
 
             for i, disc_line in enumerate(disc_tags_trace):
                 disc_idx.update(dict((tag, i) for tag in disc_line))
-
+            ####
+            
             for gen_tag_line in gen_tags_trace:
                 # print(gen_tag_line[0][0])
                 for entry in reversed(gen_tag_line):
@@ -1124,18 +1647,21 @@ def render_training_history(method_names):          # SECOND ARGUMENT "best_fids
             plt.clf()
 
 
-            
-    #EVO -- fitness here
-    for method, method_specific_tag_trace in zip(method_names, fit_master_tag_trace):
+         
+    ##GENS FITNESS PROGRESSION PLOT
+    for method, method_specific_tag_trace in zip(method_names, gen_fit_master_tag_trace):
         
         if method.startswith('chain evolve'):
             
             for gen_tags_trace, disc_tags_trace in method_specific_tag_trace:
+                
+                #not used
                 disc_idx = {}
 
                 for i, disc_line in enumerate(disc_tags_trace):
                     disc_idx.update(dict((tag, i) for tag in disc_line))
-
+                ####
+                
                 for gen_tag_line in gen_tags_trace:
                     # print(gen_tag_line[0][0])
                     for entry in reversed(gen_tag_line):
@@ -1145,11 +1671,54 @@ def render_training_history(method_names):          # SECOND ARGUMENT "best_fids
 
                 #print('gen_tags_trace: ', gen_tags_trace)
                 
-                render_fitness_progression(method, gen_tags_trace)
+                
+                #print('gen_tags_trace ', gen_tags_trace)
+                #print('')
+                
+                
+                gen_soft_sweeps, gen_hard_sweeps = render_fitness_progression(method, gen_tags_trace, gen_sweeps)
+                plt.title('Fitness Progression - Pathogens Evolving')
                 plt.ylabel('FITNESS')
-                plt.savefig("./post_analysis_images/fit_progression.png")
+                plt.savefig("./post_analysis_images/gen_fit_progression.png")
                 plt.clf()
+    
+    
+    
+    ##DISCS FITNESS PROGRESSION PLOT
+    for method, method_specific_tag_trace in zip(method_names, disc_fit_master_tag_trace):
+        
+        if method.startswith('chain evolve'):
+            
+            for disc_tags_trace, gen_tags_trace in method_specific_tag_trace:
+                
+                #not used
+                gen_idx = {}
 
+                for i, gen_line in enumerate(gen_tags_trace):
+                    gen_idx.update(dict((tag, i) for tag in gen_line))
+                ####
+                
+                for disc_tag_line in disc_tags_trace:
+                    # print(gen_tag_line[0][0])
+                    for entry in reversed(disc_tag_line):
+                        # print(entry)
+                        # print('\t%s - %s \t %.2e \t %.2e \t %.2f' % tuple(entry))
+                        pass         
+
+                #print('gen_tags_trace: ', gen_tags_trace)
+                
+                
+                #print('disc_tags_trace ', disc_tags_trace)
+                #print('')
+                
+                
+                disc_soft_sweeps, disc_hard_sweeps = render_fitness_progression(method, disc_tags_trace, disc_sweeps)
+                plt.title('Fitness Progression - Hosts Evolving')
+                plt.ylabel('FITNESS')
+                plt.savefig("./post_analysis_images/disc_fit_progression.png")
+                plt.clf()
+                
+    return gen_soft_sweeps, gen_hard_sweeps, disc_soft_sweeps, disc_hard_sweeps
                 
             
 if __name__ == "__main__":
@@ -1159,7 +1728,10 @@ if __name__ == "__main__":
     run_skip = []
 
     master_table = parse_past_runs(trace_dump_file)
-    attribution_map = defaultdict(dict)
+    
+    #EVO
+    gen_attribution_map = defaultdict(dict)
+    disc_attribution_map = defaultdict(dict)
 
     collector_list = []
     
@@ -1182,7 +1754,10 @@ if __name__ == "__main__":
                 or sub_entry[0][1] == 'deterministic base round robin 2' \
                 or sub_entry[0][1] == 'stochastic base round robin' \
                 or sub_entry[0][1] == 'homogenous chain progression':
-                extracted_fitnesses, extracted_is, extracted_fids, final_random_tags, duration = extract_evo_data(sub_entry)
+                disc_fits, gen_fits, extracted_is, extracted_fids, final_disc_tags,\
+                                                final_gen_tags, duration, disc_sweeps, gen_sweeps = extract_evo_data(sub_entry)
+                
+                                
             elif sub_entry[0][1] == 'matching from tags':
                 gen_index, disc_index, real_error_matrix, gen_error_matrix = \
                     extract_battle_royale_data(sub_entry)
@@ -1196,9 +1771,19 @@ if __name__ == "__main__":
             
             #print('[duration, extracted_fids, final_random_tags]', [duration, extracted_fids, final_random_tags])
             
-            attribution_map[(sub_entry[0][1], sub_entry[0][2], sub_entry[0][3])][sub_entry[0][-1]] =\
-                [duration, extracted_fids, extracted_is, extracted_fitnesses, final_random_tags]
+            
+            
+            
+            #EVOOOs
+            gen_attribution_map[(sub_entry[0][1], sub_entry[0][2], sub_entry[0][3])][sub_entry[0][-1]] =\
+                [duration, extracted_fids, extracted_is, gen_fits, final_gen_tags]
+            
+            
+            disc_attribution_map[(sub_entry[0][1], sub_entry[0][2], sub_entry[0][3])][sub_entry[0][-1]] =\
+                [duration, extracted_fids, extracted_is, disc_fits, final_disc_tags]
 
+            
+            
             
             #print('attribution_map[(sub_entry[0][1], sub_entry[0][2], sub_entry[0][3])][sub_entry[0][-1]]',\
                  #attribution_map[(sub_entry[0][1], sub_entry[0][2], sub_entry[0][3])][sub_entry[0][-1]])
@@ -1215,7 +1800,10 @@ if __name__ == "__main__":
     # pprint(collector_list)
 
     # pprint(dict(attribution_map))
-
+    
+    
+    
+    
     attribution_map_filter = [
         # ('brute-force', '5', '15'),
         # ('chain evolve', '3', '3'),
@@ -1242,9 +1830,14 @@ if __name__ == "__main__":
     
     name_remap = lambda x: _name_remap[x] if x in _name_remap.keys() else x
 
+    #EVOOOs
     for key in attribution_map_filter:
-        if key in attribution_map.keys():
-            del attribution_map[key]
+        if key in gen_attribution_map.keys():
+            del gen_attribution_map[key]
+            
+    for key in attribution_map_filter:
+        if key in disc_attribution_map.keys():
+            del disc_attribution_map[key]
 
     
     # new_attribution_map = {}
@@ -1255,11 +1848,14 @@ if __name__ == "__main__":
     # attribution_map = new_attribution_map
 
     
-    render_fid_is_performances(attribution_map)
-    print('ALL PLOTS FINISHED SUCCESSFULLY')
+    #render_fid_is_performances(attribution_map)
+    #print('ALL PLOTS FINISHED SUCCESSFULLY')
     
     
-    method_names, best_fid_gen_tags, best_is_gen_tags, select_disc_fid_tags, select_disc_is_tags = pull_best_fid_is_tags(attribution_map) 
+    #Apart from the method_names, do not use outputs from this function before checking 
+    #this function had never been used so was never adapted to our actual code
+    method_names, best_fid_gen_tags, best_is_gen_tags, select_disc_fid_tags,\
+                                                            select_disc_is_tags = pull_best_fid_is_tags(gen_attribution_map) 
     
     
     # print('select disc tags:', select_disc_tags)
@@ -1273,5 +1869,11 @@ if __name__ == "__main__":
 
     # print(attribution_map.keys())
 
-    render_training_history(method_names) #, best_fid_gen_tags)  # best_fid_gen_tags NOT USED IN METHOD
+    gen_soft_sweeps, gen_hard_sweeps, disc_soft_sweeps, disc_hard_sweeps = render_training_history(method_names, disc_sweeps, gen_sweeps)
+    
+    
+    #EVO
+    render_fid_is_performances(gen_attribution_map, gen_soft_sweeps, gen_hard_sweeps, disc_soft_sweeps, disc_hard_sweeps)
+    
+    
     print('EVERYTHING COMPLETED SUCCESSFULLY')

@@ -323,17 +323,20 @@ def bottleneck_process(instances, kill_proportion):
 
 def pathogen_non_adapted_parent(pathogen):
     
-    if pathogen.infected_someone == False:        
+    if pathogen.infected_someone == False:
+        pathogen.state = 'No adaptation'
         dump_evo(['Pathogen', pathogen.random_tag, 'has not fully adapted to any of its environments with fitness value',\
                   pathogen.current_fitness, 'and fitness map',\
                   pathogen.fitness_map, '- both child and parent did not even infect any one -',\
                   'with key:', pathogen.key])
         
     elif pathogen.coadaptation == False:
+        pathogen.state = 'Hard Sweeps'
         dump_evo(['Pathogen', pathogen.random_tag, 'full adaptation by means of Hard Sweeps, with fitness map ', \
                   pathogen.fitness_map, 'and current fitness',\
                   pathogen.current_fitness, 'with key:', pathogen.key])
     else:
+        pathogen.state = 'Coadaptation'
         dump_evo(['Pathogen', pathogen.random_tag, 'became coadapted, but has not fully adapted to any of its environments,\
                    with fitness map', pathogen.fitness_map,\
                   'and current fitness', pathogen.current_fitness, '- parent did not even infect any one -', 'with key:', pathogen.key])
@@ -342,6 +345,7 @@ def pathogen_non_adapted_parent(pathogen):
 def pathogen_coadapted(pathogen):
     
     if pathogen.parent_coadaptation == False:
+        pathogen.state = 'Coadaptation'
         dump_evo(['Pathogen', pathogen.random_tag, 'became coadapted, but has not fully adapted to any of its environments,\
                    with fitness map', pathogen.fitness_map,\
                   'and current fitness', pathogen.current_fitness, '- parent was fully adapted though -', 'with key:', pathogen.key])
@@ -354,13 +358,14 @@ def pathogen_coadapted(pathogen):
         
 def pathogen_non_coadapted(pathogen):
     
-    if pathogen.parent_coadaptation == False:     
+    if pathogen.parent_coadaptation == False:
         dump_evo(['Pathogen', pathogen.random_tag, '(and parent) already fully adapted with fitness map',\
                   pathogen.fitness_map, 'and current fitness',\
                   pathogen.current_fitness, 'with key:', pathogen.key])
 
     else:
-        dump_evo(['Pathogen', pathogen.random_tag, 'full adaptation by means of Soft sweeps (by Standing Genetic Variation)\
+        pathogen.state = 'Soft Sweeps'
+        dump_evo(['Pathogen', pathogen.random_tag, 'full adaptation by means of Soft Sweeps (by Standing Genetic Variation)\
                   with fitness map', pathogen.fitness_map,\
                   'and current fitness', pathogen.current_fitness, 'with key:', pathogen.key])
 
@@ -383,6 +388,7 @@ def pathogen_sweeps(pathogen): #referenced 3 times inside evolve_in_pop()
         pathogen_adapted_child_and_parent(pathogen)
     
     else:
+        pathogen.state = 'No adaptation'
         dump_evo(['Pathogen', pathogen.random_tag, 'has not fully adapted to any of its environments with fitness value',\
                   pathogen.current_fitness, 'and fitness map',\
                   pathogen.fitness_map, '- has not even infected any host, parent infected someone though -',\
@@ -392,17 +398,20 @@ def pathogen_sweeps(pathogen): #referenced 3 times inside evolve_in_pop()
 
 def host_non_adapted_parent(host):
     
-    if host.silent_map == False:        
+    if host.silent_map == False:
+        host.state = 'No adaptation'
         dump_evo(['Host', host.random_tag, 'has not fully adapted to any of its environments with fitness value',\
                   host.current_fitness, 'and gen error map',\
                   host.gen_error_map, '- both child and parent did not even have a silent map -',\
                   'with key:', host.key])
         
     elif host.coadaptation == False:
+        host.state = 'Hard Sweeps'
         dump_evo(['Host', host.random_tag, 'full adaptation by means of Hard Sweeps, with gen error map ', \
                   host.gen_error_map, 'and current fitness',\
                   host.current_fitness, 'with key:', host.key])
     else:
+        host.state = 'Coadaptation'
         dump_evo(['Host', host.random_tag, 'became coadapted, but has not fully adapted to any of its environments,\
                    with gen error map', host.gen_error_map,\
                   'and current fitness', host.current_fitness, '- parent did not even have a silent map -', 'with key:', host.key])
@@ -411,6 +420,7 @@ def host_non_adapted_parent(host):
 def host_coadapted(host):
     
     if host.parent_coadaptation == False:
+        host.state = 'Coadaptation'
         dump_evo(['Host', host.random_tag, 'became coadapted, but has not fully adapted to any of its environments,\
                    with gen error map', host.gen_error_map,\
                   'and current fitness', host.current_fitness, '- parent was fully adapted though-', 'with key:', host.key])
@@ -429,7 +439,8 @@ def host_non_coadapted(host):
                   host.current_fitness, 'with key:', host.key])
 
     else:
-        dump_evo(['Host', host.random_tag, 'full adaptation by means of Soft sweeps (by Standing Genetic Variation)\
+        host.state = 'Soft Sweeps'
+        dump_evo(['Host', host.random_tag, 'full adaptation by means of Soft Sweeps (by Standing Genetic Variation)\
                   with gen error map', host.gen_error_map,\
                   'and current fitness', host.current_fitness, 'with key:', host.key])
 
@@ -452,6 +463,7 @@ def host_sweeps(host): #referenced 3 times inside evolve_in_pop()
         host_adapted_child_and_parent(host)
     
     else:
+        host.state = 'No adaptation'
         dump_evo(['Host', host.random_tag, 'has not fully adapted to any of its environments with fitness value',\
                   host.current_fitness, 'and gen error map',\
                   host.gen_error_map, '- did not even have a silent map, parent had a silent map though -',\

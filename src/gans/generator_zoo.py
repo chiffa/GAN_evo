@@ -104,6 +104,8 @@ class Generator(nn.Module):
         
         self.key = uuid.uuid4().hex
         
+        self.state = 'No adaptation'
+        
         # ----       
         
         self.main = nn.Sequential(
