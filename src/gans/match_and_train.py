@@ -466,6 +466,8 @@ class Arena(object):
         :return:
         """
 
+        # TODO: add a call to perform a sampling of the real image pair
+
         data = next(iter(self.env.dataloader))
         real_cpu = data[0].to(self.env.device)
 

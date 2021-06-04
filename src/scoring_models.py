@@ -85,6 +85,7 @@ def pathogen_host_fitness(real_av_error, fake_av_error,
 
     return host_fitness, pathogen_fitness
 
+
 #TODO: alternative fitness (proportional to capacity of error induction)
 def cumulative_host_fitness(real_av_error, fake_av_error_vector,
                         autoimmunity_factor=20, virulence_factor_vector=[],
